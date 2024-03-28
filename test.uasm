@@ -1,0 +1,79 @@
+{
+  "instrs":[
+    {"d":[40]},
+    ["range",1],
+    {"d":[1],"flags":"BOOLEAN"},
+    ["drop",2],
+    {"d":[1],"flags":"BOOLEAN"},
+    ["add",3],
+    ["dup",4],
+    ["dup",5],
+    ["dup",6],
+
+    ["mul",7],
+    {"PushFunc":["mul",[2,1],[9,1],true]},
+
+    ["table",8],
+    ["deshape",9],
+    ["flip",10],
+    ["member",11],
+    ["not",12],
+    ["keep",13],
+    {"Comment":"(fn from test.uiua:6:15"},
+    {"d":[1],"flags":"BOOLEAN"},
+    ["add",17],
+    {"Comment":"fn from test.uiua:6:15)"},
+    {"Comment":"(fn from test.uiua:6:5"},
+
+
+    ["dup",15],
+    ["join",16],
+    {"PushFunc":[[{"File":"test.uiua"},[158,139,6,15],[162,143,6,19]],[1,1],[18,2],true]},
+
+    ["each",18],
+    ["dup",19],
+    ["add",20],
+    ["dup",21],
+    ["add",22],
+    {"Comment":"fn from test.uiua:6:5)"},
+    {"s":[5],"d":[1,2,3,4,5]},
+    {"PushFunc":[[{"File":"test.uiua"},[148,129,6,5],[168,149,6,25]],[1,1],[22,8],true]},
+
+    ["each",23]
+  ],
+  "top_slices":[
+    [0,0],[0,6],[6,3],[10,3],[13,4],[31,3]
+  ],
+  "bindings":[],
+  "spans":[
+    null,
+    [{"File":"test.uiua"},[30,27,2,5],[33,28,2,6]],
+    [{"File":"test.uiua"},[26,25,2,3],[29,26,2,4]],
+    [{"File":"test.uiua"},[24,23,2,1],[25,24,2,2]],
+    [{"File":"test.uiua"},[55,49,3,3],[56,50,3,4]],
+    [{"File":"test.uiua"},[54,48,3,2],[55,49,3,3]],
+    [{"File":"test.uiua"},[53,47,3,1],[54,48,3,2]],
+    [{"File":"test.uiua"},[84,73,4,3],[86,74,4,4]],
+    [{"File":"test.uiua"},[81,72,4,2],[84,73,4,3]],
+    [{"File":"test.uiua"},[78,71,4,1],[81,72,4,2]],
+    [{"File":"test.uiua"},[119,101,5,4],[120,102,5,5]],
+    [{"File":"test.uiua"},[116,100,5,3],[119,101,5,4]],
+    [{"File":"test.uiua"},[114,99,5,2],[116,100,5,3]],
+    [{"File":"test.uiua"},[111,98,5,1],[114,99,5,2]],
+    [{"File":"test.uiua"},[169,150,6,26],[180,161,6,37]],
+    [{"File":"test.uiua"},[166,147,6,23],[167,148,6,24]],
+    [{"File":"test.uiua"},[162,143,6,19],[166,147,6,23]],
+    [{"File":"test.uiua"},[159,140,6,16],[160,141,6,17]],
+    [{"File":"test.uiua"},[154,135,6,11],[158,139,6,15]],
+    [{"File":"test.uiua"},[152,133,6,9],[153,134,6,10]],
+    [{"File":"test.uiua"},[151,132,6,8],[152,133,6,9]],
+    [{"File":"test.uiua"},[150,131,6,7],[151,132,6,8]],
+    [{"File":"test.uiua"},[149,130,6,6],[150,131,6,7]],
+    [{"File":"test.uiua"},[144,125,6,1],[148,129,6,5]]
+  ],
+  "inputs":{
+    "files":{
+      "test.uiua":"# Click Run to format!\r\n+1↘1⇡40 # Range 2 to 40\r\n...     # Make 3 copies\r\n♭⊞×     # List of products\r\n▽¬∊:    # Keep not in list\r\neach(+.+. each(+1)join.) [1 2 3 4 5]\r\n"
+    }
+  }
+}
