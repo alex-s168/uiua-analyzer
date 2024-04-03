@@ -1,10 +1,11 @@
-package me.alex_s168
+package me.alex_s168.uiua
 
 import blitz.Either
 import blitz.collections.*
 import blitz.io.Path
 import blitz.io.read
-import kotlinx.serialization.json.*
+import blitz.parse.JSON
+import blitz.str.flattenToString
 
 data class Signature(
     val inputs: Int,
@@ -48,26 +49,31 @@ data class Assembly(
     val instructions: List<Instr>
 ) {
     companion object {
-        fun parse(jsonObject: JsonObject): Assembly {
+        fun parse(jsonObject: Map<String, JSON.Element>): Assembly {
             val instrs = mutableListOf<Instr>()
             jsonObject["instrs"]!!
-                .jsonArray
+                .arr
                 .forEach { elem ->
-                    val it = (elem as? JsonArray)?.let { PrimitiveInstr(it[0].jsonPrimitive.content, it[1].jsonPrimitive.int) }
-                        ?: (elem as JsonObject).let {
-                            it["d"]?.let { d -> NumImmInstr(d.jsonArray[0].jsonPrimitive.double) }
-                                ?: it["PushFunc"]?.jsonArray?.let { p ->
-                                    PushFnInstr(Function(
-                                        (p[0] as? JsonPrimitive)?.let { Either.ofA(it.content) } ?: Either.ofB(SpanRef()),
-                                        listOf(),
-                                        p[1].jsonArray.let { Signature(it[0].jsonPrimitive.int, it[1].jsonPrimitive.int) },
-                                        p[2].jsonArray[0].jsonPrimitive.int,
-                                        p[2].jsonArray[1].jsonPrimitive.int,
-                                        p[3].jsonPrimitive.boolean
-                                    ))
-                                }
-                                ?: it["Comment"]?.let { CommentInstr(it.jsonPrimitive.content) }
-                                ?: error("don't know how to parse $it")
+                    println(elem)
+                    val it = (elem as? JSON.Array)?.let { PrimitiveInstr(it.value[0].str, it.value[1].num.toInt()) }
+                        ?: elem.obj.let {
+                            it["d"]?.let { d ->
+                                // if (it.containsKey("s"))
+                                // TODO
+                                NumImmInstr(d.arr[0].num)
+                            }
+                            ?: it["PushFunc"]?.arr?.let { p ->
+                                PushFnInstr(Function(
+                                    (p[0] as? JSON.Str)?.let { Either.ofA(it.value) } ?: Either.ofB(SpanRef()),
+                                    listOf(),
+                                    p[1].arr.let { Signature(it[0].num.toInt(), it[1].num.toInt()) },
+                                    p[2].arr[0].num.toInt(),
+                                    p[2].arr[1].num.toInt(),
+                                    p[3].bool
+                                ))
+                            }
+                            ?: it["Comment"]?.let { CommentInstr(it.str) }
+                            ?: error("don't know how to parse $it")
                         }
                     if (it is PushFnInstr) {
                         val last = instrs.removeLastInto(it.fn.len)
@@ -79,11 +85,8 @@ data class Assembly(
             return Assembly(instrs)
         }
 
-        fun parse(jsonElement: JsonElement): Assembly =
-            parse(jsonElement.jsonObject)
-
         fun parse(json: String): Assembly =
-            parse(Json.parseToJsonElement(json))
+            parse(JSON.parse(json)!!.obj)
     }
 }
 
@@ -92,7 +95,7 @@ fun main() {
         .getFile()
         .read()
         .stringify()
-        .flatten()
+        .flattenToString()
     val assembly = Assembly.parse(test)
     println(assembly.instructions)
 }
