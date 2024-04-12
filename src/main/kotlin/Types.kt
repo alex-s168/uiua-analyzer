@@ -50,7 +50,7 @@ fun List<Int>.shapeCompact(): List<Int> =
 fun List<Int>.shapeEq(other: List<Int>): Boolean =
     this.shapeCompact().contents == other.shapeCompact().contents
 
-fun List<Int>.shapeToType(elem: Type): Type {
+fun List<Int>.shapeToType(elem: Type): ArrayType {
     val left = toMutableList()
     var arr = ArrayType(elem, left.removeLast().let { if (it < 0) null else it })
     while (left.isNotEmpty())

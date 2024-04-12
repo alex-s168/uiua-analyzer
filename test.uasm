@@ -1,120 +1,177 @@
-{
-  "instrs":[
-    {"Comment":"(fn from test.uiua:3:9"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"fn from test.uiua:3:9)"},
-    {"Comment":"(fnsig"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"fnsig)"},
-    ["pop",6],
-    ["pop",6],
-    {"Comment":"(fn from test.uiua:5:7"},
-    ["box",8],
-    ["inv_box",9],
-    {"Comment":"fn from test.uiua:5:7)"},
-    {"Comment":"(use"},
-    ["box",8],
-    ["inv_box",9],
-    {"Comment":"use)"},
-    {"Comment":"(DoShit"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",11],
-    {"Comment":"DoShit)"},
-    {"Comment":"(DoShitWrapper"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",11],
-    {"s":[8],"d":"arr[int]"},
-    {"s":[1,3],"d":"int"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"DoShitWrapper)"},
-    {"Comment":"(fn from test.uiua:14:7"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"Comment":"fn from test.uiua:14:7)"},
-    {"Comment":"(Inc"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"Comment":"Inc)"},
-    {"Comment":"(IncB"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",17],
-    {"s":[1,6],"d":"inline"},
-    ["pop",6],
-    {"Comment":"IncB)"},
-    {"Comment":"(A"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"int"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"A)"},
-    {"Comment":"(B"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",17],
-    {"s":[1,6],"d":"inline"},
-    ["pop",6],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"int"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"B)"},
-    {"Comment":"(C"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"s":[5],"d":"float"},
-    {"s":[1,5],"d":"float"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"C)"},
-    {"Comment":"(D"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",17],
-    {"s":[1,6],"d":"inline"},
-    ["pop",6],
-    {"s":[5],"d":"float"},
-    {"s":[1,5],"d":"float"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"D)"},
-    {"Comment":"(E"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"Comment":"E)"},
-    {"Comment":"(F"},
-    {"d":[1],"flags":"BOOLEAN"},
-    ["add",15],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"int"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"F)"},
-    {"Comment":"(G"},
-    ["box",8],
-    ["inv_box",9],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"dyn"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"G)"},
-    {"Comment":"(H"},
-    ["box",8],
-    ["inv_box",9],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"dyn"},
-    ["pop",3],
-    ["pop",4],
-    {"s":[3],"d":"int"},
-    {"s":[1,3],"d":"int"},
-    ["pop",3],
-    ["pop",4],
-    {"Comment":"H)"}
-  ],
-  "top_slices":[[0,0],[18,0],[30,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0],[112,0]],
-  "bindings":[{"global":["dynamic",[0,0],[0,0],true]},{"global":["fnsig",[2,0],[5,2],true]},{"global":["attrib",[1,0],[9,1],true]},{"global":["use",[1,1],[15,2],true]},{"global":["DoShit",[1,1],[19,2],true]},{"global":["DoShitWrapper",[1,1],[23,6],true]},{"global":["Inc",[1,1],[35,2],true]},{"global":["IncB",[1,1],[39,4],true]},{"global":["A",[1,1],[45,6],true]},{"global":["B",[1,1],[53,8],true]},{"global":["C",[1,1],[63,6],true]},{"global":["D",[1,1],[71,8],true]},{"global":["E",[1,1],[81,2],true]},{"global":["F",[1,1],[85,6],true]},{"global":["G",[1,1],[93,6],true]},{"global":["H",[1,1],[101,10],true]}],
-  "spans":[null,[{"File":"test.uiua"},[41,40,2,1],[48,47,2,8]],[{"File":"test.uiua"},[57,53,3,1],[62,58,3,6]],[{"File":"test.uiua"},[71,65,3,13],[74,68,3,16]],[{"File":"test.uiua"},[68,62,3,10],[71,65,3,13]],[{"File":"test.uiua"},[77,70,4,1],[83,76,4,7]],[{"File":"test.uiua"},[89,80,4,11],[92,83,4,14]],[{"File":"test.uiua"},[95,85,5,1],[98,88,5,4]],[{"File":"test.uiua"},[109,97,5,13],[112,100,5,16]],[{"File":"test.uiua"},[106,94,5,10],[109,97,5,13]],[{"File":"test.uiua"},[124,109,8,1],[130,115,8,7]],[{"File":"test.uiua"},[143,126,8,18],[144,127,8,19]],[{"File":"test.uiua"},[185,167,9,1],[198,180,9,14]],[{"File":"test.uiua"},[208,188,9,22],[215,195,9,29]],[{"File":"test.uiua"},[304,279,14,1],[307,282,14,4]],[{"File":"test.uiua"},[313,286,14,8],[314,287,14,9]],[{"File":"test.uiua"},[318,290,15,1],[322,294,15,5]],[{"File":"test.uiua"},[344,314,15,25],[345,315,15,26]],[{"File":"test.uiua"},[333,303,15,14],[343,313,15,24]],[{"File":"test.uiua"},[351,319,17,1],[352,320,17,2]],[{"File":"test.uiua"},[362,328,17,10],[369,335,17,17]],[{"File":"test.uiua"},[381,346,18,1],[382,347,18,2]],[{"File":"test.uiua"},[392,355,18,10],[399,362,18,17]],[{"File":"test.uiua"},[412,374,19,1],[413,375,19,2]],[{"File":"test.uiua"},[423,383,19,10],[432,392,19,19]],[{"File":"test.uiua"},[446,405,20,1],[447,406,20,2]],[{"File":"test.uiua"},[457,414,20,10],[466,423,20,19]],[{"File":"test.uiua"},[481,437,21,1],[482,438,21,2]],[{"File":"test.uiua"},[494,447,22,1],[495,448,22,2]],[{"File":"test.uiua"},[505,456,22,10],[512,463,22,17]],[{"File":"test.uiua"},[522,472,23,1],[523,473,23,2]],[{"File":"test.uiua"},[533,481,23,10],[540,488,23,17]],[{"File":"test.uiua"},[552,499,24,1],[553,500,24,2]],[{"File":"test.uiua"},[563,508,24,10],[570,515,24,17]]],
-  "inputs":{"files":{"test.uiua":"# +++ for compatiblity with interpreter\r\ndynamic ← ()\r\nfnsig ← (poppop)\r\nattrib ← (pop)\r\nuse ← (unboxbox)\r\n# ---\r\n\r\nDoShit ← dynamic(+1) # (this has no reason to be dynamic)\r\nDoShitWrapper ← fnsig[\"int\"]\"arr[int]\" dynamic(\r\n  DoShit\r\n)\r\n\r\n# this is now automatically converted to a template\r\nInc ← (+1)\r\nIncB ← attrib[\"inline\"](+1)\r\n\r\nA ← fnsig[\"int\"]\"int\"(Inc)\r\nB ← fnsig[\"int\"]\"int\"(IncB)\r\nC ← fnsig[\"float\"]\"float\"(Inc)\r\nD ← fnsig[\"float\"]\"float\"(IncB)\r\nE ← (Inc)\r\nF ← fnsig[\"int\"]\"int\"(E)\r\nG ← fnsig[\"dyn\"]\"int\"(use)\r\nH ← fnsig[\"int\"]\"int\"(G)\r\n\r\n# The generated binary should behave somewhat like this:\r\n#\r\n# IntArray DoShitWrapper(int a) {\r\n#   auto interpr = new Interpreter(DoShit__assembly); // pass uasm to interpreter\r\n#   interpr.push(new Dynamic(a));\r\n#   interpr.run();\r\n#   return interpr.pop().as(IntArray); // as throws a runtime exception if unsuccesfull\r\n# }\r\n# int Inc__int(int a) { return a + 1; }\r\n# int Inc__float(double a) { return a + 1; }\r\n# int A(int a) { return Inc__int(a); }\r\n# int B(int a) { return a + 1; }\r\n# float C(float a) { return Inc__float(a); }\r\n# float D(float a) { return a + 1; }\r\n# int E__int(int a) { return Inc__int(a); }\r\n# int F(int a) { return E__int(a); }\r\n# Dynamic G(int a) { return new Dynamic(a); }\r\n# int H(int a) { return G(a).as(IntArray); } // as throws a runtime exception if unsuccesfull"}}
-}
+comment "(fn from test.ua:3:9"
+POP 3
+POP 4
+comment "fn from test.ua:3:9)"
+comment "(fnsig"
+POP 3
+POP 4
+comment "fnsig)"
+POP 6
+POP 6
+comment "(fn from test.ua:5:7"
+BOX 8
+UN_BOX 9
+comment "fn from test.ua:5:7)"
+comment "(use"
+BOX 8
+UN_BOX 9
+comment "use)"
+MUL 12
+comment "(fn from test.ua:8:11"
+PRIMES 13
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 15
+comment "fn from test.ua:8:11)"
+comment "(fn from test.ua:8:6"
+push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+EACH 16
+comment "fn from test.ua:8:6)"
+comment "(fn"
+push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+EACH 16
+comment "fn)"
+push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+EACH 16
+EQ 17
+3.0
+comment "(DoShit"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 19
+comment "DoShit)"
+comment "(DoShitWrapper"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 19
+comment "DoShitWrapper)"
+comment "(fn from test.ua:17:7"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "fn from test.ua:17:7)"
+comment "(Inc"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "Inc)"
+comment "(IncB"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 25
+comment "IncB)"
+comment "(A"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "A)"
+comment "(B"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 25
+comment "B)"
+comment "(C"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "C)"
+comment "(D"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 25
+comment "D)"
+comment "(E"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "E)"
+comment "(F"
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 23
+comment "F)"
+comment "(G"
+BOX 8
+UN_BOX 9
+comment "G)"
+comment "(H"
+BOX 8
+UN_BOX 9
+comment "H)"
+
+TOP SLICES
+0 0
+18 0
+32 4
+44 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+88 0
+
+BINDINGS
+func ["dynamic",[0,0],[0,0],13646096770106105413,false]
+func ["fnsig",[2,0],[5,2],8982702561771804851,false]
+func ["attrib",[1,0],[9,1],13975356319701634479,false]
+func ["use",[1,1],[15,2],10524603860269992711,false]
+func ["fn",[1,1],[29,2],15109713876391086952,false]
+func ["DoShit",[1,1],[37,2],4976348051244659301,false]
+func ["DoShitWrapper",[1,1],[41,2],4976348051244659301,false]
+func ["Inc",[1,1],[49,2],4976348051244659301,false]
+func ["IncB",[1,1],[53,2],4976348051244659301,false]
+func ["A",[1,1],[57,2],4976348051244659301,false]
+func ["B",[1,1],[61,2],4976348051244659301,false]
+func ["C",[1,1],[65,2],4976348051244659301,false]
+func ["D",[1,1],[69,2],4976348051244659301,false]
+func ["E",[1,1],[73,2],4976348051244659301,false]
+func ["F",[1,1],[77,2],4976348051244659301,false]
+func ["G",[1,1],[81,2],10524603860269992711,false]
+func ["H",[1,1],[85,2],10524603860269992711,false]
+
+SPANS
+["test.ua",[2,1,40,40],[2,8,47,47]]
+["test.ua",[3,1,55,53],[3,6,60,58]]
+["test.ua",[3,11,69,63],[3,12,72,64]]
+["test.ua",[3,10,66,62],[3,11,69,63]]
+["test.ua",[4,1,74,66],[4,7,80,72]]
+["test.ua",[4,11,86,76],[4,12,89,77]]
+["test.ua",[5,1,91,79],[5,4,94,82]]
+["test.ua",[5,10,105,88],[5,11,108,89]]
+["test.ua",[5,9,102,87],[5,10,105,88]]
+["test.ua",[5,9,102,87],[5,10,105,88]]
+["test.ua",[8,1,117,98],[8,3,119,100]]
+["test.ua",[8,20,136,117],[8,21,137,118]]
+["test.ua",[8,18,134,115],[8,19,135,116]]
+["test.ua",[8,18,134,115],[8,21,137,118]]
+["test.ua",[8,12,128,109],[8,13,129,110]]
+["test.ua",[8,7,123,104],[8,11,127,108]]
+["test.ua",[9,5,144,125],[9,6,145,126]]
+["test.ua",[11,1,150,131],[11,7,156,137]]
+["test.ua",[11,18,169,148],[11,19,170,149]]
+["test.ua",[12,1,210,189],[12,14,223,202]]
+["test.ua",[12,22,233,210],[12,29,240,217]]
+["test.ua",[17,1,324,301],[17,4,327,304]]
+["test.ua",[17,8,333,308],[17,9,334,309]]
+["test.ua",[18,1,337,312],[18,5,341,316]]
+["test.ua",[18,25,363,336],[18,26,364,337]]
+["test.ua",[18,14,352,325],[18,24,362,335]]
+["test.ua",[20,1,368,341],[20,2,369,342]]
+["test.ua",[20,10,379,350],[20,17,386,357]]
+["test.ua",[21,1,397,368],[21,2,398,369]]
+["test.ua",[21,10,408,377],[21,17,415,384]]
+["test.ua",[22,1,427,396],[22,2,428,397]]
+["test.ua",[22,10,438,405],[22,19,447,414]]
+["test.ua",[23,1,460,427],[23,2,461,428]]
+["test.ua",[23,10,471,436],[23,19,480,445]]
+["test.ua",[24,1,494,459],[24,2,495,460]]
+["test.ua",[25,1,506,469],[25,2,507,470]]
+["test.ua",[25,10,517,478],[25,17,524,485]]
+["test.ua",[26,1,533,494],[26,2,534,495]]
+["test.ua",[26,10,544,503],[26,17,551,510]]
+["test.ua",[27,1,562,521],[27,2,563,522]]
+["test.ua",[27,10,573,530],[27,17,580,537]]
+
+FILES
+"test.ua" "# +++ for compatiblity with interpreter\ndynamic ← ()\nfnsig ← (◌◌)\nattrib ← (◌)\nuse ← (°□□)\n# ---\n\nfn = (each(+1 un / *))\nfn2 = fn\n\nDoShit ← dynamic(+1) # (this has no reason to be dynamic)\nDoShitWrapper ← fnsig[\"int\"]\"arr[int]\" dynamic(\n  DoShit\n)\n\n# this is now automatically converted to a template\nInc ← (+1)\nIncB ← attrib[\"inline\"](+1)\n\nA ← fnsig[\"int\"]\"int\"(Inc)\nB ← fnsig[\"int\"]\"int\"(IncB)\nC ← fnsig[\"float\"]\"float\"(Inc)\nD ← fnsig[\"float\"]\"float\"(IncB)\nE ← (Inc)\nF ← fnsig[\"int\"]\"int\"(E)\nG ← fnsig[\"dyn\"]\"int\"(use)\nH ← fnsig[\"int\"]\"int\"(G)\n\n# The generated binary should behave somewhat like this:\n#\n# IntArray DoShitWrapper(int a) {\n#   auto interpr = new Interpreter(DoShit__assembly); // pass uasm to interpreter\n#   interpr.push(new Dynamic(a));\n#   interpr.run();\n#   return interpr.pop().as(IntArray); // as throws a runtime exception if unsuccesfull\n# }\n# int Inc__int(int a) { return a + 1; }\n# int Inc__float(double a) { return a + 1; }\n# int A(int a) { return Inc__int(a); }\n# int B(int a) { return a + 1; }\n# float C(float a) { return Inc__float(a); }\n# float D(float a) { return a + 1; }\n# int E__int(int a) { return Inc__int(a); }\n# int F(int a) { return E__int(a); }\n# Dynamic G(int a) { return new Dynamic(a); }\n# int H(int a) { return G(a).as(IntArray); } // as throws a runtime exception if unsuccesfull\n\n"
