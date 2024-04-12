@@ -1,36 +1,40 @@
-comment "(fn from test.ua:3:9"
+"no_inline"
+"no_inline"
+comment "(fn from test.ua:5:9"
 POP 3
 POP 4
-comment "fn from test.ua:3:9)"
+comment "fn from test.ua:5:9)"
 comment "(fnsig"
 POP 3
 POP 4
 comment "fnsig)"
+"no_inline"
 POP 6
 POP 6
-comment "(fn from test.ua:5:7"
+"no_inline"
+comment "(fn from test.ua:9:7"
 BOX 8
 UN_BOX 9
-comment "fn from test.ua:5:7)"
+comment "fn from test.ua:9:7)"
 comment "(use"
 BOX 8
 UN_BOX 9
 comment "use)"
 MUL 12
-comment "(fn from test.ua:8:11"
+comment "(fn from test.ua:12:11"
 PRIMES 13
 [[],[1],{"flags":"BOOLEAN"}]
 ADD 15
-comment "fn from test.ua:8:11)"
-comment "(fn from test.ua:8:6"
-push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+comment "fn from test.ua:12:11)"
+comment "(fn from test.ua:12:6"
+push_func [["test.ua",[12,11,179,160],[12,22,190,171]],[1,1],[24,3],9650207937132120022,false]
 EACH 16
-comment "fn from test.ua:8:6)"
+comment "fn from test.ua:12:6)"
 comment "(fn"
-push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+push_func [["test.ua",[12,11,179,160],[12,22,190,171]],[1,1],[24,3],9650207937132120022,false]
 EACH 16
 comment "fn)"
-push_func [["test.ua",[8,11,127,108],[8,22,138,119]],[1,1],[20,3],9650207937132120022,false]
+push_func [["test.ua",[12,11,179,160],[12,22,190,171]],[1,1],[24,3],9650207937132120022,false]
 EACH 16
 EQ 17
 3.0
@@ -42,10 +46,10 @@ comment "(DoShitWrapper"
 [[],[1],{"flags":"BOOLEAN"}]
 ADD 19
 comment "DoShitWrapper)"
-comment "(fn from test.ua:17:7"
+comment "(fn from test.ua:21:7"
 [[],[1],{"flags":"BOOLEAN"}]
 ADD 23
-comment "fn from test.ua:17:7)"
+comment "fn from test.ua:21:7)"
 comment "(Inc"
 [[],[1],{"flags":"BOOLEAN"}]
 ADD 23
@@ -89,89 +93,93 @@ comment "H)"
 
 TOP SLICES
 0 0
-18 0
-32 4
-44 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
-88 0
+0 1
+1 1
+10 1
+13 1
+22 0
+36 4
+48 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
+92 0
 
 BINDINGS
-func ["dynamic",[0,0],[0,0],13646096770106105413,false]
-func ["fnsig",[2,0],[5,2],8982702561771804851,false]
-func ["attrib",[1,0],[9,1],13975356319701634479,false]
-func ["use",[1,1],[15,2],10524603860269992711,false]
-func ["fn",[1,1],[29,2],15109713876391086952,false]
-func ["DoShit",[1,1],[37,2],4976348051244659301,false]
-func ["DoShitWrapper",[1,1],[41,2],4976348051244659301,false]
-func ["Inc",[1,1],[49,2],4976348051244659301,false]
-func ["IncB",[1,1],[53,2],4976348051244659301,false]
-func ["A",[1,1],[57,2],4976348051244659301,false]
-func ["B",[1,1],[61,2],4976348051244659301,false]
-func ["C",[1,1],[65,2],4976348051244659301,false]
-func ["D",[1,1],[69,2],4976348051244659301,false]
-func ["E",[1,1],[73,2],4976348051244659301,false]
-func ["F",[1,1],[77,2],4976348051244659301,false]
-func ["G",[1,1],[81,2],10524603860269992711,false]
-func ["H",[1,1],[85,2],10524603860269992711,false]
+func ["dynamic",[0,0],[1,0],13646096770106105413,false]
+func ["fnsig",[2,0],[7,2],8982702561771804851,false]
+func ["attrib",[1,0],[12,1],13975356319701634479,false]
+func ["use",[1,1],[19,2],10524603860269992711,false]
+func ["fn",[1,1],[33,2],12713076657976129562,false]
+func ["DoShit",[1,1],[41,2],4976348051244659301,false]
+func ["DoShitWrapper",[1,1],[45,2],4976348051244659301,false]
+func ["Inc",[1,1],[53,2],4976348051244659301,false]
+func ["IncB",[1,1],[57,2],4976348051244659301,false]
+func ["A",[1,1],[61,2],4976348051244659301,false]
+func ["B",[1,1],[65,2],4976348051244659301,false]
+func ["C",[1,1],[69,2],4976348051244659301,false]
+func ["D",[1,1],[73,2],4976348051244659301,false]
+func ["E",[1,1],[77,2],4976348051244659301,false]
+func ["F",[1,1],[81,2],4976348051244659301,false]
+func ["G",[1,1],[85,2],10524603860269992711,false]
+func ["H",[1,1],[89,2],10524603860269992711,false]
 
 SPANS
-["test.ua",[2,1,40,40],[2,8,47,47]]
-["test.ua",[3,1,55,53],[3,6,60,58]]
-["test.ua",[3,11,69,63],[3,12,72,64]]
-["test.ua",[3,10,66,62],[3,11,69,63]]
-["test.ua",[4,1,74,66],[4,7,80,72]]
-["test.ua",[4,11,86,76],[4,12,89,77]]
-["test.ua",[5,1,91,79],[5,4,94,82]]
-["test.ua",[5,10,105,88],[5,11,108,89]]
-["test.ua",[5,9,102,87],[5,10,105,88]]
-["test.ua",[5,9,102,87],[5,10,105,88]]
-["test.ua",[8,1,117,98],[8,3,119,100]]
-["test.ua",[8,20,136,117],[8,21,137,118]]
-["test.ua",[8,18,134,115],[8,19,135,116]]
-["test.ua",[8,18,134,115],[8,21,137,118]]
-["test.ua",[8,12,128,109],[8,13,129,110]]
-["test.ua",[8,7,123,104],[8,11,127,108]]
-["test.ua",[9,5,144,125],[9,6,145,126]]
-["test.ua",[11,1,150,131],[11,7,156,137]]
-["test.ua",[11,18,169,148],[11,19,170,149]]
-["test.ua",[12,1,210,189],[12,14,223,202]]
-["test.ua",[12,22,233,210],[12,29,240,217]]
-["test.ua",[17,1,324,301],[17,4,327,304]]
-["test.ua",[17,8,333,308],[17,9,334,309]]
-["test.ua",[18,1,337,312],[18,5,341,316]]
-["test.ua",[18,25,363,336],[18,26,364,337]]
-["test.ua",[18,14,352,325],[18,24,362,335]]
-["test.ua",[20,1,368,341],[20,2,369,342]]
-["test.ua",[20,10,379,350],[20,17,386,357]]
-["test.ua",[21,1,397,368],[21,2,398,369]]
-["test.ua",[21,10,408,377],[21,17,415,384]]
-["test.ua",[22,1,427,396],[22,2,428,397]]
-["test.ua",[22,10,438,405],[22,19,447,414]]
-["test.ua",[23,1,460,427],[23,2,461,428]]
-["test.ua",[23,10,471,436],[23,19,480,445]]
-["test.ua",[24,1,494,459],[24,2,495,460]]
-["test.ua",[25,1,506,469],[25,2,507,470]]
-["test.ua",[25,10,517,478],[25,17,524,485]]
-["test.ua",[26,1,533,494],[26,2,534,495]]
-["test.ua",[26,10,544,503],[26,17,551,510]]
-["test.ua",[27,1,562,521],[27,2,563,522]]
-["test.ua",[27,10,573,530],[27,17,580,537]]
+["test.ua",[3,1,53,53],[3,8,60,60]]
+["test.ua",[5,1,81,79],[5,6,86,84]]
+["test.ua",[5,11,95,89],[5,12,98,90]]
+["test.ua",[5,10,92,88],[5,11,95,89]]
+["test.ua",[7,1,113,105],[7,7,119,111]]
+["test.ua",[7,11,125,115],[7,12,128,116]]
+["test.ua",[9,1,143,131],[9,4,146,134]]
+["test.ua",[9,10,157,140],[9,11,160,141]]
+["test.ua",[9,9,154,139],[9,10,157,140]]
+["test.ua",[9,9,154,139],[9,10,157,140]]
+["test.ua",[12,1,169,150],[12,3,171,152]]
+["test.ua",[12,20,188,169],[12,21,189,170]]
+["test.ua",[12,18,186,167],[12,19,187,168]]
+["test.ua",[12,18,186,167],[12,21,189,170]]
+["test.ua",[12,12,180,161],[12,13,181,162]]
+["test.ua",[12,7,175,156],[12,11,179,160]]
+["test.ua",[13,5,196,177],[13,6,197,178]]
+["test.ua",[15,1,202,183],[15,7,208,189]]
+["test.ua",[15,18,221,200],[15,19,222,201]]
+["test.ua",[16,1,262,241],[16,14,275,254]]
+["test.ua",[16,22,285,262],[16,29,292,269]]
+["test.ua",[21,1,376,353],[21,4,379,356]]
+["test.ua",[21,8,385,360],[21,9,386,361]]
+["test.ua",[22,1,389,364],[22,5,393,368]]
+["test.ua",[22,25,415,388],[22,26,416,389]]
+["test.ua",[22,14,404,377],[22,24,414,387]]
+["test.ua",[24,1,420,393],[24,2,421,394]]
+["test.ua",[24,10,431,402],[24,17,438,409]]
+["test.ua",[25,1,449,420],[25,2,450,421]]
+["test.ua",[25,10,460,429],[25,17,467,436]]
+["test.ua",[26,1,479,448],[26,2,480,449]]
+["test.ua",[26,10,490,457],[26,19,499,466]]
+["test.ua",[27,1,512,479],[27,2,513,480]]
+["test.ua",[27,10,523,488],[27,19,532,497]]
+["test.ua",[28,1,546,511],[28,2,547,512]]
+["test.ua",[29,1,558,521],[29,2,559,522]]
+["test.ua",[29,10,569,530],[29,17,576,537]]
+["test.ua",[30,1,585,546],[30,2,586,547]]
+["test.ua",[30,10,596,555],[30,17,603,562]]
+["test.ua",[31,1,614,573],[31,2,615,574]]
+["test.ua",[31,10,625,582],[31,17,632,589]]
 
 FILES
-"test.ua" "# +++ for compatiblity with interpreter\ndynamic ← ()\nfnsig ← (◌◌)\nattrib ← (◌)\nuse ← (°□□)\n# ---\n\nfn = (each(+1 un / *))\nfn2 = fn\n\nDoShit ← dynamic(+1) # (this has no reason to be dynamic)\nDoShitWrapper ← fnsig[\"int\"]\"arr[int]\" dynamic(\n  DoShit\n)\n\n# this is now automatically converted to a template\nInc ← (+1)\nIncB ← attrib[\"inline\"](+1)\n\nA ← fnsig[\"int\"]\"int\"(Inc)\nB ← fnsig[\"int\"]\"int\"(IncB)\nC ← fnsig[\"float\"]\"float\"(Inc)\nD ← fnsig[\"float\"]\"float\"(IncB)\nE ← (Inc)\nF ← fnsig[\"int\"]\"int\"(E)\nG ← fnsig[\"dyn\"]\"int\"(use)\nH ← fnsig[\"int\"]\"int\"(G)\n\n# The generated binary should behave somewhat like this:\n#\n# IntArray DoShitWrapper(int a) {\n#   auto interpr = new Interpreter(DoShit__assembly); // pass uasm to interpreter\n#   interpr.push(new Dynamic(a));\n#   interpr.run();\n#   return interpr.pop().as(IntArray); // as throws a runtime exception if unsuccesfull\n# }\n# int Inc__int(int a) { return a + 1; }\n# int Inc__float(double a) { return a + 1; }\n# int A(int a) { return Inc__int(a); }\n# int B(int a) { return a + 1; }\n# float C(float a) { return Inc__float(a); }\n# float D(float a) { return a + 1; }\n# int E__int(int a) { return Inc__int(a); }\n# int F(int a) { return E__int(a); }\n# Dynamic G(int a) { return new Dynamic(a); }\n# int H(int a) { return G(a).as(IntArray); } // as throws a runtime exception if unsuccesfull\n\n"
+"test.ua" "# +++ for compatiblity with interpreter\n# No inline!\ndynamic ← ()\n# No inline!\nfnsig ← (◌◌)\n# No inline!\nattrib ← (◌)\n# No inline!\nuse ← (°□□)\n# ---\n\nfn = (each(+1 un / *))\nfn2 = fn\n\nDoShit ← dynamic(+1) # (this has no reason to be dynamic)\nDoShitWrapper ← fnsig[\"int\"]\"arr[int]\" dynamic(\n  DoShit\n)\n\n# this is now automatically converted to a template\nInc ← (+1)\nIncB ← attrib[\"inline\"](+1)\n\nA ← fnsig[\"int\"]\"int\"(Inc)\nB ← fnsig[\"int\"]\"int\"(IncB)\nC ← fnsig[\"float\"]\"float\"(Inc)\nD ← fnsig[\"float\"]\"float\"(IncB)\nE ← (Inc)\nF ← fnsig[\"int\"]\"int\"(E)\nG ← fnsig[\"dyn\"]\"int\"(use)\nH ← fnsig[\"int\"]\"int\"(G)\n\n# The generated binary should behave somewhat like this:\n#\n# IntArray DoShitWrapper(int a) {\n#   auto interpr = new Interpreter(DoShit__assembly); // pass uasm to interpreter\n#   interpr.push(new Dynamic(a));\n#   interpr.run();\n#   return interpr.pop().as(IntArray); // as throws a runtime exception if unsuccesfull\n# }\n# int Inc__int(int a) { return a + 1; }\n# int Inc__float(double a) { return a + 1; }\n# int A(int a) { return Inc__int(a); }\n# int B(int a) { return a + 1; }\n# float C(float a) { return Inc__float(a); }\n# float D(float a) { return a + 1; }\n# int E__int(int a) { return Inc__int(a); }\n# int F(int a) { return E__int(a); }\n# Dynamic G(int a) { return new Dynamic(a); }\n# int H(int a) { return G(a).as(IntArray); } // as throws a runtime exception if unsuccesfull\n\n"

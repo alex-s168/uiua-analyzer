@@ -1,7 +1,11 @@
 # +++ for compatiblity with interpreter
+# No inline!
 dynamic ← ()
+# No inline!
 fnsig ← (◌◌)
+# No inline!
 attrib ← (◌)
+# No inline!
 use ← (°□□)
 # ---
 

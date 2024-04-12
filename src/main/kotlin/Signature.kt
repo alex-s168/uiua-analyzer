@@ -12,6 +12,9 @@ fun signature(instr: Instr): Signature {
     if (instr is ImmInstr)
         return Signature(0, 1)
 
+    if (instr is CommentInstr || instr is FlagInstr)
+        return Signature(0, 0)
+
     require(instr is PrimitiveInstr)
 
     return when (instr.id) {

@@ -131,3 +131,7 @@ data class PushFnInstr(
 data class CommentInstr(
     val comment: String
 ): Instr()
+
+data class FlagInstr(
+    val flag: String
+): Instr()

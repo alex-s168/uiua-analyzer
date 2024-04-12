@@ -57,6 +57,9 @@ data class Assembly(
                         val arr = JSON.parse(instr.substringAfter("push_func").trim())!!.arr
                         PushFnInstr.parse(arr)
                     }
+                    else if (instr.startsWith('"')) {
+                        FlagInstr(instr.drop(1).dropLast(1))
+                    }
                     else {
                         kotlin.runCatching {
                             val (id, loc) = instr.split(' ')
