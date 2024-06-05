@@ -5,29 +5,38 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
+/*
+TODO emit:
+ linalg.add ins(%5, %3 : i64, memref<? x i64>)              %3 is input array (even though marked with :i64)
+             outs(%3 : memref<? x i64>)
+ */
+
 fun IrBlock.emitMLIR(): String {
     fun IrVar.asMLIR(): MLIRVar =
         "%${id}"
 
     val body = mutableListOf<String>()
 
-    fun castIfNec(variable: IrVar, want: Type): IrVar  =
-        if (variable.type == want) variable
-        else {
-            val new = newVar().copy(type = want)
-            body.add(castInstr(
-                from = variable.type,
-                to = want,
-                dest = new.asMLIR(),
-                src = variable.asMLIR()
-            ))
-            new
-        }
+    fun castIfNec(variable: IrVar, want: Type): IrVar =
+        if (want is ArrayType && variable.type !is ArrayType)
+            castIfNec(variable, want.inner)
+        else
+            if (variable.type == want) variable
+            else {
+                val new = newVar().copy(type = want)
+                body.add(castInstr(
+                    from = variable.type,
+                    to = want,
+                    dest = new.asMLIR(),
+                    src = variable.asMLIR()
+                ))
+                new
+            }
 
     fun IrInstr.binary(op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String) {
         body += op(
             outs[0].asMLIR(),
-            outs[0].type.toMLIR(wantTensor = true),
+            outs[0].type.toMLIR(),
             castIfNec(args[0], outs[0].type).asMLIR(),
             castIfNec(args[1], outs[0].type).asMLIR(),
             outs[0].type == Types.double
@@ -41,19 +50,30 @@ fun IrBlock.emitMLIR(): String {
             val const = newVar().asMLIR()
             body += Inst.constant(const, Ty.index, it.toString())
             val v = newVar().asMLIR()
-            body += Inst.tensorDim(v, srcTy.toMLIR(wantTensor = true), src.asMLIR(), const)
+            body += Inst.memRefDim(v, srcTy.toMLIR(), src.asMLIR(), const)
             v
         }
     }
 
     instrs.forEach { instr ->
         when (instr.instr) {
+            is NumImmInstr -> {
+                val value = instr.instr.value.toString()
+                body += Inst.constant(instr.outs[0].asMLIR(), instr.outs[0].type.toMLIR(), value)
+            }
             is PrimitiveInstr -> when (instr.instr.id) {
                 "ADD" -> instr.binary(Inst::add)
                 "SUB" -> instr.binary(Inst::sub)
                 "MUL" -> instr.binary(Inst::mul)
                 "DIV" -> instr.binary(Inst::div)
-                "PRIMES" -> TODO()
+                "PRIMES" -> {
+                    body += Inst.call(
+                        dest = instr.outs[0].asMLIR(),
+                        type = instr.outs[0].type.toMLIR(), // should be memref<? x i64>
+                        MLIRFn("_\$_rt_primes", listOf(Ty.int(64))),
+                        castIfNec(instr.args[0], Types.int).asMLIR()
+                    )
+                }
 
                 "BOX" -> TODO()
                 "UN_BOX" -> TODO()
@@ -72,10 +92,10 @@ fun IrBlock.emitMLIR(): String {
                     val innerBody = mutableListOf<String>()
 
                     val srcElem = newVar().asMLIR()
-                    innerBody += Inst.tensorExtract(
+                    innerBody += Inst.memRefLoad(
                         dest = srcElem,
-                        tensorType = srcTy.toMLIR(wantTensor = true),
-                        tensor = src.asMLIR(),
+                        memRefType = srcTy.toMLIR(),
+                        memRef = src.asMLIR(),
                         *iterCoords.toTypedArray()
                     )
 
@@ -86,10 +106,11 @@ fun IrBlock.emitMLIR(): String {
                         srcElem
                     )
 
-                    body += Inst.tensorGenerate(
+                    body += Inst.Compound.memRefGenerate(
                         dest = instr.outs[0].asMLIR(),
-                        tensorTy = Ty.tensor(src.type.shape, fnd.rets[0].type.toMLIR(wantTensor = true)),
-                        dynamicDims = mShape,
+                        memRefTy = Ty.memref(src.type.shape, fnd.rets[0].type.toMLIR()),
+                        allDims = mShape,
+                        dynDims = mShape.filterIndexed { idx, _ -> srcTy.shape[idx] == -1 },
                         iterCords = iterCoords,
                         iterRes = iterRes,
                         iterResTy = fnd.rets[0].type.toMLIR(),
@@ -100,7 +121,7 @@ fun IrBlock.emitMLIR(): String {
                 else -> error("")
             }
             is PushFnRefInstr -> {} // ignore
-            else -> TODO()
+            else -> error("$instr not implemented")
         }
     }
 

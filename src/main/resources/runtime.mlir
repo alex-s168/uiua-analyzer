@@ -1,0 +1,1 @@
+func.func private @_$_rt_primes(%num: i64) -> memref<? x i64>

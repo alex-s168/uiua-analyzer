@@ -1,21 +1,33 @@
 package me.alex_s168.uiua
 
-import blitz.collections.stringify
-import blitz.io.Path
-import blitz.io.read
-import blitz.str.flattenToString
+import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.opt.optInlineCUse
 import me.alex_s168.uiua.ir.opt.optRemUnused
 import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
 import me.alex_s168.uiua.mlir.emitMLIR
+import kotlin.math.exp
+
+fun loadRes(file: String): String? =
+    object {}.javaClass.classLoader.getResource(file)?.readText()
+
+private fun emitMlirRec(dest: StringBuilder, done: MutableSet<IrBlock>, block: IrBlock) {
+    block.instrs.forEach {
+        if (it.instr is PushFnRefInstr) {
+            val fn = block.ref(it.instr.fn)!!
+            emitMlirRec(dest, done, fn)
+        }
+    }
+
+    if (block !in done) {
+        dest.append(block.emitMLIR())
+        dest.append("\n\n")
+        done.add(block)
+    }
+}
 
 fun main() {
-    val test = Path.of("/home/alex/uiua-analyzer/test.uasm")
-        .getFile()
-        .read()
-        .stringify()
-        .flattenToString()
+    val test = loadRes("test.uasm")!!
     val assembly = Assembly.parse(test)
 
     val blocks = assembly.functions.toIr()
@@ -25,11 +37,14 @@ fun main() {
     blocks.forEach { (_, v) ->
         v.optInlineCUse()
         v.optRemUnused()
-
-        println(v)
-        println()
     }
 
-    val mlir = blocks[expanded]!!.emitMLIR()
-    println(mlir)
+    val out = StringBuilder()
+    out.append(loadRes("runtime.mlir")!!)
+    out.append("\n\n")
+
+    val done = mutableSetOf<IrBlock>()
+    emitMlirRec(out, done, blocks[expanded]!!)
+
+    println(out)
 }

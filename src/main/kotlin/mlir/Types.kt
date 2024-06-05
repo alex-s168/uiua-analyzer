@@ -58,28 +58,28 @@ fun castInstr(from: Type, to: Type, dest: MLIRVar, src: MLIRVar): String =
             is PtrType -> error("double -> ptr not allowed")
             Types.int -> "$dest = arith.sitofp $src : i64 to f64"
             Types.byte -> "$dest = arith.sutofp $src : i8 to f64"
-            else -> TODO()
+            else -> error("Cast from $from to $to not implemented")
         }
         is PtrType -> when (from) {
             Types.double -> error("ptr -> double not allowed")
             is PtrType -> error("No!")
             Types.int -> "$dest = llvm.inttoptr $src : i64 to !llvm.ptr"
             Types.byte -> "$dest = llvm.inttoptr $src : i8 to !llvm.ptr"
-            else -> TODO()
+            else -> error("Cast from $from to $to not implemented")
         }
         Types.int -> when (from) {
             Types.double -> "$dest = arith.fptosi $src : f64 to i64"
             is PtrType -> "$dest = llvm.ptrtoint $src : !llvm.ptr to i64"
             Types.int -> error("No!")
             Types.byte -> "$dest = arith.extui $src : i8 to i64"
-            else -> TODO()
+            else -> error("Cast from $from to $to not implemented")
         }
         Types.byte -> when (from) {
             Types.double -> "$dest = arith.fptoui $src : f64 to i8"
             is PtrType -> "$dest = llvm.ptrtoint $src : !llvm.ptr to i8"
             Types.int -> "$dest = arith.trunci $src : i64 to i8"
             Types.byte -> error("No!")
-            else -> TODO()
+            else -> error("Cast from $from to $to not implemented")
         }
-        else -> TODO()
+        else -> error("Cast from $from to $to not implemented")
     }
