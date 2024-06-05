@@ -60,6 +60,7 @@ data class IrInstr(
             is ArrImmInstr -> {
                 updateType(outs[0], instr.type)
             }
+
             is NumImmInstr -> {
                 val ty = if (floor(instr.value) == instr.value) {
                     if (instr.value in 0.0..255.0) Types.byte
@@ -67,22 +68,27 @@ data class IrInstr(
                 } else Types.double
                 updateType(outs[0], ty)
             }
+
             is PushFnRefInstr -> {
                 updateType(outs[0], Types.func)
             }
+
             is PrimitiveInstr -> when (instr.id) {
                 "cUSE" -> {
                     updateType(outs[0], args[0].type)
                 }
+
                 "BOX" -> {
                     updateType(outs[0], Types.box(args[0].type))
                 }
+
                 "UN_BOX" -> {
                     val ty = args[0].type
                     require(ty is BoxType)
                     require(ty.options.size == 1) // TODO: insert switch
                     updateType(outs[0], ty.options[0])
                 }
+
                 "ADD",
                 "SUB",
                 "MUL",
@@ -94,9 +100,11 @@ data class IrInstr(
                     }
                     updateType(outs[0], ty)
                 }
+
                 "PRIMES" -> {
                     updateType(outs[0], Types.array(Types.int))
                 }
+
                 "EACH" -> {
                     val fn = parent.instrDeclFor(args[0])!!.instr as PushFnRefInstr
                     val inp = args[1].type as ArrayType
@@ -104,11 +112,13 @@ data class IrInstr(
                     val new = fnblock.expandFor(listOf(inp.inner), putFn)
                     val newb = parent.ref(new)!!
                     val newv = parent.newVar().copy(type = Types.func)
-                    parent.instrs.add(parent.instrs.indexOf(this), IrInstr(
-                        mutableListOf(newv),
-                        PushFnRefInstr(new),
-                        mutableListOf(),
-                    ))
+                    parent.instrs.add(
+                        parent.instrs.indexOf(this), IrInstr(
+                            mutableListOf(newv),
+                            PushFnRefInstr(new),
+                            mutableListOf(),
+                        )
+                    )
                     args[0] = newv
                     updateType(outs[0], inp.mapInner { newb.rets[0].type })
                 }

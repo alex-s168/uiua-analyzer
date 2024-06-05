@@ -69,6 +69,7 @@ class ArrayType(
         "arr[$of]${length ?: "?"}"
 }
 
+// TODO: verify
 fun List<Int>.shapeCompact(): List<Int> =
     takeWhile { it != 0 }.dropLastWhile { it in arrayOf(1, -1) }
 
