@@ -11,7 +11,7 @@ object Inst {
         "$dest = llvm.extractvalue $value [$idx] : $structType"
 
     fun call(dest: MLIRVar, type: MLIRType, fn: MLIRFn, vararg args: MLIRVar) =
-        "$dest = func.call @${fn.name}(${args.joinToString()}) : (${fn.args.joinToString()}) -> $type"
+        "$dest = func.call @${fn.name.legalizeMLIR()}(${args.joinToString()}) : (${fn.args.joinToString()}) -> $type"
 
     private fun baseBin(txt: String, dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         "$dest = " + (if (float) "arith.${txt}f $a, $b" else "arith.${txt}i $a, $b") + " : $type"
@@ -28,8 +28,12 @@ object Inst {
     fun div(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         baseBin("div", dest, type, a, b, float)
 
-    fun tensorExtract(dest: MLIRVar, tensorType: MLIRType, tensor: MLIRVar, vararg idx: MLIRVar) =
-        "$dest = tensor.extract $tensor[${idx.joinToString()}] : $tensorType"
+    fun tensorExtract(
+        dest: MLIRVar,
+        tensorType: MLIRType,
+        tensor: MLIRVar,
+        vararg idx: MLIRVar
+    ) = "$dest = tensor.extract $tensor[${idx.joinToString()}] : $tensorType"
 
     fun tensorGenerate(
         dest: MLIRVar,
@@ -43,4 +47,10 @@ object Inst {
 
     fun tensorMemRef(dest: MLIRVar, memrefType: MLIRType, src: MLIRVar) =
         "$dest = bufferization.to_memref $src : $memrefType"
+
+    fun tensorDim(dest: MLIRVar, tensorType: MLIRType, tensor: MLIRVar, dim: MLIRVar) =
+        "$dest = tensor.dim $tensor, $dim : $tensorType"
+
+    fun constant(dest: MLIRVar, type: MLIRType, value: String) =
+        "$dest = arith.constant $value : $type"
 }

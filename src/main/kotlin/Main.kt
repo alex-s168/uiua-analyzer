@@ -8,9 +8,10 @@ import me.alex_s168.uiua.ir.opt.optInlineCUse
 import me.alex_s168.uiua.ir.opt.optRemUnused
 import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
+import me.alex_s168.uiua.mlir.emitMLIR
 
 fun main() {
-    val test = Path.of("C:\\Users\\Alexander.Nutz\\uiua-analyzer\\test.uasm")
+    val test = Path.of("/home/alex/uiua-analyzer/test.uasm")
         .getFile()
         .read()
         .stringify()
@@ -19,7 +20,7 @@ fun main() {
 
     val blocks = assembly.functions.toIr()
 
-    blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
+    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
 
     blocks.forEach { (_, v) ->
         v.optInlineCUse()
@@ -28,4 +29,7 @@ fun main() {
         println(v)
         println()
     }
+
+    val mlir = blocks[expanded]!!.emitMLIR()
+    println(mlir)
 }

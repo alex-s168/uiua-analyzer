@@ -6,10 +6,10 @@ typealias MLIRType = String
 
 object Ty {
     fun memref(shape: List<Int>, type: MLIRType): MLIRType =
-        "memref<${shape.map { if (it == -1) "?" else it.toString() }.joinToString(separator = "x")}x$type>"
+        "memref<${shape.map { if (it == -1) "?" else it.toString() }.joinToString(separator = "x")} x $type>"
 
     fun tensor(shape: List<Int>, type: MLIRType): MLIRType =
-        "tensor<${shape.map { if (it == -1) "?" else it.toString() }.joinToString(separator = "x")}x$type>"
+        "tensor<${shape.map { if (it == -1) "?" else it.toString() }.joinToString(separator = "x")} x $type>"
 
     fun int(size: Int): MLIRType =
         "i$size"
@@ -25,12 +25,21 @@ object Ty {
 fun ptrlit(literal: String) =
     "!llvm.ptr(<$literal>)"
 
+private fun shapeToMlir(shape: List<Int>, inside: MLIRType, wantTensor: Boolean): MLIRType {
+    val whereUnknown = shape.indexOf(-1)
+    val preUnknown = if (whereUnknown == -1) shape
+                     else shape.subList(0, whereUnknown + 1)
+    val rest = shape.drop(preUnknown.size)
+
+    val inner = if (rest.isEmpty()) inside
+                else shapeToMlir(rest, inside, wantTensor)
+    return if (wantTensor) Ty.tensor(preUnknown, inner)
+           else Ty.memref(preUnknown, inner)
+}
+
 fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
     when (this) {
-        is ArrayType -> inner.toMLIR(wantTensor).let {
-            if (wantTensor) Ty.tensor(shape, it)
-            else Ty.memref(shape, it)
-        }
+        is ArrayType -> shapeToMlir(shape, inner.toMLIR(wantTensor), wantTensor)
         is BoxType -> TODO()
         Types.int -> Ty.int(64)
         Types.byte -> Ty.int(8)

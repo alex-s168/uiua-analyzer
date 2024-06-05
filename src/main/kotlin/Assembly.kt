@@ -14,7 +14,7 @@ data class Assembly(
         fun parse(text: String): Assembly {
             val sections = text
                 .trimEnd()
-                .split(Regex("\\R\\R\\R"))
+                .split(Regex("\\R\\R"))
                 .asSequence()
                 .mapIndexed { index, s ->
                     if (index == 0) {

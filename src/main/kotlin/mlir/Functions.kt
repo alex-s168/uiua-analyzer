@@ -1,5 +1,7 @@
 package me.alex_s168.uiua.mlir
 
+import me.alex_s168.uiua.ir.IrBlock
+
 fun function(
     name: String,
     args: List<Pair<MLIRVar, MLIRType>>,
@@ -9,7 +11,7 @@ fun function(
     val res = StringBuilder()
 
     res.append("func.func @")
-    res.append(name)
+    res.append(name.legalizeMLIR())
     res.append('(')
     args.forEachIndexed { index, (va, ty) ->
         if (index > 0)
@@ -26,7 +28,7 @@ fun function(
     }
     res.append(") {\n")
 
-    body.forEach {
+    body.flatMap { it.split('\n') }.forEach {
         res.append("  ")
         res.append(it)
         res.append('\n')
@@ -48,3 +50,6 @@ fun function(
 
     return res.toString()
 }
+
+fun IrBlock.asMLIR() =
+    MLIRFn(name, args.map { it.type.toMLIR() })

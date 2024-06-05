@@ -1,10 +1,15 @@
 plugins {
     kotlin("jvm") version "1.9.21"
     kotlin("plugin.serialization") version "1.9.22"
+    application
 }
 
 group = "me.alex_s168"
 version = "1.0-SNAPSHOT"
+
+application {
+    mainClass = "me.alex_s168.uiua.MainKt"
+}
 
 repositories {
     mavenCentral()
