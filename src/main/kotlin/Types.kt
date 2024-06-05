@@ -25,6 +25,19 @@ class BoxType(
         "box[${options.joinToString(separator = "|")}]"
 }
 
+fun Type.combine(other: Type): Type =
+    when (this) {
+        Types.byte -> other
+        Types.int -> when (other) {
+            Types.byte,
+            Types.int -> Types.int
+            Types.double -> Types.double
+            else -> error("")
+        }
+        Types.double -> Types.double
+        else -> error("")
+    }
+
 class ArrayType(
     val of: Type,
     val length: Int?
@@ -39,6 +52,18 @@ class ArrayType(
         }
         sha
     }
+
+    val inner by lazy {
+        var curr: Type = this
+        while (curr is ArrayType) {
+            val currArr = curr as ArrayType
+            curr = currArr.of
+        }
+        curr
+    }
+
+    fun mapInner(fn: (Type) -> Type): ArrayType =
+        shape.shapeToType(fn(inner))
 
     override fun toString(): String =
         "arr[$of]${length ?: "?"}"
@@ -66,6 +91,8 @@ class PtrType(
 }
 
 object Types {
+    val tbd = object : Type("tbd", listOf()) {}
+
     /* numeric */
     val double = NumericType("float", listOf())
     val int = NumericType("int", listOf(double))
@@ -74,6 +101,7 @@ object Types {
     /* general */
     val dynamic = Type("dyn", listOf())
     fun box(vararg of: Type) = BoxType(of.toList())
+    val func = Type("func", listOf())
 
     /* array */
     fun array(of: Type, length: Int? = null) = ArrayType(of, length)
@@ -90,6 +118,10 @@ object Types {
         val arg2 = str.substringAfterLast(']', missingDelimiterValue = "")
 
         return when (main) {
+            "func" -> {
+                require(arg.isEmpty() && arg2.isEmpty())
+                func
+            }
             "float" -> {
                 require(arg.isEmpty() && arg2.isEmpty())
                 double
@@ -159,10 +191,10 @@ H ← fnsig["int"]"int"(G)
 # The generated binary should behave somewhat like this:
 #
 # IntArray DoShitWrapper(int a) {
-#   auto interpr = new Interpreter(DoShit__assembly); // pass uasm to interpreter
+#   auto interpr = new Interpreter(DoShit__assembly); // pass bytecode to interpreter
 #   interpr.push(new Dynamic(a));
 #   interpr.run();
-#   return interpr.pop().as(IntArray); // as throws a runtime exception if unsuccesfull
+#   return interpr.pop().as<IntArray>(); // as throws a runtime exception if unsuccesfull
 # }
 # int Inc__int(int a) { return a + 1; }
 # int Inc__float(double a) { return a + 1; }
@@ -173,5 +205,5 @@ H ← fnsig["int"]"int"(G)
 # int E__int(int a) { return Inc__int(a); }
 # int F(int a) { return E__int(a); }
 # Dynamic G(int a) { return new Dynamic(a); }
-# int H(int a) { return G(a).as(IntArray); } // as throws a runtime exception if unsuccesfull
+# int H(int a) { return G(a).as<IntArray>(); } // as throws a runtime exception if unsuccesfull
  */

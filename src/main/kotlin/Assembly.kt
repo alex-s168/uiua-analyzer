@@ -14,14 +14,14 @@ data class Assembly(
         fun parse(text: String): Assembly {
             val sections = text
                 .trimEnd()
-                .split("\n\n")
+                .split(Regex("\\R\\R\\R"))
                 .asSequence()
                 .mapIndexed { index, s ->
                     if (index == 0) {
-                        "INSTRUCTIONS" to s.split('\n')
+                        "INSTRUCTIONS" to s.split(Regex("\\R"))
                     }
                     else {
-                        val spl = s.split('\n')
+                        val spl = s.split(Regex("\\R"))
                         spl.first() to spl.drop(1)
                     }
                 }
@@ -29,7 +29,10 @@ data class Assembly(
 
             val instrs = mutableListOf<Instr>()
             sections["INSTRUCTIONS"]!!
-                .forEach { instr ->
+                .forEach { instrIn ->
+                    val instr = instrIn.trim()
+                    if (instr.isEmpty()) return@forEach
+
                     val parsed = if (instr.startsWith('[')) {
                         val all = JSON.parse(instr)!!.arr
                         val shape = all[0].arr

@@ -18,6 +18,8 @@ fun signature(instr: Instr): Signature {
     require(instr is PrimitiveInstr)
 
     return when (instr.id) {
+        "cUSE" -> Signature(1, 1)
+
         "ADD" -> Signature(2, 1)
         "SUB" -> Signature(2, 1)
         "MUL" -> Signature(2, 1)

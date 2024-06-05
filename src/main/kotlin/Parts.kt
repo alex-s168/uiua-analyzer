@@ -87,7 +87,7 @@ abstract class Instr
 
 data class PrimitiveInstr(
     val id: String,
-    val loc: SpanRef
+    val loc: SpanRef? = null
 ): Instr() {
     override fun toString(): String =
         "PrimitiveInstr($id)"
@@ -127,6 +127,10 @@ data class PushFnInstr(
         }
     }
 }
+
+data class PushFnRefInstr(
+    val fn: String
+): ImmInstr()
 
 data class CommentInstr(
     val comment: String
