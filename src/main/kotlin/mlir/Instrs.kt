@@ -28,6 +28,21 @@ object Inst {
     fun div(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         baseBin("div", dest, type, a, b, float)
 
+    private fun baseLinalg(fn: String, dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        "linalg.$fn ins(${sources.joinToString { it.first }} : ${sources.joinToString { it.second }})\n  outs($dest : $destType)"
+
+    fun arrAdd(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        baseLinalg("add", dest, destType, sources)
+
+    fun arrSub(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        baseLinalg("sub", dest, destType, sources)
+
+    fun arrMul(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        baseLinalg("mul", dest, destType, sources)
+
+    fun arrDiv(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        baseLinalg("div", dest, destType, sources)
+
     fun tensorExtract(
         dest: MLIRVar,
         tensorType: MLIRType,

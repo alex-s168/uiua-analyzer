@@ -33,15 +33,6 @@ fun IrBlock.emitMLIR(): String {
                 new
             }
 
-    fun IrInstr.binary(op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String) {
-        body += op(
-            outs[0].asMLIR(),
-            outs[0].type.toMLIR(),
-            castIfNec(args[0], outs[0].type).asMLIR(),
-            castIfNec(args[1], outs[0].type).asMLIR(),
-            outs[0].type == Types.double
-        )
-    }
 
     fun emitShapeOf(src: IrVar): List<MLIRVar> {
         val srcTy = src.type as ArrayType
@@ -55,17 +46,67 @@ fun IrBlock.emitMLIR(): String {
         }
     }
 
+    fun IrInstr.binary(
+        op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String,
+        opArr: (dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) -> String,
+    ) {
+        val outTy = outs[0].type
+        if (outTy is ArrayType) {
+            val arrArg = args.find { it.type is ArrayType }
+            val cast = args.map {
+                if (it.type is ArrayType) it
+                else castIfNec(it, outTy)
+            }
+
+            val mDynShape = arrArg?.let {
+                val mShape = emitShapeOf(it)
+                val arrArgTy = it.type as ArrayType
+                mShape.filterIndexed { idx, _ -> arrArgTy.shape[idx] == -1 }
+            } ?: listOf()
+
+            body += Inst.memRefAlloc(
+                outs[0].asMLIR(),
+                outTy.toMLIR(),
+                *mDynShape.toTypedArray()
+            )
+            body += opArr(
+                outs[0].asMLIR(),
+                outs[0].type.toMLIR(),
+                cast.map { it.asMLIR() to it.type.toMLIR() }
+            )
+        } else {
+            body += op(
+                outs[0].asMLIR(),
+                outTy.toMLIR(),
+                castIfNec(args[0], outTy).asMLIR(),
+                castIfNec(args[1], outTy).asMLIR(),
+                outTy == Types.double
+            )
+        }
+    }
+
     instrs.forEach { instr ->
         when (instr.instr) {
             is NumImmInstr -> {
-                val value = instr.instr.value.toString()
-                body += Inst.constant(instr.outs[0].asMLIR(), instr.outs[0].type.toMLIR(), value)
+                val value = instr.instr.value
+                val ty = instr.outs[0].type
+                val valueStr = when (ty) {
+                    Types.int,
+                    Types.byte,
+                    is PtrType -> value.toULong().toString()
+                    else -> value.toString()
+                }
+                body += Inst.constant(
+                    instr.outs[0].asMLIR(),
+                    ty.toMLIR(),
+                    valueStr
+                )
             }
             is PrimitiveInstr -> when (instr.instr.id) {
-                "ADD" -> instr.binary(Inst::add)
-                "SUB" -> instr.binary(Inst::sub)
-                "MUL" -> instr.binary(Inst::mul)
-                "DIV" -> instr.binary(Inst::div)
+                "ADD" -> instr.binary(Inst::add, Inst::arrAdd)
+                "SUB" -> instr.binary(Inst::sub, Inst::arrSub)
+                "MUL" -> instr.binary(Inst::mul, Inst::arrMul)
+                "DIV" -> instr.binary(Inst::div, Inst::arrDiv)
                 "PRIMES" -> {
                     body += Inst.call(
                         dest = instr.outs[0].asMLIR(),
@@ -75,9 +116,37 @@ fun IrBlock.emitMLIR(): String {
                     )
                 }
 
-                "BOX" -> TODO()
-                "UN_BOX" -> TODO()
+                "BOX" -> {
+                    val type = instr.outs[0].type
 
+                    body += Inst.memRefAlloc(
+                        instr.outs[0].asMLIR(),
+                        type.toMLIR()
+                    )
+
+                    val idx = newVar().asMLIR()
+                    body += Inst.constant(idx, Ty.index, "0")
+
+                    body += Inst.memRefStore(
+                        type.toMLIR(),
+                        instr.args[0].asMLIR(),
+                        instr.outs[0].asMLIR(),
+                        idx
+                    )
+                }
+                "UN_BOX" -> {
+                    val type = instr.args[0].type
+
+                    val idx = newVar().asMLIR()
+                    body += Inst.constant(idx, Ty.index, "0")
+
+                    body += Inst.memRefLoad(
+                        instr.outs[0].asMLIR(),
+                        type.toMLIR(),
+                        instr.args[0].asMLIR(),
+                        idx
+                    )
+                }
                 "EACH" -> {
                     val src = instr.args[1]
                     val srcTy = src.type as ArrayType

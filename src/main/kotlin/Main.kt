@@ -6,24 +6,28 @@ import me.alex_s168.uiua.ir.opt.optRemUnused
 import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
 import me.alex_s168.uiua.mlir.emitMLIR
-import kotlin.math.exp
 
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
 
-private fun emitMlirRec(dest: StringBuilder, done: MutableSet<IrBlock>, block: IrBlock) {
-    block.instrs.forEach {
-        if (it.instr is PushFnRefInstr) {
-            val fn = block.ref(it.instr.fn)!!
-            emitMlirRec(dest, done, fn)
+private fun IrBlock.findAllRequiredCompile(dosth: (IrBlock) -> Unit): Set<IrBlock> {
+    val list = mutableSetOf<IrBlock>()
+
+    fun rec(block: IrBlock) {
+        dosth(block)
+        if (block !in list) {
+            list.add(block)
+            block.instrs.forEach {
+                if (it.instr is PushFnRefInstr) {
+                    val fn = block.ref(it.instr.fn)!!
+                    rec(fn)
+                }
+            }
         }
     }
+    rec(this)
 
-    if (block !in done) {
-        dest.append(block.emitMLIR())
-        dest.append("\n\n")
-        done.add(block)
-    }
+    return list
 }
 
 fun main() {
@@ -34,17 +38,19 @@ fun main() {
 
     val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
 
-    blocks.forEach { (_, v) ->
-        v.optInlineCUse()
-        v.optRemUnused()
+    val compile = blocks[expanded]!!.findAllRequiredCompile() {
+        it.optInlineCUse()
+        it.optRemUnused()
     }
 
     val out = StringBuilder()
     out.append(loadRes("runtime.mlir")!!)
     out.append("\n\n")
 
-    val done = mutableSetOf<IrBlock>()
-    emitMlirRec(out, done, blocks[expanded]!!)
+    compile.forEach {
+        out.append(it.emitMLIR())
+        out.append("\n\n")
+    }
 
     println(out)
 }

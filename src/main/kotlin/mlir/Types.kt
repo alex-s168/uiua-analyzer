@@ -39,8 +39,11 @@ private fun shapeToMlir(shape: List<Int>, inside: MLIRType, wantTensor: Boolean)
 
 fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
     when (this) {
-        is ArrayType -> shapeToMlir(shape, inner.toMLIR(wantTensor), wantTensor)
-        is BoxType -> TODO()
+        is ArrayType -> inner.toMLIR(wantTensor).let {
+            if (wantTensor) Ty.tensor(shape, it)
+            else Ty.memref(shape, it)
+        }
+        is BoxType -> Ty.memref(listOf(1), of.toMLIR(wantTensor))
         Types.int -> Ty.int(64)
         Types.byte -> Ty.int(8)
         Types.double -> Ty.flt(64)

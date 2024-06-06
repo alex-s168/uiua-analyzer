@@ -85,8 +85,7 @@ data class IrInstr(
                 "UN_BOX" -> {
                     val ty = args[0].type
                     require(ty is BoxType)
-                    require(ty.options.size == 1) // TODO: insert switch
-                    updateType(outs[0], ty.options[0])
+                    updateType(outs[0], ty.of)
                 }
 
                 "ADD",

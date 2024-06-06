@@ -96,4 +96,6 @@ data class IrBlock(
 
         return res.toString()
     }
+
+    fun canChangeSig() = true
 }

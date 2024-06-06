@@ -19,10 +19,10 @@ class NumericType(
 ): Type(name, down)
 
 class BoxType(
-    val options: List<Type>
+    val of: Type
 ): Type("box", listOf()) {
     override fun toString(): String =
-        "box[${options.joinToString(separator = "|")}]"
+        "box[$of]"
 }
 
 fun Type.combine(other: Type): Type =
@@ -91,6 +91,18 @@ class PtrType(
         "ptr[$to]"
 }
 
+fun Type.isAllocated(): Boolean =
+    when (this) {
+        is ArrayType -> true
+        is BoxType -> true
+        is PtrType -> false
+        is NumericType -> false
+        Types.dynamic -> false
+        Types.func -> false
+        Types.opaque -> false
+        else -> TODO()
+    }
+
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
 
@@ -101,7 +113,7 @@ object Types {
 
     /* general */
     val dynamic = Type("dyn", listOf())
-    fun box(vararg of: Type) = BoxType(of.toList())
+    fun box(of: Type) = BoxType(of)
     val func = Type("func", listOf())
 
     /* array */
@@ -140,9 +152,9 @@ object Types {
                 dynamic
             }
             "box" -> {
-                val of = arg.splitWithNesting('|', nestUp = '[', nestDown = ']').map { parse(it) }
+                val of = parse(arg)
                 require(arg2.isEmpty())
-                box(*of.toTypedArray())
+                box(of)
             }
             "arr" -> {
                 val of = parse(arg)
