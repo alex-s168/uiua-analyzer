@@ -2,6 +2,7 @@ package me.alex_s168.uiua
 
 import blitz.Either
 import blitz.parse.JSON
+import blitz.str.unescape
 import kotlin.streams.toList
 
 data class Assembly(
@@ -14,7 +15,7 @@ data class Assembly(
         fun parse(text: String): Assembly {
             val sections = text
                 .trimEnd()
-                .split(Regex("\\R\\R"))
+                .split(Regex("\\R\\R\\R"))
                 .asSequence()
                 .mapIndexed { index, s ->
                     if (index == 0) {

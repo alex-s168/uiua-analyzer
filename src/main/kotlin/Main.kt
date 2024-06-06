@@ -9,7 +9,7 @@ import me.alex_s168.uiua.mlir.emitMLIR
 import kotlin.math.exp
 
 fun loadRes(file: String): String? =
-    object {}.javaClass.classLoader.getResource(file)?.readText()
+    object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
 
 private fun emitMlirRec(dest: StringBuilder, done: MutableSet<IrBlock>, block: IrBlock) {
     block.instrs.forEach {

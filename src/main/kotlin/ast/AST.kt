@@ -1,6 +1,8 @@
 package me.alex_s168.uiua.ast
 
 import blitz.Either
+import blitz.mapBA
+import blitz.mapBB
 import me.alex_s168.uiua.*
 
 data class AstInstrNode(

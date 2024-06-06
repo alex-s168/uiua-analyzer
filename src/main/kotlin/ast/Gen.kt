@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ast
 
 import blitz.Either
+import blitz.collections.addFront
 import blitz.collections.removeLastInto
 import me.alex_s168.uiua.*
 
@@ -15,7 +16,8 @@ fun astify(input: List<Instr>): ASTRoot {
         val sig = signature(op)
 
         if (sig.inputs > stack.size) {
-            stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId ++)))))
+            stack.
+            addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId ++)))))
         }
 
         val args = stack.removeLastInto(sig.inputs)

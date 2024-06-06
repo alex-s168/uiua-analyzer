@@ -1,6 +1,8 @@
 package me.alex_s168.uiua.ir
 
 import blitz.Provider
+import blitz.getBAOrNull
+import blitz.getBBOrNull
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.Function
 import me.alex_s168.uiua.ast.ASTRoot

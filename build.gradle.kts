@@ -23,7 +23,7 @@ repositories {
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.3.2")
-    implementation("me.alex_s168:blitz:0.14")
+    implementation("me.alex_s168:blitz:0.15")
 }
 
 tasks.test {
