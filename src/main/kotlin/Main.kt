@@ -39,7 +39,7 @@ fun main() {
 
     val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
 
-    val compile = blocks[expanded]!!.findAllRequiredCompile() {
+    val compile = blocks[expanded]!!.findAllRequiredCompile {
         it.optInlineCUse()
         it.optRemUnused()
     }
@@ -71,7 +71,7 @@ fun main() {
     try {
         require(Runtime.getRuntime().exec("$mlirOpt -o $optMlir $inMlir $mlirOptFlags").waitFor() == 0)
         require(Runtime.getRuntime().exec("$mlirTranslate -o $outLlc $optMlir $mlirTranslateFlags").waitFor() == 0)
-        require(Runtime.getRuntime().exec("$clang -c -o $outObj $clangFlags $outLlc").waitFor() == 0)
+        require(Runtime.getRuntime().exec("$clang -c -O3 -o $outObj $clangFlags $outLlc").waitFor() == 0)
 
         println("Generated .out.o")
     } catch (e: Exception) {

@@ -103,6 +103,18 @@ fun Type.isAllocated(): Boolean =
         else -> TODO()
     }
 
+fun Type.cycle(): Type =
+    when (this) {
+        Types.tbd -> Types.int
+        Types.int -> Types.byte
+        Types.byte -> Types.double
+        Types.double -> Types.opaque
+        Types.opaque -> Types.box(Types.tbd)
+        is BoxType -> Types.array(of)
+        is ArrayType -> Types.box(of.cycle())
+        else -> error("")
+    }
+
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
 

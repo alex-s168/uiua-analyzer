@@ -30,8 +30,12 @@ fun signature(instr: Instr): Signature {
         "UN_BOX" -> Signature(1, 1)
 
         "POP" -> Signature(1, 0)
+        "DUP" -> Signature(1, 2)
+        "FLIP" -> Signature(2, 2)
 
         "EACH" -> Signature(2, 1)
+        "REDUCE" -> Signature(2, 1)
+
         else -> error("Unknown primitive instruction ${instr.id}!")
     }
 }

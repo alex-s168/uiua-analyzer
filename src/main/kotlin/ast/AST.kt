@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ast
 
 import blitz.Either
+import blitz.flatten
 import blitz.mapBA
 import blitz.mapBB
 import me.alex_s168.uiua.*
@@ -14,7 +15,9 @@ data class AstArgNode(
     val id: Int
 )
 
-class AstResExtendNode
+data class AstResExtendNode(
+    val of: AstNode
+)
 
 data class AstNode(
     val value: Either<AstInstrNode, Either<AstArgNode, AstResExtendNode>>,
@@ -40,7 +43,7 @@ fun List<AstNode>.printAst(indent: Int = 0) {
         }.mapBA {
             println("arg ${it.id}")
         }.mapBB {
-            println("extend")
+            println("extend ${it.of.value.mapBA { "arg ${it.id}" }.mapBB { "extend" }.mapA { it.instr }.flatten()}")
         }
     }
 }

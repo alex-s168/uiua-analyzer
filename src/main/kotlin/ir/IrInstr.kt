@@ -3,12 +3,15 @@ package me.alex_s168.uiua.ir
 import blitz.collections.contents
 import blitz.flatten
 import me.alex_s168.uiua.*
+import me.alex_s168.uiua.ast.AstNode
 import kotlin.math.floor
 
 data class IrInstr(
     val outs: MutableList<IrVar>,
     val instr: Instr,
     val args: MutableList<IrVar>,
+
+    val ast: AstNode? = null
 ) {
     override fun toString(): String {
         val res = StringBuilder()
@@ -104,12 +107,38 @@ data class IrInstr(
                     updateType(outs[0], Types.array(Types.int))
                 }
 
-                "EACH" -> {
+                "DUP" -> {
+                    val ty = args[0].type
+                    updateType(outs[0], ty)
+                    updateType(outs[1], ty)
+                }
+
+                "FLIP" -> {
+                    updateType(outs[0], args[1].type)
+                    updateType(outs[1], args[0].type)
+                }
+
+                "REDUCE" -> {
                     val fn = parent.instrDeclFor(args[0])!!.instr as PushFnRefInstr
                     val inp = args[1].type as ArrayType
                     val fnblock = parent.ref(fn.fn)!!
-                    val new = fnblock.expandFor(listOf(inp.inner), putFn)
-                    val newb = parent.ref(new)!!
+
+                    var o: Type? = null
+                    var i = Types.tbd
+                    var newb: IrBlock? = null
+                    var new = "aaaaaaaaa"
+                    while (o != i) {
+                        i = i.cycle()
+
+                        newb = kotlin.runCatching {
+                            new = fnblock.expandFor(listOf(i, inp.of), putFn)
+                            parent.ref(new)!!
+                        }.getOrNull()
+
+                        o = newb?.rets?.getOrNull(0)?.type
+                    }
+                    newb!!
+
                     val newv = parent.newVar().copy(type = Types.func)
                     parent.instrs.add(
                         parent.instrs.indexOf(this), IrInstr(
@@ -119,6 +148,28 @@ data class IrInstr(
                         )
                     )
                     args[0] = newv
+
+                    updateType(outs[0], newb.rets[0].type)
+                }
+
+                "EACH" -> {
+                    val fn = parent.instrDeclFor(args[0])!!.instr as PushFnRefInstr
+                    val inp = args[1].type as ArrayType
+                    val fnblock = parent.ref(fn.fn)!!
+
+                    val new = fnblock.expandFor(listOf(inp.inner), putFn)
+                    val newb = parent.ref(new)!!
+
+                    val newv = parent.newVar().copy(type = Types.func)
+                    parent.instrs.add(
+                        parent.instrs.indexOf(this), IrInstr(
+                            mutableListOf(newv),
+                            PushFnRefInstr(new),
+                            mutableListOf(),
+                        )
+                    )
+                    args[0] = newv
+
                     updateType(outs[0], inp.mapInner { newb.rets[0].type })
                 }
             }

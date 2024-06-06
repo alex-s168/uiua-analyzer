@@ -15,18 +15,19 @@ fun astify(input: List<Instr>): ASTRoot {
     input.forEach { op ->
         val sig = signature(op)
 
-        if (sig.inputs > stack.size) {
-            stack.
-            addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId ++)))))
+        repeat(sig.inputs - stack.size) {
+            stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))
         }
 
         val args = stack.removeLastInto(sig.inputs)
         if (sig.outputs > 0) {
-            stack.add(AstNode(Either.ofA(AstInstrNode(op, args))))
+            val node = AstNode(Either.ofA(AstInstrNode(op, args)))
 
             repeat(sig.outputs - 1) {
-                stack.add(AstNode(Either.ofB(Either.ofB(AstResExtendNode()))))
+                stack.add(AstNode(Either.ofB(Either.ofB(AstResExtendNode(node)))))
             }
+
+            stack.add(node)
         } else if (op is FlagInstr || op is CommentInstr) {
             stack.lastOrNull()?.flagsAndComments?.add(op) ?: {
                 flagsAndComments.add(op)
