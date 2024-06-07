@@ -26,6 +26,7 @@ internal fun signature(
         Prim.SUB -> Signature(2, 1)
         Prim.MUL -> Signature(2, 1)
         Prim.DIV -> Signature(2, 1)
+        Prim.POW -> Signature(2, 1)
 
         Prim.LEN -> Signature(1, 1)
 

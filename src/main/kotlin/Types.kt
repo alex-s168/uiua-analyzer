@@ -31,9 +31,14 @@ fun Type.combine(other: Type): Type =
             Types.byte,
             Types.int -> Types.int
             Types.double -> Types.double
+            Types.size -> Types.size
             else -> error("")
         }
-        Types.double -> Types.double
+        Types.double -> when (other) {
+            Types.size -> Types.size
+            else -> Types.double
+        }
+        Types.size -> Types.size
         else -> error("")
     }
 

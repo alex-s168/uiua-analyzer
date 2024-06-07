@@ -35,7 +35,12 @@ object Inst {
         baseBin("mul", dest, type, a, b, float)
 
     fun div(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
-        baseBin("div", dest, type, a, b, float)
+        baseBin("div", dest, type, a, b, float).also { require(float) }
+
+    fun pow(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.powf $a, $b : $type"
+    }
 
     private fun baseLinalg(fn: String, dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
         "linalg.$fn ins(${sources.joinToString { it.first }} : ${sources.joinToString { it.second }})\n  outs($dest : $destType)"
@@ -51,6 +56,9 @@ object Inst {
 
     fun arrDiv(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
         baseLinalg("div", dest, destType, sources)
+
+    fun arrPow(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
+        baseLinalg("pow", dest, destType, sources)
 
     fun tensorExtract(
         dest: MLIRVar,

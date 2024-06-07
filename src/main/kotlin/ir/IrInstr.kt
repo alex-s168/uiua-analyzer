@@ -199,10 +199,14 @@ data class IrInstr(
                     updateType(outs[0], ty.of)
                 }
 
+                Prim.POW,
+                Prim.DIV -> {
+                    updateType(outs[0], Types.double)
+                }
+
                 Prim.ADD,
                 Prim.SUB,
-                Prim.MUL,
-                Prim.DIV -> {
+                Prim.MUL -> {
                     val ty: Type = args.firstOrNull { it.type is ArrayType }?.let { arr ->
                         arr.type // TODO: problem with arr[int] + arr[double]
                     } ?: args.map { it.type }.reduce { a, b ->

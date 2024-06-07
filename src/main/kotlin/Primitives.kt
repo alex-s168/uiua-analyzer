@@ -34,6 +34,7 @@ object Prim {
     val SUB = prim("SUB")
     val MUL = prim("MUL")
     val DIV = prim("DIV")
+    val POW = prim("POW")
 
     // TODO: investigate if these are the real names
     val LEN = prim("LEN")

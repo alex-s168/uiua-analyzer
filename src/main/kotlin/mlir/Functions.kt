@@ -12,8 +12,8 @@ fun function(
     val res = StringBuilder()
 
     res.append("func.func")
-    if (private)
-        res.append(" private")
+    if (!private)
+        res.append(" private") // means export for some reason
     res.append(" @")
     res.append(name.legalizeMLIR())
     res.append('(')

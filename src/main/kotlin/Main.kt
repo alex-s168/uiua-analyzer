@@ -44,6 +44,8 @@ fun main() {
 
     val blocks = assembly.functions.toIr()
 
+    blocks.values.forEach(::println)
+
     val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)/*, Types.array(Types.int)*/), blocks::putBlock)
     blocks[expanded]!!.private = false
 
