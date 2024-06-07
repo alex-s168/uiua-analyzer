@@ -118,5 +118,12 @@ data class IrBlock(
         return res.toString()
     }
 
+    fun type(): Type =
+        Types.func(
+            args.map { it.type },
+            rets.map { it.type },
+            fillArg?.type
+        )
+
     fun canChangeSig() = true
 }

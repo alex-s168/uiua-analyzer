@@ -54,6 +54,3 @@ fun function(
 
     return res.toString()
 }
-
-fun IrBlock.asMLIR() =
-    MLIRFn(name, args.map { it.type.toMLIR() })

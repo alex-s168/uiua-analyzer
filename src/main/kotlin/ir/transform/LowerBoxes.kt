@@ -3,9 +3,30 @@ package me.alex_s168.uiua.ir.transform
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
+import me.alex_s168.uiua.ir.IrVar
+
+private fun Type.convBox(): Type =
+    when (this) {
+        is BoxType -> Types.array(of, 1).also { it.convBox() }
+        is PtrType -> Types.pointer(to.convBox())
+        is ArrayType -> Types.array(of, length)
+        else -> this
+    }
+
+private fun MutableList<IrVar>.convBox() {
+    forEachIndexed { index, o ->
+        this[index] = o.copy(type = o.type.convBox())
+    }
+}
 
 fun IrBlock.lowerBoxesToArrays() {
+    args.convBox()
+    rets.convBox()
+
     instrs.toList().forEach { instr ->
+        instr.outs.convBox()
+        instr.args.convBox()
+
         if (instr.instr is PrimitiveInstr) {
             when (instr.instr.id) {
                 Prim.Comp.BOX_CREATE -> {

@@ -82,7 +82,8 @@ data class IrInstr(
         }
 
         fun fnRef(to: String): IrVar {
-            val newv = parent.newVar().copy(type = Types.func)
+            val fn = parent.ref(to)!!
+            val newv = parent.newVar().copy(type = fn.type())
             parent.instrs.add(
                 parent.instrs.indexOf(this), IrInstr(
                     mutableListOf(newv),
@@ -107,7 +108,8 @@ data class IrInstr(
             }
 
             is PushFnRefInstr -> {
-                updateType(outs[0], Types.func)
+                val fn = parent.ref(instr.fn)!!
+                updateType(outs[0], fn.type())
             }
 
             is PrimitiveInstr -> when (instr.id) {

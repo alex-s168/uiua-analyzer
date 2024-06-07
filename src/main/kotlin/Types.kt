@@ -18,7 +18,7 @@ class NumericType(
     down: List<Type>
 ): Type(name, down)
 
-class BoxType(
+data class BoxType(
     val of: Type
 ): Type("box", listOf()) {
     override fun toString(): String =
@@ -38,7 +38,7 @@ fun Type.combine(other: Type): Type =
         else -> error("")
     }
 
-class ArrayType(
+data class ArrayType(
     val of: Type,
     val length: Int?
 ): Type("arr", listOf()) {
@@ -93,11 +93,20 @@ fun List<Int>.shapeToType(elem: Type): ArrayType {
     return arr
 }
 
-class PtrType(
+data class PtrType(
     val to: Type
 ): Type("ptr", listOf()) {
     override fun toString(): String =
         "ptr[$to]"
+}
+
+data class FnType(
+    val fillType: Type?,
+    val args: List<Type>,
+    val rets: List<Type>,
+): Type("func", listOf()) {
+    override fun toString(): String =
+        "func${fillType?.let { "[$it]" } ?: ""}[${args.joinToString()}][${rets.joinToString()}]"
 }
 
 fun Type.isAllocated(): Boolean =
@@ -106,8 +115,8 @@ fun Type.isAllocated(): Boolean =
         is BoxType -> true
         is PtrType -> false
         is NumericType -> false
+        is FnType -> false
         Types.dynamic -> false
-        Types.func -> false
         Types.opaque -> false
         else -> TODO()
     }
@@ -135,7 +144,11 @@ object Types {
     /* general */
     val dynamic = Type("dyn", listOf())
     fun box(of: Type) = BoxType(of)
-    val func = Type("func", listOf())
+    fun func(
+        args: List<Type>,
+        rets: List<Type>,
+        fillType: Type? = null
+    ) = FnType(fillType, args, rets)
 
     /* array */
     fun array(of: Type, length: Int? = null) = ArrayType(of, length)
@@ -152,10 +165,6 @@ object Types {
         val arg2 = str.substringAfterLast(']', missingDelimiterValue = "")
 
         return when (main) {
-            "func" -> {
-                require(arg.isEmpty() && arg2.isEmpty())
-                func
-            }
             "float" -> {
                 require(arg.isEmpty() && arg2.isEmpty())
                 double

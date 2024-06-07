@@ -4,11 +4,6 @@ import blitz.Provider
 
 typealias MLIRVar = String
 
-data class MLIRFn(
-    val name: String,
-    val args: List<MLIRType>
-)
-
 data class LLVMStruct(
     val types: List<MLIRType>
 ) {

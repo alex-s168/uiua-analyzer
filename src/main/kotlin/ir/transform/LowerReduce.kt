@@ -18,17 +18,19 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                     val arrTy = arr.type as ArrayType
 
                     val first = instr.args[0]
+                    val firstTy = first.type as FnType
 
                     val extra = instr.args.subList(2, instr.args.size - 1)
 
                     val every = instr.args.last()
+                    val everyTy = every.type as FnType
 
                     val notEnoughElemsFn = IrBlock(anonFnName(), ref, fillArg = fillArg).apply {
                         fillArg?.let { fillArg = newVar().copy(type = it.type) }
 
                         args += newVar().copy(type = arrTy) // arr
-                        args += newVar().copy(type = Types.func) // first
-                        args += newVar().copy(type = Types.func) // every
+                        args += newVar().copy(type = firstTy) // first
+                        args += newVar().copy(type = everyTy) // every
                         extra.forEach {
                             args += newVar().copy(type = it.type)
                         }
@@ -58,8 +60,8 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
 
                     val enoughElemsFn = IrBlock(anonFnName(), ref).apply {
                         val arr = newVar().copy(type = arrTy).also { args += it }
-                        val first = newVar().copy(type = Types.func).also { args += it }
-                        val every = newVar().copy(type = Types.func).also { args += it }
+                        val first = newVar().copy(type = firstTy).also { args += it }
+                        val every = newVar().copy(type = everyTy).also { args += it }
                         val extra = extra.map {
                             newVar().copy(type = it.type).also { args += it }
                         }
@@ -99,7 +101,7 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                             val counter = newVar().copy(type = Types.int).also { args += it }
                             val arr = newVar().copy(type = arrTy).also { args += it }
                             val accBox = newVar().copy(type = Types.box(accTy)).also { args += it }
-                            val every = newVar().copy(type = Types.func).also { args += it }
+                            val every = newVar().copy(type = everyTy).also { args += it }
                             val extra = extra.map {
                                 newVar().copy(type = it.type).also { args += it }
                             }
@@ -129,7 +131,7 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                             putBlock(this)
                         }
 
-                        val iterFnRef = newVar().copy(type = Types.func)
+                        val iterFnRef = newVar().copy(type = iterFn.type())
                         instrs += IrInstr(
                             mutableListOf(iterFnRef),
                             PushFnRefInstr(iterFn.name),
@@ -178,9 +180,9 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                         newVar = ::newVar,
                         on = len,
                         inputs = listOf(arr, first, every) + extra,
-                        zero to notEnoughElemsFn.name,
-                        one to notEnoughElemsFn.name,
-                        two to enoughElemsFn.name,
+                        zero to notEnoughElemsFn,
+                        one to notEnoughElemsFn,
+                        two to enoughElemsFn,
                     ) { instrs.add(idx ++, it) }
                 }
             }

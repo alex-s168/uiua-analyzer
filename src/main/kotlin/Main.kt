@@ -56,6 +56,7 @@ fun main() {
         it.expandBoxes()
         it.expandArrays()
         it.lowerBoxesToArrays()
+        it.lowerSimple()
 
         println(it)
         println()

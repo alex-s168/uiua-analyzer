@@ -50,8 +50,8 @@ fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
         Types.double -> Ty.flt(64)
         Types.dynamic -> TODO()
         is PtrType -> Ty.ptr
-        Types.opaque,
-        Types.func -> error("should not happen")
+        Types.opaque -> error("should not happen")
+        is FnType -> "(${(fillType?.let { listOf(it) + args } ?: args).joinToString { it.toMLIR(wantTensor) }}) -> (${rets.joinToString { it.toMLIR(wantTensor) }})"
         else -> error("")
     }
 

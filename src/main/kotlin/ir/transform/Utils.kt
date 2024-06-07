@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir.transform
 
 import me.alex_s168.uiua.*
+import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
@@ -77,17 +78,17 @@ fun switch(
     newVar: () -> IrVar,
     on: IrVar,
     inputs: List<IrVar>,
-    vararg cases: Pair<IrVar, String>,
+    vararg cases: Pair<IrVar, IrBlock>,
     put: (IrInstr) -> Unit
 ) {
     val conds = cases.map { it.first }
         .wrapInArgArray(newVar, put)
 
     val dests = cases.map {
-        val fnref = newVar().copy(type = Types.func)
+        val fnref = newVar().copy(type = it.second.type())
         put(IrInstr(
             mutableListOf(fnref),
-            PushFnRefInstr(it.second),
+            PushFnRefInstr(it.second.name),
             mutableListOf()
         ))
         fnref
