@@ -1,7 +1,6 @@
 package me.alex_s168.uiua
 
 import blitz.collections.contents
-import blitz.str.splitWithNesting
 
 // TODO: do we need equals functions?
 
@@ -109,18 +108,6 @@ data class FnType(
         "func${fillType?.let { "[$it]" } ?: ""}[${args.joinToString()}][${rets.joinToString()}]"
 }
 
-fun Type.isAllocated(): Boolean =
-    when (this) {
-        is ArrayType -> true
-        is BoxType -> true
-        is PtrType -> false
-        is NumericType -> false
-        is FnType -> false
-        Types.dynamic -> false
-        Types.opaque -> false
-        else -> TODO()
-    }
-
 fun Type.cycle(): Type =
     when (this) {
         Types.tbd -> Types.int
@@ -140,6 +127,7 @@ object Types {
     val double = NumericType("float", listOf())
     val int = NumericType("int", listOf(double))
     val byte = NumericType("byte", listOf(int, double))
+    val size = NumericType("size", listOf(int, double))
 
     /* general */
     val dynamic = Type("dyn", listOf())

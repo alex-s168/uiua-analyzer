@@ -38,13 +38,14 @@ fun function(
         res.append('\n')
     }
 
-    res.append(" return ")
+    res.append("  return ")
     rets.forEachIndexed { index, (va, _) ->
         if (index > 0)
             res.append(", ")
         res.append(va)
     }
-    res.append(" : ")
+    if (rets.isNotEmpty())
+        res.append(" : ")
     rets.forEachIndexed { index, (_, ty) ->
         if (index > 0)
             res.append(", ")

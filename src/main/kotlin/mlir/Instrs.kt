@@ -1,6 +1,9 @@
 package me.alex_s168.uiua.mlir
 
 object Inst {
+    fun pDests(dests: List<MLIRVar>): String =
+        if (dests.isEmpty()) "" else "${dests.joinToString()} = "
+
     fun undef(dest: MLIRVar, type: MLIRType) =
         "$dest = llvm.mlir.undef : $type"
 
@@ -14,10 +17,10 @@ object Inst {
         "$dest = func.constant $fn : $fnType"
 
     fun funcCallIndirect(dests: List<MLIRVar>, fn: MLIRVar, fnType: MLIRType, args: List<MLIRVar>) =
-        "${dests.joinToString()} = func.call_indirect $fn(${args.joinToString()}) : $fnType"
+        "${pDests(dests)}func.call_indirect $fn(${args.joinToString()}) : $fnType"
 
     fun funcCall(dests: List<MLIRVar>, fn: String, fnType: MLIRType, vararg args: MLIRVar) =
-        "${dests.joinToString()} = func.call @$fn(${args.joinToString()}) : $fnType"
+        "${pDests(dests)}func.call @$fn(${args.joinToString()}) : $fnType"
 
     private fun baseBin(txt: String, dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         "$dest = " + (if (float) "arith.${txt}f $a, $b" else "arith.${txt}i $a, $b") + " : $type"
@@ -91,6 +94,13 @@ object Inst {
         memRef: MLIRVar,
         vararg idx: MLIRVar
     ) = "memref.store $value, $memRef[${idx.joinToString()}] : $memRefType"
+
+    fun memRefCopy(
+        source: MLIRVar,
+        sourceTy: MLIRType,
+        dest: MLIRVar,
+        destTy: MLIRType
+    ) = "memref.copy $source, $dest : $sourceTy to $destTy"
 
     fun memRefAlloc(dest: MLIRVar, memRefType: MLIRType, vararg dim: MLIRVar) =
         "$dest = memref.alloc(${dim.joinToString()}) : $memRefType"

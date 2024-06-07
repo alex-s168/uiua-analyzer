@@ -83,7 +83,7 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                             mutableListOf(iter0res)
                         )
 
-                        val len = newVar().copy(type = Types.int)
+                        val len = newVar().copy(type = Types.size)
                         instrs += IrInstr(
                             mutableListOf(len),
                             PrimitiveInstr(Prim.LEN),
@@ -156,7 +156,7 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                         putBlock(this)
                     }
 
-                    val len = newVar().copy(type = Types.int)
+                    val len = newVar().copy(type = Types.size)
                     instrs.add(idx ++, IrInstr(
                         mutableListOf(len),
                         PrimitiveInstr(Prim.LEN),

@@ -175,7 +175,7 @@ data class IrInstr(
                 Prim.Comp.REPEAT -> {}
 
                 Prim.Comp.DIM -> {
-                    updateType(outs[0], Types.int)
+                    updateType(outs[0], Types.size)
                 }
 
                 Prim.CALL -> {
@@ -227,7 +227,7 @@ data class IrInstr(
                 }
 
                 Prim.LEN -> {
-                    updateType(outs[0], Types.int)
+                    updateType(outs[0], Types.size)
                 }
 
                 Prim.SWITCH -> {

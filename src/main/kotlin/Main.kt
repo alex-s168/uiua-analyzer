@@ -82,7 +82,8 @@ fun main() {
     val mlirTranslate = "mlir-translate"
     val clang = "clang"
 
-    val mlirOptFlags = "--one-shot-bufferize --ownership-based-buffer-deallocation -convert-bufferization-to-memref --convert-tensor-to-linalg --convert-linalg-to-affine-loops --lower-affine -convert-scf-to-cf --convert-to-llvm --reconcile-unrealized-casts "
+    // TODO: add --ownership-based-buffer-deallocation back (after --one-shot-bufferize)
+    val mlirOptFlags = "--one-shot-bufferize --convert-bufferization-to-memref --convert-tensor-to-linalg --convert-linalg-to-affine-loops --lower-affine -convert-scf-to-cf --convert-to-llvm --reconcile-unrealized-casts "
     val mlirTranslateFlags = "--mlir-to-llvmir"
     val clangFlags = "-x ir"
 
