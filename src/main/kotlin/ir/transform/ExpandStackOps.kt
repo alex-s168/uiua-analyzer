@@ -25,6 +25,7 @@ fun IrBlock.expandStackOps() {
                         i++
                     }
                 }
+
                 Prim.FLIP -> {
                     instrs.removeAt(i)
                     instrs.add(i, IrInstr(
@@ -38,6 +39,26 @@ fun IrBlock.expandStackOps() {
                         mutableListOf(instr.args[0]),
                     ))
                     i++
+                }
+
+                Prim.OVER -> {
+                    instrs.removeAt(i)
+                    instrs.add(i, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr("cUSE"),
+                        mutableListOf(instr.args[1]),
+                    ))
+                    instrs.add(i + 1, IrInstr(
+                        mutableListOf(instr.outs[1]),
+                        PrimitiveInstr("cUSE"),
+                        mutableListOf(instr.args[0]),
+                    ))
+                    instrs.add(i + 2, IrInstr(
+                        mutableListOf(instr.outs[2]),
+                        PrimitiveInstr("cUSE"),
+                        mutableListOf(instr.args[1]),
+                    ))
+                    i += 2
                 }
             }
         }

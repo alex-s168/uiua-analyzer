@@ -201,7 +201,8 @@ data class IrInstr(
 
                 Prim.POW,
                 Prim.DIV -> {
-                    updateType(outs[0], Types.double)
+                    val arrTy = args.firstOrNull { it.type is ArrayType }?.type as ArrayType?
+                    updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
                 Prim.ADD,
@@ -219,6 +220,10 @@ data class IrInstr(
                     updateType(outs[0], Types.array(Types.int))
                 }
 
+                Prim.RANGE -> {
+                    updateType(outs[0], Types.array(Types.int))
+                }
+
                 Prim.DUP -> {
                     val ty = args[0].type
                     updateType(outs[0], ty)
@@ -228,6 +233,12 @@ data class IrInstr(
                 Prim.FLIP -> {
                     updateType(outs[0], args[1].type)
                     updateType(outs[1], args[0].type)
+                }
+
+                Prim.OVER -> {
+                    updateType(outs[0], args[1].type)
+                    updateType(outs[1], args[0].type)
+                    updateType(outs[2], args[1].type)
                 }
 
                 Prim.LEN -> {

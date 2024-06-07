@@ -42,6 +42,7 @@ object Prim {
     val CALL = prim("CALL")
 
     val PRIMES = prim("PRIMES")
+    val RANGE = prim("RANGE")
 
     val BOX = prim("BOX")
     val UN_BOX = prim("UN_BOX")
@@ -49,6 +50,7 @@ object Prim {
     val POP = prim("POP")
     val DUP = prim("DUP")
     val FLIP = prim("FLIP")
+    val OVER = prim("OVER")
 
     val EACH = prim("EACH")
     val REDUCE = prim("REDUCE")

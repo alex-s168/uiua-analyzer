@@ -58,7 +58,7 @@ object Inst {
         baseLinalg("div", dest, destType, sources)
 
     fun arrPow(dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) =
-        baseLinalg("pow", dest, destType, sources)
+        baseLinalg("powf", dest, destType, sources)
 
     fun tensorExtract(
         dest: MLIRVar,

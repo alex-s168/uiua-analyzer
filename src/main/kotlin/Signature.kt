@@ -31,6 +31,7 @@ internal fun signature(
         Prim.LEN -> Signature(1, 1)
 
         Prim.PRIMES -> Signature(1, 1)
+        Prim.RANGE -> Signature(1, 1)
 
         Prim.BOX -> Signature(1, 1)
         Prim.UN_BOX -> Signature(1, 1)
@@ -38,6 +39,7 @@ internal fun signature(
         Prim.POP -> Signature(1, 0)
         Prim.DUP -> Signature(1, 2)
         Prim.FLIP -> Signature(2, 2)
+        Prim.OVER -> Signature(2, 3)
 
         Prim.EACH -> Signature(2, 1)
         Prim.REDUCE -> {

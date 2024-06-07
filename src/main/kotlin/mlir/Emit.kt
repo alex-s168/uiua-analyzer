@@ -183,8 +183,8 @@ fun IrBlock.emitMLIR(): List<String> {
                 Prim.ADD -> instr.binary(body, Inst::add, Inst::arrAdd)
                 Prim.SUB -> instr.binary(body, Inst::sub, Inst::arrSub)
                 Prim.MUL -> instr.binary(body, Inst::mul, Inst::arrMul)
-                Prim.DIV -> instr.binary(body, Inst::div, Inst::arrDiv, true)
-                Prim.POW -> instr.binary(body, Inst::pow, Inst::arrPow, true)
+                Prim.DIV -> instr.binary(body, Inst::div, Inst::arrDiv, reverse = true)
+                Prim.POW -> instr.binary(body, Inst::pow, Inst::arrPow, reverse = true)
 
                 Prim.PRIMES -> {
                     val rtPrimes = Types.func(
@@ -246,6 +246,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                 Prim.Comp.ARR_STORE -> {
                     val arr = instr.args[0]
+                    val arrTy = arr.type as ArrayType
                     val indecies = argArr(instr.args[1])
                     val value = instr.args[2]
 
@@ -261,7 +262,7 @@ fun IrBlock.emitMLIR(): List<String> {
                     else {
                         body += Inst.memRefStore(
                             arr.type.toMLIR(),
-                            value.asMLIR(),
+                            castIfNec(body, value, arrTy.inner).asMLIR(),
                             arr.asMLIR(),
                             *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
                         )

@@ -59,6 +59,7 @@ fun main() {
         it.optInlineCUse()
         it.optRemUnused()
         it.lowerReduce(blocks::putBlock)
+        it.lowerRange(blocks::putBlock)
         it.expandBoxes()
         it.expandArrays()
         it.lowerBoxesToArrays()

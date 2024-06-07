@@ -4,4 +4,4 @@
 # fn = /+
 
 # geometric mean
-fn = ⁿ÷:1⧻⟜/×
+fn = /+×ⁿ⇡⧻, 3
