@@ -13,11 +13,7 @@ fun astify(input: List<Instr>): ASTRoot {
     val flagsAndComments: MutableList<Instr> = mutableListOf()
 
     input.forEachIndexed { index, op ->
-        val sig = signature(
-            op,
-            { input[index + 1 + it] },
-            { stack[stack.size - 1 - it] }
-        )
+        val sig = signature(op) { stack[stack.size - 1 - it] }
 
         repeat(sig.inputs - stack.size) {
             stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))

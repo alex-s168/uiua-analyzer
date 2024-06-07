@@ -62,6 +62,15 @@ class ArrayType(
         curr
     }
 
+    fun into(amount: Int): Type {
+        var curr: Type = this
+        repeat(amount) {
+            val currArr = curr as ArrayType
+            curr = currArr.of
+        }
+        return curr
+    }
+
     fun mapInner(fn: (Type) -> Type): ArrayType =
         shape.shapeToType(fn(inner))
 

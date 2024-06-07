@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir.transform
 
+import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
@@ -10,7 +11,7 @@ fun IrBlock.expandStackOps() {
         val instr = instrs[i]
         if (instr.instr is PrimitiveInstr) {
             when (instr.instr.id) {
-                "DUP" -> {
+                Prim.DUP -> {
                     val inp = instr.args[0]
 
                     instrs.removeAt(i)
@@ -24,7 +25,7 @@ fun IrBlock.expandStackOps() {
                         i++
                     }
                 }
-                "FLIP" -> {
+                Prim.FLIP -> {
                     instrs.removeAt(i)
                     instrs.add(i, IrInstr(
                         mutableListOf(instr.outs[0]),

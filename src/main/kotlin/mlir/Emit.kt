@@ -11,9 +11,9 @@ fun IrBlock.emitMLIR(): String {
 
     val body = mutableListOf<String>()
 
-    fun castIfNec(variable: IrVar, want: Type): IrVar =
+    fun castIfNec(body: MutableList<String>, variable: IrVar, want: Type): IrVar =
         if (want is ArrayType && variable.type !is ArrayType)
-            castIfNec(variable, want.inner)
+            castIfNec(body, variable, want.inner)
         else
             if (variable.type == want) variable
             else {
@@ -27,8 +27,7 @@ fun IrBlock.emitMLIR(): String {
                 new
             }
 
-
-    fun emitShapeOf(src: IrVar): List<MLIRVar> {
+    fun emitShapeOf(body: MutableList<String>, src: IrVar): List<MLIRVar> {
         val srcTy = src.type as ArrayType
 
         return List(srcTy.shape.size) {
@@ -41,6 +40,7 @@ fun IrBlock.emitMLIR(): String {
     }
 
     fun IrInstr.binary(
+        body: MutableList<String>,
         op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String,
         opArr: (dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) -> String,
     ) {
@@ -49,11 +49,11 @@ fun IrBlock.emitMLIR(): String {
             val arrArg = args.find { it.type is ArrayType }
             val cast = args.map {
                 if (it.type is ArrayType) it
-                else castIfNec(it, outTy)
+                else castIfNec(body, it, outTy)
             }
 
             val mDynShape = arrArg?.let {
-                val mShape = emitShapeOf(it)
+                val mShape = emitShapeOf(body, it)
                 val arrArgTy = it.type as ArrayType
                 mShape.filterIndexed { idx, _ -> arrArgTy.shape[idx] == -1 }
             } ?: listOf()
@@ -72,8 +72,8 @@ fun IrBlock.emitMLIR(): String {
             body += op(
                 outs[0].asMLIR(),
                 outTy.toMLIR(),
-                castIfNec(args[0], outTy).asMLIR(),
-                castIfNec(args[1], outTy).asMLIR(),
+                castIfNec(body, args[0], outTy).asMLIR(),
+                castIfNec(body, args[1], outTy).asMLIR(),
                 outTy == Types.double
             )
         }
@@ -117,40 +117,40 @@ fun IrBlock.emitMLIR(): String {
                 )
             }
             is PrimitiveInstr -> when (instr.instr.id) {
-                "ADD" -> instr.binary(Inst::add, Inst::arrAdd)
-                "SUB" -> instr.binary(Inst::sub, Inst::arrSub)
-                "MUL" -> instr.binary(Inst::mul, Inst::arrMul)
-                "DIV" -> instr.binary(Inst::div, Inst::arrDiv)
+                "ADD" -> instr.binary(body, Inst::add, Inst::arrAdd)
+                "SUB" -> instr.binary(body, Inst::sub, Inst::arrSub)
+                "MUL" -> instr.binary(body, Inst::mul, Inst::arrMul)
+                "DIV" -> instr.binary(body, Inst::div, Inst::arrDiv)
 
                 "PRIMES" -> {
                     body += Inst.call(
                         dests = listOf(instr.outs[0].asMLIR()),
                         types = listOf(instr.outs[0].type.toMLIR()), // should be memref<? x i64>
                         MLIRFn("_\$_rt_primes", listOf(Ty.int(64))),
-                        castIfNec(instr.args[0], Types.int).asMLIR()
+                        castIfNec(body, instr.args[0], Types.int).asMLIR()
                     )
                 }
 
-                "BOX" -> {
-                    val type = instr.outs[0].type
-
+                Prim.Comp.BOX_CREATE -> {
                     body += Inst.memRefAlloc(
                         instr.outs[0].asMLIR(),
-                        type.toMLIR()
+                        instr.outs[0].type.toMLIR()
                     )
+                }
 
+                Prim.Comp.BOX_STORE -> {
                     val idx = newVar().asMLIR()
                     body += Inst.constant(idx, Ty.index, "0")
 
                     body += Inst.memRefStore(
-                        type.toMLIR(),
+                        instr.args[0].type.toMLIR(),
+                        instr.args[1].asMLIR(),
                         instr.args[0].asMLIR(),
-                        instr.outs[0].asMLIR(),
                         idx
                     )
                 }
 
-                "UN_BOX" -> {
+                Prim.Comp.BOX_LOAD -> {
                     val type = instr.args[0].type
 
                     val idx = newVar().asMLIR()
@@ -164,12 +164,56 @@ fun IrBlock.emitMLIR(): String {
                     )
                 }
 
-                "EACH" -> {
+                Prim.Comp.BOX_DESTROY -> {
+                    body += Inst.memRefDealloc(
+                        instr.args[0].asMLIR(),
+                        instr.args[0].type.toMLIR()
+                    )
+                }
+
+                Prim.Comp.REPEAT -> {
+                    val times = instr.args[0].asMLIR()
+                    val (_, fnd) = funDeclFor(args[1])
+
+                    val counter = newVar()
+
+                    val inner = mutableListOf<String>()
+                    val arg = castIfNec(
+                        inner,
+                        counter,
+                        fnd.args[0].type
+                    )
+
+                    inner += callWithOptFill(
+                        listOf(),
+                        listOf(),
+                        fnd,
+                        arg.asMLIR()
+                    )
+
+                    body += Inst.affineParallelFor(
+                        listOf(counter.asMLIR()),
+                        listOf("0"),
+                        listOf(times),
+                        inner
+                    )
+                }
+
+                Prim.Comp.DIM -> {
+                    body += Inst.memRefDim(
+                        dest = instr.outs[0].asMLIR(),
+                        memRefType = instr.args[0].type.toMLIR(),
+                        memRef = instr.args[0].asMLIR(),
+                        dim = instr.args[1].asMLIR()
+                    )
+                }
+
+                Prim.EACH -> {
                     val src = instr.args[1]
                     val srcTy = src.type as ArrayType
                     val (_, fnd) = funDeclFor(instr.args[0])
 
-                    val mShape = emitShapeOf(src)
+                    val mShape = emitShapeOf(body, src)
 
                     val iterCoords = List(mShape.size) { newVar().asMLIR() }
                     val iterRes = newVar().asMLIR()
@@ -203,15 +247,15 @@ fun IrBlock.emitMLIR(): String {
                     )
                 }
 
-                "ROWS" -> {
+                Prim.ROWS -> {
                     TODO()
                 }
 
-                "REDUCE" -> {
+                Prim.REDUCE -> {
                     TODO("implement reduce using box (memref<1xT>) as acc")
                 }
 
-                "FILL" -> {
+                Prim.FILL -> {
                     val (_, fillValFn) = funDeclFor(instr.args[0])
                     val (_, opFn) = funDeclFor(instr.args[1])
                     val opArgs = instr.args.drop(2)

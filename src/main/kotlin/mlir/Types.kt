@@ -7,12 +7,15 @@ typealias MLIRType = String
 fun List<Int>.shapeToMLIR(): String =
     map { if (it == -1) "?" else it.toString() }.joinToString(separator = "x")
 
+fun List<Int>.shapeToMLIRStrides(): String =
+    drop(1).plus(1).shapeToMLIR()
+
 object Ty {
     fun memref(shape: List<Int>, type: MLIRType): MLIRType =
-        "memref<${shape.shapeToMLIR()} x $type, strided<[${shape.shapeToMLIR()}]>>"
+        "memref<${shape.shapeToMLIR()} x $type, strided<[${shape.shapeToMLIRStrides()}]>>"
 
     fun tensor(shape: List<Int>, type: MLIRType): MLIRType =
-        "tensor<${shape.shapeToMLIR()} x $type, strided<[${shape.shapeToMLIR()}]>>"
+        "tensor<${shape.shapeToMLIR()} x $type, strided<[${shape.shapeToMLIRStrides()}]>>"
 
     // https://mlir.llvm.org/docs/TargetLLVMIR/#ranked-memref-types
     fun memrefStruct(shape: List<Int>) =

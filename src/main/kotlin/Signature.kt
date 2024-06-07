@@ -1,6 +1,5 @@
 package me.alex_s168.uiua
 
-import me.alex_s168.uiua.ast.AstInstrNode
 import me.alex_s168.uiua.ast.AstNode
 
 // combine signatures as if both were used on the stack after each other
@@ -10,10 +9,8 @@ operator fun Signature.plus(other: Signature): Signature {
     return Signature(totalInputs, totalOutputs)
 }
 
-// TODO: make more advanced for ROWS and others
-fun signature(
+internal fun signature(
     instr: Instr,
-    directArgs: (Int) -> Instr,
     onStack: (Int) -> AstNode,
 ): Signature {
     if (instr is ImmInstr)
@@ -25,29 +22,27 @@ fun signature(
     require(instr is PrimitiveInstr)
 
     return when (instr.id) {
-        "cUSE" -> Signature(1, 1)
+        Prim.ADD -> Signature(2, 1)
+        Prim.SUB -> Signature(2, 1)
+        Prim.MUL -> Signature(2, 1)
+        Prim.DIV -> Signature(2, 1)
 
-        "ADD" -> Signature(2, 1)
-        "SUB" -> Signature(2, 1)
-        "MUL" -> Signature(2, 1)
-        "DIV" -> Signature(2, 1)
-        "PRIMES" -> Signature(1, 1)
+        Prim.PRIMES -> Signature(1, 1)
 
-        "BOX" -> Signature(1, 1)
-        "UN_BOX" -> Signature(1, 1)
+        Prim.BOX -> Signature(1, 1)
+        Prim.UN_BOX -> Signature(1, 1)
 
-        "POP" -> Signature(1, 0)
-        "DUP" -> Signature(1, 2)
-        "FLIP" -> Signature(2, 2)
+        Prim.POP -> Signature(1, 0)
+        Prim.DUP -> Signature(1, 2)
+        Prim.FLIP -> Signature(2, 2)
 
-        "EACH" -> Signature(2, 1)
-        "REDUCE" -> Signature(2, 1)
-        "ROWS" -> {
+        Prim.EACH -> Signature(2, 1)
+        Prim.REDUCE -> Signature(2, 1)
+        Prim.ROWS -> {
             val each = onStack(0).value.getA().instr as PushFnInstr
             each.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst
         }
-
-        "FILL" -> {
+        Prim.FILL -> {
             // onStack(0) is the fill value
             val fn = onStack(1).value.getA().instr as PushFnInstr
             fn.fn.signature.mapIns { it + 2 } // arg 0 & arg 1

@@ -1,31 +1,34 @@
-ADD 2
-comment "(fn from test.ua:2:9"
-push_func ["ADD",[2,1],[0,1],18285461870905567687,false]
-ROWS 3
-comment "fn from test.ua:2:9)"
-[[],[0],{"flags":"BOOLEAN"}]
-comment "(fn from test.ua:2:6"
-push_func [["test.ua",[2,9,34,29],[2,10,37,30]],[2,1],[2,2],13401626685668071126,false]
-push_func [["test.ua",[2,7,30,27],[2,8,33,28]],[0,1],[5,1],9027284241765308480,false]
-FILL 4
-comment "fn from test.ua:2:6)"
+MUL 2
+comment "(fn from test.ua:3:8"
+PRIMES 3
+[[],[1],{"flags":"BOOLEAN"}]
+ADD 5
+BOX 6
+comment "fn from test.ua:3:8)"
+comment "(fn from test.ua:3:6"
+push_func [["test.ua",[3,8,53,42],[3,18,67,52]],[1,1],[2,4],11361912546113049616,false]
+EACH 7
+comment "fn from test.ua:3:6)"
 comment "(fn"
-push_func [["test.ua",[2,9,34,29],[2,10,37,30]],[2,1],[2,2],13401626685668071126,false]
-push_func [["test.ua",[2,7,30,27],[2,8,33,28]],[0,1],[5,1],9027284241765308480,false]
-FILL 4
+push_func [["test.ua",[3,8,53,42],[3,18,67,52]],[1,1],[2,4],11361912546113049616,false]
+EACH 7
 comment "fn)"
 
 TOP SLICES
 0 0
+0 0
 
 BINDINGS
-func ["fn",[2,1],[12,3],3389768127806322166,false]
+func ["fn",[1,1],[12,2],15443092969284882444,false]
 
 SPANS
-["test.ua",[2,1,22,21],[2,3,24,23]]
-["test.ua",[2,10,37,30],[2,11,38,31]]
-["test.ua",[2,9,34,29],[2,10,37,30]]
-["test.ua",[2,7,30,27],[2,8,33,28]]
+["test.ua",[3,1,42,35],[3,3,44,37]]
+["test.ua",[3,16,64,50],[3,17,66,51]]
+["test.ua",[3,15,63,49],[3,16,64,50]]
+["test.ua",[3,15,63,49],[3,17,66,51]]
+["test.ua",[3,11,58,45],[3,12,59,46]]
+["test.ua",[3,9,54,43],[3,10,57,44]]
+["test.ua",[3,7,50,41],[3,8,53,42]]
 
 FILES
-test.ua: "# fn = (+ /× : /+ .)\nfn ← (⬚0≡+)\n"
+test.ua: "# fn = (+ /× : /+ .)\n# fn ← (⬚0≡+)\nfn ← (∵(□ +1 °/×))"

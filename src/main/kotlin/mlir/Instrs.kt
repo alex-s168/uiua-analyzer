@@ -89,6 +89,9 @@ object Inst {
     fun memRefAlloc(dest: MLIRVar, memRefType: MLIRType, vararg dim: MLIRVar) =
         "$dest = memref.alloc(${dim.joinToString()}) : $memRefType"
 
+    fun memRefDealloc(memRef: MLIRVar, memRefType: MLIRType) =
+        "memref.dealloc $memRef : $memRefType"
+
     fun affineParallelFor(counters: List<MLIRVar>, start: List<String>, end: List<String>, ops: List<String>) =
         "affine.parallel (${counters.joinToString()}) = (${start.joinToString()}) to (${end.joinToString()}) {\n  ${ops.joinToString("\n  ")}\n}"
 

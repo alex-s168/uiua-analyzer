@@ -5,7 +5,10 @@ import me.alex_s168.uiua.ir.opt.optInlineCUse
 import me.alex_s168.uiua.ir.opt.optRemUnused
 import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
+import me.alex_s168.uiua.ir.transform.expandArrays
+import me.alex_s168.uiua.ir.transform.expandBoxes
 import me.alex_s168.uiua.ir.transform.expandStackOps
+import me.alex_s168.uiua.ir.transform.lowerBoxesToArrays
 import me.alex_s168.uiua.mlir.emitMLIR
 import java.io.File
 
@@ -38,12 +41,16 @@ fun main() {
 
     val blocks = assembly.functions.toIr()
 
-    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int), Types.array(Types.int)), blocks::putBlock)
+    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)/*, Types.array(Types.int)*/), blocks::putBlock)
 
     val compile = blocks[expanded]!!.findAllRequiredCompile {
+        // only reorder if you know what you are doing!
         it.expandStackOps()
         it.optInlineCUse()
         it.optRemUnused()
+        it.expandBoxes()
+        it.expandArrays()
+        it.lowerBoxesToArrays()
 
         println(it)
         println()
