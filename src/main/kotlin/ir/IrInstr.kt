@@ -54,9 +54,25 @@ data class IrInstr(
             args = args.toMutableList()
         )
 
-    fun inferTypes(parent: IrBlock, putFn: (IrBlock) -> Unit) {
+    fun inferTypes(
+        parent: IrBlock,
+        putFn: (IrBlock) -> Unit,
+        fillType: Type? = null
+    ) {
         fun updateType(variable: IrVar, type: Type) {
             parent.updateVar(variable, variable.copy(type = type))
+        }
+
+        fun fnRef(to: String): IrVar {
+            val newv = parent.newVar().copy(type = Types.func)
+            parent.instrs.add(
+                parent.instrs.indexOf(this), IrInstr(
+                    mutableListOf(newv),
+                    PushFnRefInstr(to),
+                    mutableListOf(),
+                )
+            )
+            return newv
         }
 
         when (instr) {
@@ -119,9 +135,8 @@ data class IrInstr(
                 }
 
                 "REDUCE" -> {
-                    val fn = parent.instrDeclFor(args[0])!!.instr as PushFnRefInstr
+                    val (_, fnblock) = parent.funDeclFor(args[0])
                     val inp = args[1].type as ArrayType
-                    val fnblock = parent.ref(fn.fn)!!
 
                     var o: Type? = null
                     var i = Types.tbd
@@ -131,7 +146,7 @@ data class IrInstr(
                         i = i.cycle()
 
                         newb = kotlin.runCatching {
-                            new = fnblock.expandFor(listOf(i, inp.of), putFn)
+                            new = fnblock.expandFor(listOf(i, inp.of), putFn, fillType)
                             parent.ref(new)!!
                         }.getOrNull()
 
@@ -139,38 +154,54 @@ data class IrInstr(
                     }
                     newb!!
 
-                    val newv = parent.newVar().copy(type = Types.func)
-                    parent.instrs.add(
-                        parent.instrs.indexOf(this), IrInstr(
-                            mutableListOf(newv),
-                            PushFnRefInstr(new),
-                            mutableListOf(),
-                        )
-                    )
-                    args[0] = newv
+                    args[0] = fnRef(new)
 
                     updateType(outs[0], newb.rets[0].type)
                 }
 
                 "EACH" -> {
-                    val fn = parent.instrDeclFor(args[0])!!.instr as PushFnRefInstr
+                    val (_, fnblock) = parent.funDeclFor(args[0])
                     val inp = args[1].type as ArrayType
-                    val fnblock = parent.ref(fn.fn)!!
 
-                    val new = fnblock.expandFor(listOf(inp.inner), putFn)
+                    val new = fnblock.expandFor(listOf(inp.inner), putFn, fillType)
                     val newb = parent.ref(new)!!
 
-                    val newv = parent.newVar().copy(type = Types.func)
-                    parent.instrs.add(
-                        parent.instrs.indexOf(this), IrInstr(
-                            mutableListOf(newv),
-                            PushFnRefInstr(new),
-                            mutableListOf(),
-                        )
-                    )
-                    args[0] = newv
+                    args[0] = fnRef(new)
 
                     updateType(outs[0], inp.mapInner { newb.rets[0].type })
+                }
+
+                "ROWS" -> {
+                    val (_, fnblock) = parent.funDeclFor(args[0])
+
+                    val inps = args.drop(1).map { arg ->
+                        arg.type as ArrayType
+                    }
+                    val new = fnblock.expandFor(inps.map { it.of }, putFn, fillType)
+                    val newb = parent.ref(new)!!
+
+                    args[0] = fnRef(new)
+
+                    outs.zip(newb.rets).forEach { (out, ret) ->
+                        updateType(out, Types.array(ret.type))
+                    }
+                }
+
+                "FILL" -> {
+                    val (_, fillValFn) = parent.funDeclFor(args[0])
+                    val (_, opFn) = parent.funDeclFor(args[1])
+                    val opArgs = args.drop(2)
+
+                    val fillValFnExp = fillValFn.expandFor(listOf(), putFn, fillType)
+                    val fillValFnExpBlock = parent.ref(fillValFnExp)!!
+                    val opFnExp = opFn.expandFor(opArgs.map { it.type }, putFn, fillValFnExpBlock.rets[0].type)
+
+                    args[0] = fnRef(fillValFnExp)
+                    args[1] = fnRef(opFnExp)
+
+                    outs.zip(parent.ref(opFnExp)!!.rets).forEach { (out, ret) ->
+                        updateType(out, ret.type)
+                    }
                 }
             }
         }

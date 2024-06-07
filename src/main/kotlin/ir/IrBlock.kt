@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir
 
+import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
 
@@ -10,6 +11,7 @@ data class IrBlock(
     var flags: MutableList<String> = mutableListOf(),
     var args: MutableList<IrVar> = mutableListOf(),
     var rets: MutableList<IrVar> = mutableListOf(),
+    var fillArg: IrVar? = null,
 ) {
     private var nextVar: ULong = 0u
 
@@ -27,13 +29,23 @@ data class IrBlock(
     fun instrDeclFor(variable: IrVar): IrInstr? =
         instrs.find { variable in it.outs }
 
+    fun funDeclFor(v: IrVar): Pair<String, IrBlock> {
+        val fn = instrDeclFor(v)!!.instr as PushFnRefInstr
+        val fnblock = ref(fn.fn)!!
+        return fn.fn to fnblock
+    }
+
     fun varUsed(variable: IrVar): Boolean =
         if (variable in rets) true
         else instrs.any { variable in it.args }
 
-    fun expandFor(inTypes: List<Type>, putFn: (IrBlock) -> Unit): String {
+    fun expandFor(
+        inTypes: List<Type>,
+        putFn: (IrBlock) -> Unit,
+        fillType: Type? = null
+    ): String {
         require(inTypes.size == args.size)
-        val newName = "${name}_\$_${inTypes.joinToString(separator = "_")}"
+        val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"
         if (ref(newName) != null) return newName
 
         val new = IrBlock(
@@ -54,7 +66,11 @@ data class IrBlock(
             }
 
         new.instrs.toList().forEach {
-            it.inferTypes(new, putFn)
+            it.inferTypes(new, putFn, fillType)
+        }
+
+        fillType?.let {
+            new.fillArg = new.newVar().copy(type = it)
         }
 
         putFn(new)
@@ -73,6 +89,10 @@ data class IrBlock(
 
         res.append("BLOCK ")
         res.append(name)
+        fillArg?.let {
+            res.append(" fill ")
+            res.append(it)
+        }
         res.append(" (")
         args.forEachIndexed { index, irVar ->
             if (index > 0)

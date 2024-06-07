@@ -10,8 +10,8 @@ object Inst {
     fun extractValue(dest: MLIRVar, structType: MLIRType, value: MLIRVar, idx: Int) =
         "$dest = llvm.extractvalue $value [$idx] : $structType"
 
-    fun call(dest: MLIRVar, type: MLIRType, fn: MLIRFn, vararg args: MLIRVar) =
-        "$dest = func.call @${fn.name.legalizeMLIR()}(${args.joinToString()}) : (${fn.args.joinToString()}) -> $type"
+    fun call(dests: List<MLIRVar>, types: List<MLIRType>, fn: MLIRFn, vararg args: MLIRVar) =
+        "${dests.joinToString()} = func.call @${fn.name.legalizeMLIR()}(${args.joinToString()}) : (${fn.args.joinToString()}) -> ${types.joinToString()}"
 
     private fun baseBin(txt: String, dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         "$dest = " + (if (float) "arith.${txt}f $a, $b" else "arith.${txt}i $a, $b") + " : $type"

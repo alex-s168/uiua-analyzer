@@ -5,12 +5,6 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
-/*
-TODO emit:
- linalg.add ins(%5, %3 : i64, memref<? x i64>)              %3 is input array (even though marked with :i64)
-             outs(%3 : memref<? x i64>)
- */
-
 fun IrBlock.emitMLIR(): String {
     fun IrVar.asMLIR(): MLIRVar =
         "%${id}"
@@ -85,6 +79,26 @@ fun IrBlock.emitMLIR(): String {
         }
     }
 
+    fun callWithOptFill(dests: List<MLIRVar>, types: List<MLIRType>, fill: IrVar?, fn: IrBlock, vararg args: MLIRVar): String =
+        if (fn.fillArg != null) {
+            Inst.call(
+                dests,
+                types,
+                fn.asMLIR(),
+                *(arrayOf(fill!!.asMLIR()) + args)
+            )
+        } else {
+            Inst.call(
+                dests,
+                types,
+                fn.asMLIR(),
+                *args
+            )
+        }
+
+    fun callWithOptFill(dests: List<MLIRVar>, types: List<MLIRType>, fn: IrBlock, vararg args: MLIRVar) =
+        callWithOptFill(dests, types, fillArg, fn, *args)
+
     instrs.forEach { instr ->
         when (instr.instr) {
             is NumImmInstr -> {
@@ -107,10 +121,11 @@ fun IrBlock.emitMLIR(): String {
                 "SUB" -> instr.binary(Inst::sub, Inst::arrSub)
                 "MUL" -> instr.binary(Inst::mul, Inst::arrMul)
                 "DIV" -> instr.binary(Inst::div, Inst::arrDiv)
+
                 "PRIMES" -> {
                     body += Inst.call(
-                        dest = instr.outs[0].asMLIR(),
-                        type = instr.outs[0].type.toMLIR(), // should be memref<? x i64>
+                        dests = listOf(instr.outs[0].asMLIR()),
+                        types = listOf(instr.outs[0].type.toMLIR()), // should be memref<? x i64>
                         MLIRFn("_\$_rt_primes", listOf(Ty.int(64))),
                         castIfNec(instr.args[0], Types.int).asMLIR()
                     )
@@ -134,6 +149,7 @@ fun IrBlock.emitMLIR(): String {
                         idx
                     )
                 }
+
                 "UN_BOX" -> {
                     val type = instr.args[0].type
 
@@ -147,11 +163,11 @@ fun IrBlock.emitMLIR(): String {
                         idx
                     )
                 }
+
                 "EACH" -> {
                     val src = instr.args[1]
                     val srcTy = src.type as ArrayType
-                    val fn = (instrDeclFor(instr.args[0])!!.instr as PushFnRefInstr).fn
-                    val fnd = ref(fn)!!
+                    val (_, fnd) = funDeclFor(instr.args[0])
 
                     val mShape = emitShapeOf(src)
 
@@ -168,10 +184,10 @@ fun IrBlock.emitMLIR(): String {
                         *iterCoords.toTypedArray()
                     )
 
-                    innerBody += Inst.call(
-                        dest = iterRes,
-                        type = fnd.rets[0].type.toMLIR(),
-                        fn = fnd.asMLIR(),
+                    innerBody += callWithOptFill(
+                        dests = listOf(iterRes),
+                        types = listOf(fnd.rets[0].type.toMLIR()),
+                        fn = fnd,
                         srcElem
                     )
 
@@ -187,6 +203,35 @@ fun IrBlock.emitMLIR(): String {
                     )
                 }
 
+                "ROWS" -> {
+                    TODO()
+                }
+
+                "REDUCE" -> {
+                    TODO("implement reduce using box (memref<1xT>) as acc")
+                }
+
+                "FILL" -> {
+                    val (_, fillValFn) = funDeclFor(instr.args[0])
+                    val (_, opFn) = funDeclFor(instr.args[1])
+                    val opArgs = instr.args.drop(2)
+
+                    val fillVal = newVar()
+                    body += callWithOptFill(
+                        dests = listOf(fillVal.asMLIR()),
+                        types = listOf(fillValFn.rets[0].type.toMLIR()),
+                        fillValFn,
+                    )
+
+                    body += callWithOptFill(
+                        dests = instr.outs.map { it.asMLIR() },
+                        types = instr.outs.map { it.type.toMLIR() },
+                        fill = fillVal,
+                        opFn,
+                        *opArgs.map { it.asMLIR() }.toTypedArray()
+                    )
+                }
+
                 else -> error("")
             }
             is PushFnRefInstr -> {} // ignore
@@ -194,9 +239,14 @@ fun IrBlock.emitMLIR(): String {
         }
     }
 
+    val mArgs = args.mapTo(mutableListOf()) { it.asMLIR() to it.type.toMLIR() }
+    fillArg?.let {
+        mArgs.add(0, it.asMLIR() to it.type.toMLIR())
+    }
+
     return function(
         name,
-        args.map { it.asMLIR() to it.type.toMLIR() },
+        mArgs,
         rets.map { it.asMLIR() to it.type.toMLIR() },
         body
     )

@@ -7,6 +7,12 @@ data class Signature(
     val inputs: Int,
     val outputs: Int
 ) {
+    fun mapIns(fn: (Int) -> Int) =
+        Signature(fn(inputs), outputs)
+
+    fun mapOuts(fn: (Int) -> Int) =
+        Signature(inputs, fn(outputs))
+
     companion object {
         fun parse(arr: List<JSON.Element>): Signature =
             Signature(

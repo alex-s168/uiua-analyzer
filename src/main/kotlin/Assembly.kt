@@ -1,6 +1,8 @@
 package me.alex_s168.uiua
 
 import blitz.Either
+import blitz.collections.mergeNeighbors
+import blitz.collections.nullIfEmpty
 import blitz.parse.JSON
 import blitz.str.unescape
 import kotlin.streams.toList
@@ -15,15 +17,16 @@ data class Assembly(
         fun parse(text: String): Assembly {
             val sections = text
                 .trimEnd()
-                .split(Regex("\\R\\R"))
+                .lines()
+                .mergeNeighbors { it.isEmpty() }
+                .mapNotNull { it.second.nullIfEmpty() }
                 .asSequence()
                 .mapIndexed { index, s ->
                     if (index == 0) {
-                        "INSTRUCTIONS" to s.split(Regex("\\R"))
+                        "INSTRUCTIONS" to s
                     }
                     else {
-                        val spl = s.split(Regex("\\R"))
-                        spl.first() to spl.drop(1)
+                        s.first() to s.drop(1)
                     }
                 }
                 .toMap()
