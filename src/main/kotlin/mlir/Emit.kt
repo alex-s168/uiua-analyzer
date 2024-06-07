@@ -4,11 +4,12 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import kotlin.math.max
 
 fun IrVar.asMLIR(): MLIRVar =
     "%${id}"
 
-fun IrBlock.emitMLIR(): String {
+fun IrBlock.emitMLIR(): List<String> {
     val body = mutableListOf<String>()
 
     fun castIfNec(body: MutableList<String>, variable: IrVar, want: Type): IrVar =
@@ -82,40 +83,53 @@ fun IrBlock.emitMLIR(): String {
         }
     }
 
-    fun callWithOptFill(dests: List<MLIRVar>, fn: IrBlock, vararg args: MLIRVar,  fill: IrVar? = null): String =
-        if (fn.fillArg != null) {
-            Inst.funcCall(
-                dests,
-                fn.name,
-                fn.type().toMLIR(),
-                *(arrayOf(fill!!.asMLIR()) + args)
-            )
-        } else {
-            Inst.funcCall(
-                dests,
-                fn.name,
-                fn.type().toMLIR(),
-                *args
-            )
+    fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
+        if (fn.shouldInline()) {
+            val toInline = fn.inlinableCopy(nextVar, args, dests, fill)
+            println(toInline)
+            val c = toInline.emitMLIR()
+            nextVar = max(nextVar, toInline.nextVar)
+            return c
         }
 
-    fun callWithOptFill(dests: List<MLIRVar>, fn: IrVar, vararg args: MLIRVar, fill: IrVar? = null): String {
+        return listOf(if (fn.fillArg != null) {
+            Inst.funcCall(
+                dests.map { it.asMLIR() },
+                fn.name,
+                fn.type().toMLIR(),
+                *(listOf(fill!!) + args).map { it.asMLIR() }.toTypedArray()
+            )
+        } else {
+            Inst.funcCall(
+                dests.map { it.asMLIR() },
+                fn.name,
+                fn.type().toMLIR(),
+                *args.map { it.asMLIR() }.toTypedArray()
+            )
+        })
+    }
+
+    fun callWithOptFill(dests: List<IrVar>, fn: IrVar, args: List<IrVar>, fill: IrVar? = null): List<String> {
+        funDeclFor(fn)?.let { (_, block) ->
+            return callWithOptFill(dests, block, args, fill)
+        }
+
         val ty = fn.type as FnType
-        return if (ty.fillType != null) {
+        return listOf(if (ty.fillType != null) {
             Inst.funcCallIndirect(
-                dests,
+                dests.map { it.asMLIR() },
                 fn.asMLIR(),
                 ty.toMLIR(),
-                listOf(fill!!.asMLIR()) + args
+                (listOf(fill!!) + args).map { it.asMLIR() }
             )
         } else {
             Inst.funcCallIndirect(
-                dests,
+                dests.map { it.asMLIR() },
                 fn.asMLIR(),
                 ty.toMLIR(),
-                args.toList()
+                args.map { it.asMLIR() }.toList()
             )
-        }
+        })
     }
 
     fun argArr(argArray: IrVar): List<IrVar> =
@@ -201,10 +215,10 @@ fun IrBlock.emitMLIR(): String {
                             val dests = instr.outs.map { newVar().copy(type = it.type) }
 
                             inner += callWithOptFill(
-                                dests = dests.map { it.asMLIR() },
-                                fn = target,
-                                *args.map { it.asMLIR() }.toTypedArray(),
-                                fill = fillArg
+                                dests,
+                                target,
+                                args,
+                                fillArg
                             )
 
                             inner += "scf.yield ${dests.joinToString { it.asMLIR() }} : ${dests.joinToString { it.type.toMLIR() }}"
@@ -285,7 +299,7 @@ fun IrBlock.emitMLIR(): String {
                     val fn = instr.args[2]
                     val fnTy = fn.type as FnType
 
-                    val additional = instr.args.drop(3).mapTo(mutableListOf()) { it.asMLIR() }
+                    val additional = instr.args.drop(3).toMutableList()
 
                     val counter = newVar().copy(type = Types.size)
 
@@ -294,8 +308,8 @@ fun IrBlock.emitMLIR(): String {
                     inner += callWithOptFill(
                         listOf(),
                         fn,
-                        *additional.also { it.add(0, castIfNec(inner, counter, fnTy.args[0]).asMLIR()) }.toTypedArray(),
-                        fill = fillArg
+                        additional.also { it.add(0, castIfNec(inner, counter, fnTy.args[0])) },
+                        fillArg
                     )
 
                     body += Inst.affineParallelFor(
@@ -331,21 +345,22 @@ fun IrBlock.emitMLIR(): String {
                 }
 
                 Prim.FILL -> {
-                    val (_, fillValFn) = funDeclFor(instr.args[0])
+                    val (_, fillValFn) = funDeclFor(instr.args[0])!!
                     val opFn = instr.args[1]
                     val opArgs = instr.args.drop(2)
 
                     val fillVal = newVar()
                     body += callWithOptFill(
-                        dests = listOf(fillVal.asMLIR()),
-                        fn = fillValFn,
+                        listOf(fillVal),
+                        fillValFn,
+                        listOf(),
                     )
 
                     body += callWithOptFill(
-                        dests = instr.outs.map { it.asMLIR() },
-                        fn = opFn,
-                        *opArgs.map { it.asMLIR() }.toTypedArray(),
-                        fill = fillVal
+                        instr.outs,
+                        opFn,
+                        opArgs,
+                        fillVal
                     )
                 }
 
@@ -354,10 +369,10 @@ fun IrBlock.emitMLIR(): String {
                     val args = instr.args.drop(1)
 
                     body += callWithOptFill(
-                        instr.outs.map { it.asMLIR() },
-                        fn = fn,
-                        *args.map { it.asMLIR() }.toTypedArray(),
-                        fill = fillArg
+                        instr.outs,
+                        fn,
+                        args,
+                        fillArg
                     )
                 }
 
@@ -368,6 +383,10 @@ fun IrBlock.emitMLIR(): String {
         }
     }
 
+    return body
+}
+
+fun IrBlock.emitMLIRFinalize(body: List<String>): String {
     val mArgs = args.mapTo(mutableListOf()) { it.asMLIR() to it.type.toMLIR() }
     fillArg?.let {
         mArgs.add(0, it.asMLIR() to it.type.toMLIR())

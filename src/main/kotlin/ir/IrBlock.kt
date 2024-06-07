@@ -3,6 +3,7 @@ package me.alex_s168.uiua.ir
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
+import kotlin.math.max
 
 data class IrBlock(
     val name: String,
@@ -14,7 +15,11 @@ data class IrBlock(
     var fillArg: IrVar? = null,
     var private: Boolean = true,
 ) {
-    private var nextVar: ULong = 0u
+    var nextVar: ULong = 0u
+
+    fun shouldInline(): Boolean =
+        false // TODO: figure out why mlir stupid
+        // instrs.size < 40 // should be called on expanded blocks
 
     fun newVar(): IrVar =
         IrVar(Types.tbd, nextVar ++)
@@ -25,20 +30,52 @@ data class IrBlock(
         instrs.forEach {
             it.updateVar(old, new)
         }
+        if (fillArg == old)
+            fillArg = new
     }
 
     fun instrDeclFor(variable: IrVar): IrInstr? =
         instrs.find { variable in it.outs }
 
-    fun funDeclFor(v: IrVar): Pair<String, IrBlock> {
-        val fn = instrDeclFor(v)!!.instr as PushFnRefInstr
-        val fnblock = ref(fn.fn)!!
-        return fn.fn to fnblock
+    fun funDeclFor(v: IrVar): Pair<String, IrBlock>? {
+        val fn = instrDeclFor(v)?.instr as? PushFnRefInstr
+        return fn?.let { a ->
+            ref(a.fn)?.let { a.fn to it }
+        }
     }
 
     fun varUsed(variable: IrVar): Boolean =
         if (variable in rets) true
         else instrs.any { variable in it.args }
+
+    fun inlinableCopy(nextVar: ULong, cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null): IrBlock {
+        val new = IrBlock(
+            name,
+            ref,
+            instrs.mapTo(mutableListOf()) { it.deepCopy() },
+            flags.toMutableList(),
+            fillArg = fillArg,
+        )
+        new.nextVar = max(this.nextVar, nextVar)
+
+        val olds = new.instrs.flatMap { it.outs }.toSet()
+        olds.forEach {
+            val n = if (it in rets) cRets[rets.indexOf(it)]
+            else new.newVar().copy(type = it.type)
+            new.updateVar(it, n)
+        }
+
+        new.fillArg?.let { new.instrs.forEach { it.args.updateVar(new.fillArg!!, fill!!) } }
+
+        new.fillArg = fill
+
+        args.zip(cArgs).forEach { (a, b) ->
+            require(a.type == b.type)
+            new.updateVar(a, b)
+        }
+
+        return new
+    }
 
     fun expandFor(
         inTypes: List<Type>,
@@ -124,6 +161,4 @@ data class IrBlock(
             rets.map { it.type },
             fillArg?.type
         )
-
-    fun canChangeSig() = true
 }

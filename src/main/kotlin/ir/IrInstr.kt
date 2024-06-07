@@ -179,7 +179,7 @@ data class IrInstr(
                 }
 
                 Prim.CALL -> {
-                    val (_, fn) = parent.funDeclFor(args[0])
+                    val (_, fn) = parent.funDeclFor(args[0])!!
                     val callArgs = args.drop(1)
 
                     val exp = fn.expandFor(callArgs.map { it.type }, putFn, fillType)
@@ -248,7 +248,7 @@ data class IrInstr(
                     val inputs = args.drop(3)
 
                     val expanded = fns.mapIndexed { index, arg ->
-                        val (_, fn) = parent.funDeclFor(arg)
+                        val (_, fn) = parent.funDeclFor(arg)!!
                         val exp = fn.expandFor(
                             inputs.map { it.type },
                             putFn,
@@ -267,7 +267,7 @@ data class IrInstr(
                 }
 
                 Prim.REDUCE -> {
-                    val (_, fnblock) = parent.funDeclFor(args[0])
+                    val (_, fnblock) = parent.funDeclFor(args[0])!!
                     val inp = args[1].type as ArrayType
 
                     val first = fnblock.expandFor(listOf(inp.of, inp.of), putFn, fillType)
@@ -286,7 +286,7 @@ data class IrInstr(
                 }
 
                 Prim.EACH -> {
-                    val (_, fnblock) = parent.funDeclFor(args[0])
+                    val (_, fnblock) = parent.funDeclFor(args[0])!!
                     val inp = args[1].type as ArrayType
 
                     val new = fnblock.expandFor(listOf(inp.inner), putFn, fillType)
@@ -298,7 +298,7 @@ data class IrInstr(
                 }
 
                 Prim.ROWS -> {
-                    val (_, fnblock) = parent.funDeclFor(args[0])
+                    val (_, fnblock) = parent.funDeclFor(args[0])!!
 
                     val inps = args.drop(1).map { arg ->
                         arg.type as ArrayType
@@ -314,8 +314,8 @@ data class IrInstr(
                 }
 
                 Prim.FILL -> {
-                    val (_, fillValFn) = parent.funDeclFor(args[0])
-                    val (_, opFn) = parent.funDeclFor(args[1])
+                    val (_, fillValFn) = parent.funDeclFor(args[0])!!
+                    val (_, opFn) = parent.funDeclFor(args[1])!!
                     val opArgs = args.drop(2)
 
                     val fillValFnExp = fillValFn.expandFor(listOf(), putFn, fillType)

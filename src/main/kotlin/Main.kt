@@ -7,8 +7,8 @@ import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
 import me.alex_s168.uiua.ir.transform.*
 import me.alex_s168.uiua.mlir.emitMLIR
+import me.alex_s168.uiua.mlir.emitMLIRFinalize
 import java.io.File
-import kotlin.math.exp
 import kotlin.random.Random
 import kotlin.random.nextULong
 
@@ -25,11 +25,17 @@ private fun IrBlock.findAllRequiredCompile(dosth: (IrBlock) -> Unit): Set<IrBloc
         if (list.none { it.name == block.name }) {
             dosth(block)
             list.add(block)
-            block.instrs.forEach {
+
+            var idx = 0
+            while (idx < block.instrs.size) {
+                val it = block.instrs[idx]
                 if (it.instr is PushFnRefInstr) {
                     val fn = block.ref(it.instr.fn)!!
+                    val oldSize = block.instrs.size
                     rec(fn)
+                    idx += block.instrs.size - oldSize
                 }
+                idx ++
             }
         }
     }
@@ -43,8 +49,6 @@ fun main() {
     val assembly = Assembly.parse(test)
 
     val blocks = assembly.functions.toIr()
-
-    blocks.values.forEach(::println)
 
     val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)/*, Types.array(Types.int)*/), blocks::putBlock)
     blocks[expanded]!!.private = false
@@ -69,7 +73,7 @@ fun main() {
     out.append("\n\n")
 
     compile.forEach {
-        out.append(it.emitMLIR())
+        out.append(it.emitMLIRFinalize(it.emitMLIR()))
         out.append("\n\n")
     }
 
@@ -83,24 +87,31 @@ fun main() {
     val mlirOpt = "mlir-opt"
     val mlirTranslate = "mlir-translate"
     val clang = "clang"
+    val llvmLower = true
 
     // TODO: add --ownership-based-buffer-deallocation back (after --one-shot-bufferize)
-    val mlirOptFlags = "--one-shot-bufferize --convert-bufferization-to-memref --convert-tensor-to-linalg --convert-linalg-to-affine-loops --lower-affine -convert-scf-to-cf --convert-to-llvm --reconcile-unrealized-casts "
-    val mlirTranslateFlags = "--mlir-to-llvmir"
-    val clangFlags = "-x ir"
+    val llvmLowerStr = if (llvmLower) " convert-to-llvm," else ""
+    val mlirOptFlags = listOf("--pass-pipeline=builtin.module(func(cse, canonicalize), inline, sccp, sroa, one-shot-bufferize, convert-bufferization-to-memref, convert-tensor-to-linalg, convert-linalg-to-affine-loops, lower-affine, convert-scf-to-cf, mem2reg,$llvmLowerStr reconcile-unrealized-casts)")
+    val mlirTranslateFlags = listOf("--mlir-to-llvmir")
+    val clangFlags = listOf("-x", "ir")
 
-    try {
-        require(Runtime.getRuntime().exec("$mlirOpt -o $optMlir $inMlir $mlirOptFlags").waitFor() == 0)
-        require(Runtime.getRuntime().exec("$mlirTranslate -o $outLlc $optMlir $mlirTranslateFlags").waitFor() == 0)
-        require(Runtime.getRuntime().exec("$clang -c -O3 -o $outObj $clangFlags $outLlc").waitFor() == 0)
-
-        println("Generated .out.o")
-    } catch (e: Exception) {
-        println("Could not compile to object file!")
-        println()
-        println("Generated MLIR:")
-        println("=================")
-        println()
-        println(out.toString())
+    fun Unit.run(cmd: List<String>): Unit? {
+        println("\$ ${cmd.joinToString(" ")}")
+        if (Runtime.getRuntime().exec(cmd.toTypedArray()).waitFor() == 0)
+            return Unit
+        return null
     }
+
+    Unit.run(listOf(mlirOpt, "-o", optMlir, inMlir) + mlirOptFlags)
+        ?.run(listOf(mlirTranslate, "-o", outLlc, optMlir) + mlirTranslateFlags)
+        ?.run(listOf(clang, "-c", "-O3", "-o", outObj) + clangFlags + outLlc)
+        ?.let { println("Generated .out.o") }
+        ?: run {
+            println("Could not compile to object file!")
+            println()
+            println("Generated MLIR:")
+            println("=================")
+            println()
+            println(out.toString())
+        }
 }
