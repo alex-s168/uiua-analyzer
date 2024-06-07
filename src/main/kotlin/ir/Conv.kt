@@ -78,9 +78,6 @@ fun ASTRoot.toIr(
     putFn: (IrBlock) -> Unit,
     name: String
 ): IrBlock {
-    fun anonFnName(): String =
-        "_\$anon_${Random.nextULong()}"
-
     val block = IrBlock(name, getFn)
 
     flagsAndComments.forEach {

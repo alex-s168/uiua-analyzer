@@ -12,6 +12,7 @@ data class IrBlock(
     var args: MutableList<IrVar> = mutableListOf(),
     var rets: MutableList<IrVar> = mutableListOf(),
     var fillArg: IrVar? = null,
+    var private: Boolean = true,
 ) {
     private var nextVar: ULong = 0u
 

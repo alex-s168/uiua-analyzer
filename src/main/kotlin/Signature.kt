@@ -27,6 +27,8 @@ internal fun signature(
         Prim.MUL -> Signature(2, 1)
         Prim.DIV -> Signature(2, 1)
 
+        Prim.LEN -> Signature(1, 1)
+
         Prim.PRIMES -> Signature(1, 1)
 
         Prim.BOX -> Signature(1, 1)
@@ -37,7 +39,10 @@ internal fun signature(
         Prim.FLIP -> Signature(2, 2)
 
         Prim.EACH -> Signature(2, 1)
-        Prim.REDUCE -> Signature(2, 1)
+        Prim.REDUCE -> {
+            val fn = onStack(0).value.getA().instr as PushFnInstr
+            Signature(fn.fn.signature.inputs, 1)
+        }
         Prim.ROWS -> {
             val each = onStack(0).value.getA().instr as PushFnInstr
             each.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst

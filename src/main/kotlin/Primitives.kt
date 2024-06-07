@@ -23,14 +23,22 @@ object Prim {
         val ARR_LOAD = prim("cARR_LOAD") // [arr], [indecies: arr_arg]
         val ARR_DESTROY = prim("cARR_DESTROY")
 
-        val REPEAT = prim("cREPEAT") // [times], [fn which takes counter]
+        val REPEAT = prim("cREPEAT") // [start], [end], [fn which takes counter], [additional]...
         val DIM = prim("cDIM") // [arr], [dim]
+
+        /** outputs can be anything as program won't continue after this */
+        val PANIC = prim("cPANIC")
     }
 
     val ADD = prim("ADD")
     val SUB = prim("SUB")
     val MUL = prim("MUL")
     val DIV = prim("DIV")
+
+    // TODO: investigate if these are the real names
+    val LEN = prim("LEN")
+    val SWITCH = prim("SWITCH") // [conds: arg list], [dests: arg lists], on: int, [args]...     the last case is always default case
+    val CALL = prim("CALL")
 
     val PRIMES = prim("PRIMES")
 

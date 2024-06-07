@@ -5,12 +5,15 @@ import me.alex_s168.uiua.ir.opt.optInlineCUse
 import me.alex_s168.uiua.ir.opt.optRemUnused
 import me.alex_s168.uiua.ir.putBlock
 import me.alex_s168.uiua.ir.toIr
-import me.alex_s168.uiua.ir.transform.expandArrays
-import me.alex_s168.uiua.ir.transform.expandBoxes
-import me.alex_s168.uiua.ir.transform.expandStackOps
-import me.alex_s168.uiua.ir.transform.lowerBoxesToArrays
+import me.alex_s168.uiua.ir.transform.*
 import me.alex_s168.uiua.mlir.emitMLIR
 import java.io.File
+import kotlin.math.exp
+import kotlin.random.Random
+import kotlin.random.nextULong
+
+fun anonFnName(): String =
+    "_\$anon_${Random.nextULong()}"
 
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
@@ -19,8 +22,8 @@ private fun IrBlock.findAllRequiredCompile(dosth: (IrBlock) -> Unit): Set<IrBloc
     val list = mutableSetOf<IrBlock>()
 
     fun rec(block: IrBlock) {
-        dosth(block)
-        if (block !in list) {
+        if (list.none { it.name == block.name }) {
+            dosth(block)
             list.add(block)
             block.instrs.forEach {
                 if (it.instr is PushFnRefInstr) {
@@ -42,12 +45,14 @@ fun main() {
     val blocks = assembly.functions.toIr()
 
     val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)/*, Types.array(Types.int)*/), blocks::putBlock)
+    blocks[expanded]!!.private = false
 
     val compile = blocks[expanded]!!.findAllRequiredCompile {
         // only reorder if you know what you are doing!
         it.expandStackOps()
         it.optInlineCUse()
         it.optRemUnused()
+        it.lowerReduce(blocks::putBlock)
         it.expandBoxes()
         it.expandArrays()
         it.lowerBoxesToArrays()

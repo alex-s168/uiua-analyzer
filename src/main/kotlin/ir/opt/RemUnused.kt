@@ -4,6 +4,6 @@ import me.alex_s168.uiua.ir.IrBlock
 
 fun IrBlock.optRemUnused() {
     instrs.removeIf {
-        it.outs.all { !varUsed(it) }
+        it.outs.size > 0 && it.outs.all { !varUsed(it) }
     }
 }

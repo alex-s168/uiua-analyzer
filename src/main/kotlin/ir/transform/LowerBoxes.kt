@@ -12,8 +12,7 @@ fun IrBlock.lowerBoxesToArrays() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
-                    val shape = newVar().copy(type = Types.array(Types.int))
-                    constantArr(shape, ::newVar, 1.0, type = Types.int) {
+                    val shape = constantArr(::newVar, 1.0, type = Types.int) {
                         instrs.add(idx ++, it)
                     }
 
@@ -38,24 +37,16 @@ fun IrBlock.lowerBoxesToArrays() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
-                    val indecies = newVar().copy(type = Types.array(Types.int))
-                    constantArr(indecies, ::newVar, 0.0, type = Types.int) {
+                    oneDimLoad(dest = instr.outs[0], instr.args[0], ::newVar, 0) {
                         instrs.add(idx ++, it)
                     }
-
-                    instrs.add(idx ++, IrInstr(
-                        mutableListOf(),
-                        PrimitiveInstr(Prim.Comp.ARR_LOAD),
-                        mutableListOf(instr.args[0], indecies)
-                    ))
                 }
 
                 Prim.Comp.BOX_STORE -> {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
-                    val indecies = newVar().copy(type = Types.array(Types.int))
-                    constantArr(indecies, ::newVar, 0.0, type = Types.int) {
+                    val indecies = constantArr(::newVar, 0.0, type = Types.int) {
                         instrs.add(idx ++, it)
                     }
 

@@ -4,13 +4,17 @@ import me.alex_s168.uiua.ir.IrBlock
 
 fun function(
     name: String,
+    private: Boolean,
     args: List<Pair<MLIRVar, MLIRType>>,
     rets: List<Pair<MLIRVar, MLIRType>>,
     body: List<String>
 ): String {
     val res = StringBuilder()
 
-    res.append("func.func @")
+    res.append("func.func")
+    if (private)
+        res.append(" private")
+    res.append(" @")
     res.append(name.legalizeMLIR())
     res.append('(')
     args.forEachIndexed { index, (va, ty) ->

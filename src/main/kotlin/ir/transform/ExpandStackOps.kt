@@ -32,7 +32,7 @@ fun IrBlock.expandStackOps() {
                         PrimitiveInstr("cUSE"),
                         mutableListOf(instr.args[1]),
                     ))
-                    instrs.add(i, IrInstr(
+                    instrs.add(i + 1, IrInstr(
                         mutableListOf(instr.outs[1]),
                         PrimitiveInstr("cUSE"),
                         mutableListOf(instr.args[0]),

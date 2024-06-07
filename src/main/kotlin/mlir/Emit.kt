@@ -172,28 +172,33 @@ fun IrBlock.emitMLIR(): String {
                 }
 
                 Prim.Comp.REPEAT -> {
-                    val times = instr.args[0].asMLIR()
-                    val (_, fnd) = funDeclFor(args[1])
+                    val start = instr.args[0].asMLIR()
+
+                    val times = instr.args[1].asMLIR()
+                    val (_, fnd) = funDeclFor(args[2])
+
+                    val additional = args.drop(3).mapTo(mutableListOf()) { it.asMLIR() }
 
                     val counter = newVar()
 
                     val inner = mutableListOf<String>()
+
                     val arg = castIfNec(
                         inner,
                         counter,
-                        fnd.args[0].type
+                        fnd.args[1].type
                     )
 
                     inner += callWithOptFill(
                         listOf(),
                         listOf(),
                         fnd,
-                        arg.asMLIR()
+                        *additional.also { it.add(0, arg.asMLIR()) }.toTypedArray()
                     )
 
                     body += Inst.affineParallelFor(
                         listOf(counter.asMLIR()),
-                        listOf("0"),
+                        listOf(start),
                         listOf(times),
                         inner
                     )
@@ -290,6 +295,7 @@ fun IrBlock.emitMLIR(): String {
 
     return function(
         name,
+        private,
         mArgs,
         rets.map { it.asMLIR() to it.type.toMLIR() },
         body

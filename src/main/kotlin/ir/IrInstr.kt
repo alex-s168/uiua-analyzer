@@ -6,6 +6,24 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ast.AstNode
 import kotlin.math.floor
 
+/* funny type inference algo:
+var o: Type? = null
+var i = Types.tbd
+var newb: IrBlock? = null
+var new = "aaaaaaaaa"
+while (o != i) {
+    i = i.cycle()
+
+    newb = kotlin.runCatching {
+        new = fnblock.expandFor(listOf(i, inp.of), putFn, fillType)
+        parent.ref(new)!!
+    }.getOrNull()
+
+    o = newb?.rets?.getOrNull(0)?.type
+}
+newb!!
+ */
+
 data class IrInstr(
     val outs: MutableList<IrVar>,
     val instr: Instr,
@@ -54,7 +72,7 @@ data class IrInstr(
             args = args.toMutableList()
         )
 
-    fun inferTypes(
+    internal fun inferTypes(
         parent: IrBlock,
         putFn: (IrBlock) -> Unit,
         fillType: Type? = null
@@ -158,6 +176,18 @@ data class IrInstr(
                     updateType(outs[0], Types.int)
                 }
 
+                Prim.CALL -> {
+                    val (_, fn) = parent.funDeclFor(args[0])
+                    val callArgs = args.drop(1)
+
+                    val exp = fn.expandFor(callArgs.map { it.type }, putFn, fillType)
+                    val expb = parent.ref(exp)!!
+
+                    outs.zip(expb.rets).forEach { (a, b) ->
+                        updateType(a, b.type)
+                    }
+                }
+
                 Prim.BOX -> {
                     updateType(outs[0], Types.box(args[0].type))
                 }
@@ -194,29 +224,59 @@ data class IrInstr(
                     updateType(outs[1], args[0].type)
                 }
 
+                Prim.LEN -> {
+                    updateType(outs[0], Types.int)
+                }
+
+                Prim.SWITCH -> {
+                    val at = parent.instrDeclFor(args[0])!!
+                    require(at.instr is PrimitiveInstr && at.instr.id == Prim.Comp.ARG_ARR)
+
+                    val fnsa = parent.instrDeclFor(args[1])!!
+                    require(fnsa.instr is PrimitiveInstr && fnsa.instr.id == Prim.Comp.ARG_ARR)
+                    val fns = fnsa.args
+
+                    val on = args[2]
+                    require(on.type is NumericType)
+
+                    val inputs = args.drop(3)
+
+                    val expanded = fns.mapIndexed { index, arg ->
+                        val (_, fn) = parent.funDeclFor(arg)
+                        val exp = fn.expandFor(
+                            inputs.map { it.type },
+                            putFn,
+                            fillType
+                        )
+                        val expb = parent.ref(exp)!!
+                        fns[index] = fnRef(exp)
+                        expb
+                    }
+
+                    require(expanded.all { it.rets.size == outs.size })
+
+                    outs.zip(expanded.first().rets).forEach { (v, t) ->
+                        updateType(v, t.type)
+                    }
+                }
+
                 Prim.REDUCE -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])
                     val inp = args[1].type as ArrayType
 
-                    var o: Type? = null
-                    var i = Types.tbd
-                    var newb: IrBlock? = null
-                    var new = "aaaaaaaaa"
-                    while (o != i) {
-                        i = i.cycle()
+                    val first = fnblock.expandFor(listOf(inp.of, inp.of), putFn, fillType)
+                    val firstb = parent.ref(first)!!
+                    val accTy = firstb.rets[0].type
 
-                        newb = kotlin.runCatching {
-                            new = fnblock.expandFor(listOf(i, inp.of), putFn, fillType)
-                            parent.ref(new)!!
-                        }.getOrNull()
+                    args[0] = fnRef(first)
 
-                        o = newb?.rets?.getOrNull(0)?.type
-                    }
-                    newb!!
+                    val all = fnblock.expandFor(listOf(accTy, inp.of), putFn, fillType)
+                    val allb = parent.ref(all)!!
+                    require(allb.rets[0].type == accTy)
 
-                    args[0] = fnRef(new)
+                    args.add(fnRef(all))
 
-                    updateType(outs[0], newb.rets[0].type)
+                    updateType(outs[0], accTy)
                 }
 
                 Prim.EACH -> {
