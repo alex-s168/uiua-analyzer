@@ -55,6 +55,7 @@ object Prim {
     val EACH = prim("EACH") // [fn] [arrays]...
     val REDUCE = prim("REDUCE")
     val ROWS = prim("ROWS")
+    val REVERSE = prim("REVERSE")
 
     const val FILL = "FILL"
 }

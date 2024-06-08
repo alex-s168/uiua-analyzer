@@ -16,11 +16,13 @@ fun List<IrVar>.wrapInArgArray(newVar: () -> IrVar, put: (IrInstr) -> Unit): IrV
 }
 
 fun IrVar.into(dest: IrVar, put: (IrInstr) -> Unit) {
-    put(IrInstr(
-        mutableListOf(dest),
-        PrimitiveInstr(Prim.Comp.USE),
-        mutableListOf(this)
-    ))
+    if (this.id != dest.id) {
+        put(IrInstr(
+            mutableListOf(dest),
+            PrimitiveInstr(Prim.Comp.USE),
+            mutableListOf(this)
+        ))
+    }
 }
 
 fun constants(newVar: () -> IrVar, vararg const: Double, type: Type = Types.double, put: (IrInstr) -> Unit): List<IrVar> =

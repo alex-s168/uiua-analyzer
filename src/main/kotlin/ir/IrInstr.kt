@@ -340,6 +340,16 @@ data class IrInstr(
                         updateType(out, ret.type)
                     }
                 }
+
+                Prim.REVERSE -> {
+                    val argTy = args[0].type
+                    if (argTy is BoxType) {
+                        require(argTy.of is ArrayType)
+                    } else {
+                        require(argTy is ArrayType)
+                    }
+                    updateType(outs[0], argTy)
+                }
             }
         }
     }

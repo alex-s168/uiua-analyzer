@@ -66,6 +66,7 @@ fun main() {
         it.lowerReduce(blocks::putBlock)
         it.lowerRange(blocks::putBlock)
         it.lowerRows(blocks::putBlock)
+        it.lowerReverse(blocks::putBlock)
         it.expandBoxes()
         it.expandArrays()
         it.lowerBoxesToArrays()

@@ -4,4 +4,6 @@
 # fn = /+
 
 # geometric mean
-fn = /+×ⁿ⇡⧻, 3
+# fn = /+×ⁿ⇡⧻, 3
+
+fn = /+ rev
