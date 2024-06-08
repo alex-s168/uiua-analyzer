@@ -44,43 +44,17 @@ fun IrBlock.emitMLIR(): List<String> {
     fun IrInstr.binary(
         body: MutableList<String>,
         op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String,
-        opArr: (dest: MLIRVar, destType: MLIRType, sources: List<Pair<MLIRVar, MLIRType>>) -> String,
         reverse: Boolean = false
     ) {
         val rargs = if (reverse) args.reversed() else args
         val outTy = outs[0].type
-        if (outTy is ArrayType) {
-            val arrArg = rargs.find { it.type is ArrayType }
-            val cast = rargs.map {
-                if (it.type is ArrayType) it
-                else castIfNec(body, it, outTy)
-            }
-
-            val mDynShape = arrArg?.let {
-                val mShape = emitShapeOf(body, it)
-                val arrArgTy = it.type as ArrayType
-                mShape.filterIndexed { idx, _ -> arrArgTy.shape[idx] == -1 }
-            } ?: listOf()
-
-            body += Inst.memRefAlloc(
-                outs[0].asMLIR(),
-                outTy.toMLIR(),
-                *mDynShape.toTypedArray()
-            )
-            body += opArr(
-                outs[0].asMLIR(),
-                outs[0].type.toMLIR(),
-                cast.map { it.asMLIR() to it.type.toMLIR() }
-            )
-        } else {
-            body += op(
-                outs[0].asMLIR(),
-                outTy.toMLIR(),
-                castIfNec(body, rargs[0], outTy).asMLIR(),
-                castIfNec(body, rargs[1], outTy).asMLIR(),
-                outTy == Types.double
-            )
-        }
+        body += op(
+            outs[0].asMLIR(),
+            outTy.toMLIR(),
+            castIfNec(body, rargs[0], outTy).asMLIR(),
+            castIfNec(body, rargs[1], outTy).asMLIR(),
+            outTy == Types.double
+        )
     }
 
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
@@ -180,11 +154,11 @@ fun IrBlock.emitMLIR(): List<String> {
             }
 
             is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.ADD -> instr.binary(body, Inst::add, Inst::arrAdd)
-                Prim.SUB -> instr.binary(body, Inst::sub, Inst::arrSub)
-                Prim.MUL -> instr.binary(body, Inst::mul, Inst::arrMul)
-                Prim.DIV -> instr.binary(body, Inst::div, Inst::arrDiv, reverse = true)
-                Prim.POW -> instr.binary(body, Inst::pow, Inst::arrPow, reverse = true)
+                Prim.ADD -> instr.binary(body, Inst::add)
+                Prim.SUB -> instr.binary(body, Inst::sub)
+                Prim.MUL -> instr.binary(body, Inst::mul)
+                Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
+                Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
 
                 Prim.PRIMES -> {
                     val rtPrimes = Types.func(

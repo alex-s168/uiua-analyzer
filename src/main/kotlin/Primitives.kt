@@ -52,7 +52,7 @@ object Prim {
     val FLIP = prim("FLIP")
     val OVER = prim("OVER")
 
-    val EACH = prim("EACH")
+    val EACH = prim("EACH") // [fn] [arrays]...
     val REDUCE = prim("REDUCE")
     val ROWS = prim("ROWS")
 

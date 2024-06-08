@@ -2,11 +2,9 @@ package me.alex_s168.uiua
 
 import blitz.collections.contents
 
-// TODO: do we need equals functions?
-
 open class Type(
     val name: String,
-    val implicitConv: List<Type>
+    val implicitConv: List<Type> // TODO: remove
 ) {
     override fun toString(): String =
         name

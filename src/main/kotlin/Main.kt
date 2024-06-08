@@ -55,15 +55,22 @@ fun main() {
 
     val compile = blocks[expanded]!!.findAllRequiredCompile {
         // only reorder if you know what you are doing!
+        fun IrBlock.basicOpt() {
+            optInlineCUse()
+            optRemUnused()
+        }
+
         it.expandStackOps()
-        it.optInlineCUse()
-        it.optRemUnused()
+        it.basicOpt()
+        it.lowerPervasive(blocks::putBlock)
         it.lowerReduce(blocks::putBlock)
         it.lowerRange(blocks::putBlock)
+        it.lowerRows(blocks::putBlock)
         it.expandBoxes()
         it.expandArrays()
         it.lowerBoxesToArrays()
         it.lowerSimple()
+        it.basicOpt()
 
         println(it)
         println()

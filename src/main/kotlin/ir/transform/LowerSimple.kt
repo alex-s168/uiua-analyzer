@@ -1,9 +1,6 @@
 package me.alex_s168.uiua.ir.transform
 
-import me.alex_s168.uiua.NumImmInstr
-import me.alex_s168.uiua.Prim
-import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.Types
+import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 
@@ -15,18 +12,27 @@ fun IrBlock.lowerSimple() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
-                    val const = newVar().copy(type = Types.int)
-                    instrs.add(idx ++, IrInstr(
-                        mutableListOf(const),
-                        NumImmInstr(0.0),
-                        mutableListOf()
-                    ))
+                    if (instr.args[0].type is ArrayType) {
+                        val const = newVar().copy(type = Types.size)
+                        instrs.add(idx++, IrInstr(
+                            mutableListOf(const),
+                            NumImmInstr(0.0),
+                            mutableListOf()
+                        ))
 
-                    instrs.add(idx ++, IrInstr(
-                        instr.outs,
-                        PrimitiveInstr(Prim.Comp.DIM),
-                        mutableListOf(instr.args[0], const)
-                    ))
+                        instrs.add(idx++, IrInstr(
+                            instr.outs,
+                            PrimitiveInstr(Prim.Comp.DIM),
+                            mutableListOf(instr.args[0], const)
+                        ))
+                    }
+                    else {
+                        instrs.add(idx++, IrInstr(
+                            mutableListOf(instr.outs[0]),
+                            NumImmInstr(1.0),
+                            mutableListOf()
+                        ))
+                    }
                 }
             }
         }
