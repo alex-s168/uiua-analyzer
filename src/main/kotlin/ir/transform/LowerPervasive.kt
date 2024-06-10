@@ -12,6 +12,8 @@ fun IrBlock.lowerPervasive(putBlock: (IrBlock) -> Unit) {
                 Prim.SUB,
                 Prim.MUL,
                 Prim.DIV,
+                Prim.LT,
+                Prim.EQ,
                 Prim.POW -> {
                     val outTy = instr.outs[0].type
                     if (outTy is ArrayType) {

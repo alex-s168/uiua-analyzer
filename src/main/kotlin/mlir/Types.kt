@@ -55,7 +55,7 @@ fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
         Types.opaque -> error("should not happen")
         is FnType -> "(${(fillType?.let { listOf(it) + args } ?: args).joinToString { it.toMLIR(wantTensor) }}) -> (${rets.joinToString { it.toMLIR(wantTensor) }})"
         Types.size -> Ty.index
-        else -> error("")
+        else -> error("$this")
     }
 
 fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLIRVar): List<String> =

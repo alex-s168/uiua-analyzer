@@ -1,12 +1,14 @@
 package me.alex_s168.uiua.ir
 
 import blitz.collections.contents
+import me.alex_s168.uiua.FnType
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
 import kotlin.math.max
 
 private var nextBlockId = 0
+private var nextGVarId: ULong = 0u
 
 data class IrBlock(
     val name: String,
@@ -20,14 +22,12 @@ data class IrBlock(
 ) {
     val uid = nextBlockId ++
 
-    var nextVar: ULong = 0u
-
     fun shouldInline(): Boolean =
-        false // TODO: figure out why mlir stupid
-        // instrs.size < 40 // should be called on expanded blocks
+        // false // TODO: figure out why mlir stupid
+        instrs.size < 40 // should be called on expanded blocks
 
     fun newVar(): IrVar =
-        IrVar(Types.tbd, nextVar ++)
+        IrVar(Types.tbd, nextGVarId ++)
 
     fun updateVar(old: IrVar, new: IrVar) {
         args.updateVar(old, new)
@@ -53,7 +53,7 @@ data class IrBlock(
         if (variable in rets) true
         else instrs.any { variable in it.args }
 
-    fun inlinableCopy(nextVar: ULong, cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null): IrBlock {
+    fun inlinableCopy(cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null): IrBlock {
         val new = IrBlock(
             name,
             ref,
@@ -61,12 +61,12 @@ data class IrBlock(
             flags.toMutableList(),
             fillArg = fillArg,
         )
-        new.nextVar = max(this.nextVar, nextVar)
 
         val olds = new.instrs.flatMap { it.outs }.toSet()
         olds.forEach {
-            val n = if (it in rets) cRets[rets.indexOf(it)]
-            else new.newVar().copy(type = it.type)
+            val n = (if (it in rets)
+                cRets.getOrNull(rets.indexOf(it))
+            else null) ?: new.newVar().copy(type = it.type)
             new.updateVar(it, n)
         }
 
@@ -101,7 +101,6 @@ data class IrBlock(
                 args.toMutableList(),
                 rets.toMutableList(),
             )
-            new.nextVar = nextVar
 
             new.args
                 .zip(inTypes)
@@ -166,7 +165,7 @@ data class IrBlock(
         return res.toString()
     }
 
-    fun type(): Type =
+    fun type(): FnType =
         Types.func(
             args.map { it.type },
             rets.map { it.type },

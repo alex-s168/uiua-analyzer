@@ -65,10 +65,8 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
         if (fn.shouldInline()) {
-            val toInline = fn.inlinableCopy(nextVar, args, dests, fill)
-            println(toInline)
+            val toInline = fn.inlinableCopy(args, dests, fill)
             val c = toInline.emitMLIR()
-            nextVar = max(nextVar, toInline.nextVar)
             return c
         }
 
@@ -132,6 +130,23 @@ fun IrBlock.emitMLIR(): List<String> {
         return dest
     }
 
+    fun cmp(instr: IrInstr, s: String, u: String) {
+        val out = instr.outs[0]
+        val outTy = out.type
+        val a = castIfNec(body, instr.args[1], outTy).asMLIR()
+        val b = castIfNec(body, instr.args[0], outTy).asMLIR()
+
+        castLaterIfNec(body, out, Types.bool) { dest ->
+            body += when (outTy) {
+                Types.double -> "${dest.asMLIR()} = arith.cmpf $s, $a, $b : f64"
+                Types.int -> "${dest.asMLIR()} = arith.cmpi $s, $a, $b : i64"
+                Types.byte -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : i8"
+                Types.size -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : index"
+                else -> error("")
+            }
+        }
+    }
+
     instrs.forEach { instr ->
         when (instr.instr) {
             is NumImmInstr -> {
@@ -168,20 +183,10 @@ fun IrBlock.emitMLIR(): List<String> {
                 Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
 
                 Prim.LT -> {
-                    val out = instr.outs[0]
-                    val outTy = out.type
-                    val a = castIfNec(body, instr.args[1], outTy).asMLIR()
-                    val b = castIfNec(body, instr.args[0], outTy).asMLIR()
-
-                    castLaterIfNec(body, out, Types.bool) { dest ->
-                        body += when (outTy) {
-                            Types.double -> "${dest.asMLIR()} = arith.cmpf slt, $a, $b : f64"
-                            Types.int -> "${dest.asMLIR()} = arith.cmpi slt, $a, $b : i64"
-                            Types.byte -> "${dest.asMLIR()} = arith.cmpi ult, $a, $b : i8"
-                            Types.size -> "${dest.asMLIR()} = arith.cmpi ult, $a, $b : index"
-                            else -> error("")
-                        }
-                    }
+                    cmp(instr, "slt", "ult")
+                }
+                Prim.EQ -> {
+                    cmp(instr, "eq", "eq")
                 }
 
                 Prim.MAX -> {
@@ -372,7 +377,7 @@ fun IrBlock.emitMLIR(): List<String> {
                     val opFn = instr.args[1]
                     val opArgs = instr.args.drop(2)
 
-                    val fillVal = newVar()
+                    val fillVal = newVar().copy(type = fillValFn.type().rets.first())
                     body += callWithOptFill(
                         listOf(fillVal),
                         fillValFn,

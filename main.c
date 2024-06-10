@@ -33,7 +33,10 @@ int main() {
     arr.alignedPtr[2] = 117;
     arr.alignedPtr[3] = 97;
 
-    double sum = fn_$__arr_start_int_end__maybe_(EXPAND(arr));
+    double sum;
+    for (size_t i = 0; i < 100000000; i ++) {
+        sum = fn_$__arr_start_int_end__maybe_(EXPAND(arr));
+    }
 
     printf("%f\n", sum);
 
