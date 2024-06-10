@@ -29,16 +29,19 @@ fun IrBlock.emitMLIR(): List<String> {
                 new
             }
 
-    fun emitShapeOf(body: MutableList<String>, src: IrVar): List<MLIRVar> {
-        val srcTy = src.type as ArrayType
-
-        return List(srcTy.shape.size) {
-            val const = newVar().asMLIR()
-            body += Inst.constant(const, Ty.index, it.toString())
-            val v = newVar().asMLIR()
-            body += Inst.memRefDim(v, srcTy.toMLIR(), src.asMLIR(), const)
-            v
-        }
+    fun castLaterIfNec(body: MutableList<String>, variable: IrVar, want: Type, block: (IrVar) -> Unit) {
+        if (want is ArrayType && variable.type !is ArrayType)
+            return castLaterIfNec(body, variable, want.inner, block)
+        val dest = if (variable.type == want) variable
+            else newVar().copy(type = want)
+        block(dest)
+        body.addAll(castInstr(
+            ::newVar,
+            from = want,
+            to = variable.type,
+            dest = variable.asMLIR(),
+            src = dest.asMLIR()
+        ))
     }
 
     fun IrInstr.binary(
@@ -159,6 +162,12 @@ fun IrBlock.emitMLIR(): List<String> {
                 Prim.MUL -> instr.binary(body, Inst::mul)
                 Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
                 Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
+                Prim.LT -> {
+                    // TODO
+                }
+                Prim.MAX -> {
+                    // TODO
+                }
 
                 Prim.PRIMES -> {
                     val rtPrimes = Types.func(
@@ -296,13 +305,15 @@ fun IrBlock.emitMLIR(): List<String> {
                 }
 
                 Prim.Comp.DIM -> {
-                    val dim = castIfNec(body, instr.args[1], Types.size)
-                    body += Inst.memRefDim(
-                        dest = instr.outs[0].asMLIR(),
-                        memRefType = instr.args[0].type.toMLIR(),
-                        memRef = instr.args[0].asMLIR(),
-                        dim = dim.asMLIR()
-                    )
+                    castLaterIfNec(body, instr.outs[0], Types.size) { dest ->
+                        val dim = castIfNec(body, instr.args[1], Types.size)
+                        body += Inst.memRefDim(
+                            dest = dest.asMLIR(),
+                            memRefType = instr.args[0].type.toMLIR(),
+                            memRef = instr.args[0].asMLIR(),
+                            dim = dim.asMLIR()
+                        )
+                    }
                 }
 
                 Prim.Comp.PANIC -> {
@@ -351,8 +362,10 @@ fun IrBlock.emitMLIR(): List<String> {
                     )
                 }
 
-                else -> error("")
+                else -> error("primitive ${instr.instr.id} not implemented")
             }
+
+            is CommentInstr -> {}
 
             else -> error("$instr not implemented")
         }

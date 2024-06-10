@@ -21,7 +21,7 @@ fun IrBlock.lowerPervasive(putBlock: (IrBlock) -> Unit) {
                         var idx = instrs.indexOf(instr)
                         instrs.removeAt(idx)
 
-                        instrs.add(idx ++, comment("+++ pervasive ${instr.instr.id}"))
+                        instrs.add(idx ++, comment("+++ $instr"))
 
                         val fn = IrBlock(anonFnName(), ref).apply {
                             val a = newVar().copy(type = aTy).also { args += it }
@@ -51,7 +51,7 @@ fun IrBlock.lowerPervasive(putBlock: (IrBlock) -> Unit) {
                             mutableListOf(fnFn, instr.args[0], instr.args[1])
                         ))
 
-                        instrs.add(idx ++, comment("--- pervasive ${instr.instr.id}"))
+                        instrs.add(idx ++, comment("--- $instr"))
                     }
                 }
             }

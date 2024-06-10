@@ -20,7 +20,7 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
     var idx = instrs.indexOf(instr)
     instrs.removeAt(idx)
 
-    instrs.add(idx ++, comment("+++ rows"))
+    instrs.add(idx ++, comment("+++ $instr"))
 
     val outTypes = instr.outs.map { it.type as ArrayType }
 
@@ -51,9 +51,9 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
             v
         }
 
-        val inputsLensArgArr = inputsLens.filterNot {
+        val inputsLensArgArr = inputs.zip(inputsLens).filterNot { (it, _) ->
             it.type !is ArrayType || it.type.length == 1
-        }.wrapInArgArray(::newVar, Types.size) { instrs += it }
+        }.map { it.second }.wrapInArgArray(::newVar, Types.size) { instrs += it }
         val inputsLensArr = newVar().copy(type = inputsLensArgArr.type)
         instrs.add(IrInstr(
             mutableListOf(inputsLensArr),
@@ -146,7 +146,7 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
             }
         }
 
-        val iter0 = outTypes.map { newVar().copy(type = it.of).also { rets += it } }
+        val iter0 = outTypes.map { newVar().copy(type = it.of) }
         instrs += IrInstr(
             iter0.toMutableList(),
             PrimitiveInstr(Prim.CALL),
@@ -259,5 +259,5 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
         one to full,
     ) { instrs.add(idx ++, it) }
 
-    instrs.add(idx ++, comment("--- rows"))
+    instrs.add(idx ++, comment("--- $instr"))
 }
