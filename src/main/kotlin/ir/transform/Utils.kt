@@ -76,15 +76,17 @@ fun oneDimLoad(arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Un
 }
 
 fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) -> Unit, ref: (String) -> IrBlock?, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit) {
-    arr.type as ArrayType
+    put(comment("+++ one dim fill load"))
+
+    val arrTy = arr.type as ArrayType
 
     val err = IrBlock(anonFnName(), ref).apply {
         fillArg = fill?.let { newVar().copy(type = it.type) }
 
-        val arr = newVar().copy(type = arr.type).also { args += it }
+        val arr = newVar().copy(type = arrTy).also { args += it }
         val idx = newVar().copy(type = idx.type).also { args += it }
 
-        val value = newVar().copy(type = arr.type).also { rets += it }
+        val value = newVar().copy(type = arrTy.of).also { rets += it }
 
         if (fillArg == null) {
             instrs += IrInstr(
@@ -100,10 +102,10 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
     }
 
     val ok = IrBlock(anonFnName(), ref).apply {
-        val arr = newVar().copy(type = arr.type).also { args += it }
+        val arr = newVar().copy(type = arrTy).also { args += it }
         val idx = newVar().copy(type = idx.type).also { args += it }
 
-        val value = newVar().copy(type = arr.type).also { rets += it }
+        val value = newVar().copy(type = arrTy.of).also { rets += it }
 
         val idc = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
 
@@ -141,6 +143,8 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
         one to ok,
         put = put,
     )
+
+    put(comment("--- one dim fill load"))
 }
 
 fun oneDimFillLoad(fill: IrVar?, arr: IrVar, putBlock: (IrBlock) -> Unit, ref: (String) -> IrBlock?, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit): IrVar {

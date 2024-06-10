@@ -137,6 +137,7 @@ object Types {
     val byte = NumericType("byte", listOf(int, double))
     val autobyte = AutoByteType()
     val size = NumericType("size", listOf(int, double))
+    val bool = NumericType("bool", listOf())
 
     /* general */
     val dynamic = Type("dyn", listOf())

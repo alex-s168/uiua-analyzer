@@ -38,8 +38,7 @@ data class IrInstr(
             outs.forEachIndexed { index, irVar ->
                 if (index > 0)
                     res.append(", ")
-                res.append('%')
-                res.append(irVar.id)
+                res.append(irVar)
             }
             res.append(" = ")
         }

@@ -48,6 +48,7 @@ fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
         is BoxType -> Ty.memref(listOf(1), of.toMLIR(wantTensor))
         Types.int -> Ty.int(64)
         Types.byte -> Ty.int(8)
+        Types.bool -> Ty.int(1)
         Types.double -> Ty.flt(64)
         Types.dynamic -> TODO()
         is PtrType -> Ty.ptr
@@ -70,6 +71,7 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLI
                     "$dest = arith.uitofp $v : i64 to f64"
                 )
             }
+            Types.bool -> listOf("$dest = arith.uitofp $src : i1 to f64")
             Types.byte -> listOf("$dest = arith.uitofp $src : i8 to f64")
             else -> error("Cast from $from to $to not implemented")
         }
@@ -79,6 +81,7 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLI
             Types.int -> listOf("$dest = llvm.inttoptr $src : i64 to !llvm.ptr")
             Types.size -> listOf("$dest = llvm.inttoptr $src : index to !llvm.ptr")
             Types.byte -> listOf("$dest = llvm.inttoptr $src : i8 to !llvm.ptr")
+            Types.bool -> listOf("$dest = llvm.inttoptr $src : i1 to !llvm.ptr")
             else -> error("Cast from $from to $to not implemented")
         }
         Types.int -> when (from) {
@@ -87,6 +90,7 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLI
             Types.int -> error("No!")
             Types.size -> listOf("$dest = index.castu $src : index to i64")
             Types.byte -> listOf("$dest = arith.extui $src : i8 to i64")
+            Types.bool -> listOf("$dest = arith.extui $src : i1 to i64")
             else -> error("Cast from $from to $to not implemented")
         }
         Types.byte -> when (from) {
@@ -94,7 +98,17 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLI
             is PtrType -> listOf("$dest = llvm.ptrtoint $src : !llvm.ptr to i8")
             Types.int -> listOf("$dest = arith.trunci $src : i64 to i8")
             Types.size -> listOf("$dest = index.castu $src : index to i8")
+            Types.bool -> listOf("$dest = arith.extui $src : i1 to i8")
             Types.byte -> error("No!")
+            else -> error("Cast from $from to $to not implemented")
+        }
+        Types.bool -> when (from) {
+            Types.double -> listOf("$dest = arith.fptoui $src : f64 to i1")
+            is PtrType -> listOf("$dest = llvm.ptrtoint $src : !llvm.ptr to i1")
+            Types.int -> listOf("$dest = arith.trunci $src : i64 to i1")
+            Types.size -> listOf("$dest = index.castu $src : index to i1")
+            Types.byte -> listOf("$dest = arith.trunci $src : i64 to i1")
+            Types.bool -> error("no")
             else -> error("Cast from $from to $to not implemented")
         }
         Types.size -> when (from) {
@@ -107,6 +121,7 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: MLIRVar, src: MLI
             }
             Types.int -> listOf("$dest = index.castu $src : i64 to index")
             Types.byte -> listOf("$dest = index.castu $src : i8 to index")
+            Types.bool -> listOf("$dest = index.castu $src : i1 to index")
             is PtrType -> listOf("$dest = llvm.ptrtoint $src : !llvm.ptr to index")
             Types.size -> error("No!")
             else -> error("Cast from $from to $to not implemented")

@@ -35,13 +35,15 @@ fun IrBlock.emitMLIR(): List<String> {
         val dest = if (variable.type == want) variable
             else newVar().copy(type = want)
         block(dest)
-        body.addAll(castInstr(
-            ::newVar,
-            from = want,
-            to = variable.type,
-            dest = variable.asMLIR(),
-            src = dest.asMLIR()
-        ))
+        if (variable.type != want) {
+            body.addAll(castInstr(
+                ::newVar,
+                from = want,
+                to = variable.type,
+                dest = variable.asMLIR(),
+                src = dest.asMLIR()
+            ))
+        }
     }
 
     fun IrInstr.binary(
@@ -137,6 +139,7 @@ fun IrBlock.emitMLIR(): List<String> {
                 val valueStr = when (ty) {
                     Types.int,
                     Types.byte,
+                    Types.size,
                     is PtrType -> value.toULong().toString()
                     else -> value.toString()
                 }
@@ -162,11 +165,37 @@ fun IrBlock.emitMLIR(): List<String> {
                 Prim.MUL -> instr.binary(body, Inst::mul)
                 Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
                 Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
+
                 Prim.LT -> {
-                    // TODO
+                    val out = instr.outs[0]
+                    val outTy = out.type
+                    val a = castIfNec(body, instr.args[0], outTy).asMLIR()
+                    val b = castIfNec(body, instr.args[1], outTy).asMLIR()
+
+                    castLaterIfNec(body, out, Types.bool) { dest ->
+                        body += when (outTy) {
+                            Types.double -> "${dest.asMLIR()} = arith.cmpf slt, $a, $b : f64"
+                            Types.int -> "${dest.asMLIR()} = arith.cmpi slt, $a, $b : i64"
+                            Types.byte -> "${dest.asMLIR()} = arith.cmpi ult, $a, $b : i8"
+                            Types.size -> "${dest.asMLIR()} = arith.cmpi ult, $a, $b : index"
+                            else -> error("")
+                        }
+                    }
                 }
+
                 Prim.MAX -> {
-                    // TODO
+                    val out = instr.outs[0]
+                    val outTy = out.type
+                    val a = castIfNec(body, instr.args[0], outTy).asMLIR()
+                    val b = castIfNec(body, instr.args[1], outTy).asMLIR()
+
+                    body += when (outTy) {
+                        Types.double -> "${out.asMLIR()} = arith.maxnumf $a, $b : f64"
+                        Types.int -> "${out.asMLIR()} = arith.maxsi $a, $b : i64"
+                        Types.byte -> "${out.asMLIR()} = arith.maxui $a, $b : i8"
+                        Types.size -> "${out.asMLIR()} = arith.maxui $a, $b : index"
+                        else -> error("")
+                    }
                 }
 
                 Prim.PRIMES -> {
