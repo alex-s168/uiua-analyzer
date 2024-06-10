@@ -36,6 +36,7 @@ object Prim {
     val DIV = prim("DIV")
     val POW = prim("POW")
     val MAX = prim("MAX")
+    val LT = prim("LT")
 
     // TODO: investigate if these are the real names
     val LEN = prim("LEN")
@@ -57,6 +58,7 @@ object Prim {
     val REDUCE = prim("REDUCE")
     val ROWS = prim("ROWS")
     val REVERSE = prim("REVERSE")
+    val FIX = prim("FIX")
 
     const val FILL = "FILL"
 }

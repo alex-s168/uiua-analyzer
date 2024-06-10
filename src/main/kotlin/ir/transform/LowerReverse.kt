@@ -8,9 +8,22 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
     instrs.toList().forEach { instr ->
         if (instr.instr is PrimitiveInstr) {
             when (instr.instr.id) {
+                Prim.FIX -> { // TODO: move somewhere else
+                    var idx = instrs.indexOf(instr)
+                    instrs.removeAt(idx)
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.BOX),
+                        mutableListOf(instr.args[0])
+                    ))
+                }
+
                 Prim.REVERSE -> {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
+
+                    instrs.add(idx ++, comment("+++ reverse"))
 
                     val arg = instr.args[0]
 
@@ -103,6 +116,8 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
                     ))
 
                     out.into(instr.outs[0]) { instrs.add(idx ++, it) }
+
+                    instrs.add(idx ++, comment("--- reverse"))
                 }
             }
         }

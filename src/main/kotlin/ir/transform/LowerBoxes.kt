@@ -33,6 +33,8 @@ fun IrBlock.lowerBoxesToArrays() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
+                    instrs.add(idx ++, comment("+++ box_create"))
+
                     val shape = constantArr(::newVar, 1.0, type = Types.int) {
                         instrs.add(idx ++, it)
                     }
@@ -42,6 +44,8 @@ fun IrBlock.lowerBoxesToArrays() {
                         PrimitiveInstr(Prim.Comp.ARR_ALLOC),
                         mutableListOf(shape)
                     ))
+
+                    instrs.add(idx ++, comment("--- box_create"))
                 }
 
                 Prim.Comp.BOX_DESTROY -> {
@@ -67,6 +71,8 @@ fun IrBlock.lowerBoxesToArrays() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
+                    instrs.add(idx ++, comment("+++ box_store"))
+
                     val indecies = constantArr(::newVar, 0.0, type = Types.int) {
                         instrs.add(idx ++, it)
                     }
@@ -76,6 +82,8 @@ fun IrBlock.lowerBoxesToArrays() {
                         PrimitiveInstr(Prim.Comp.ARR_STORE),
                         mutableListOf(instr.args[0], indecies, instr.args[1])
                     ))
+
+                    instrs.add(idx ++, comment("--- box_store"))
                 }
             }
         }

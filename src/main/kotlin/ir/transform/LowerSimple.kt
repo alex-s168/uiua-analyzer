@@ -12,6 +12,8 @@ fun IrBlock.lowerSimple() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
+                    instrs.add(idx ++, comment("+++ len"))
+
                     if (instr.args[0].type is ArrayType) {
                         val const = newVar().copy(type = Types.size)
                         instrs.add(idx++, IrInstr(
@@ -33,6 +35,8 @@ fun IrBlock.lowerSimple() {
                             mutableListOf()
                         ))
                     }
+
+                    instrs.add(idx ++, comment("--- len"))
                 }
             }
         }

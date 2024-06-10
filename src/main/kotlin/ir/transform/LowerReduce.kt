@@ -12,6 +12,8 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
+                    instrs.add(idx ++, comment("+++ reduce"))
+
                     val accTy = instr.outs[0].type
 
                     val arr = instr.args[1]
@@ -184,6 +186,8 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                         PrimitiveInstr(Prim.UN_BOX),
                         mutableListOf(accBox)
                     ))
+
+                    instrs.add(idx ++, comment("--- reduce"))
                 }
             }
         }

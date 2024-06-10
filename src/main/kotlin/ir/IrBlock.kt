@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir
 
+import blitz.collections.contents
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
@@ -83,37 +84,42 @@ data class IrBlock(
         fillType: Type? = null
     ): String {
         require(inTypes.size == args.size)
-        val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"
-        if (ref(newName) != null) return newName
 
-        val new = IrBlock(
-            newName,
-            ref,
-            instrs.mapTo(mutableListOf()) { it.deepCopy() },
-            flags.toMutableList(),
-            args.toMutableList(),
-            rets.toMutableList(),
-        )
-        new.nextVar = nextVar
+        return runCatching {
+            val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"
+            if (ref(newName) != null) return newName
 
-        new.args
-            .zip(inTypes)
-            .forEach { (v, t) ->
-                require(t != Types.tbd)
-                new.updateVar(v, v.copy(type = t))
+            val new = IrBlock(
+                newName,
+                ref,
+                instrs.mapTo(mutableListOf()) { it.deepCopy() },
+                flags.toMutableList(),
+                args.toMutableList(),
+                rets.toMutableList(),
+            )
+            new.nextVar = nextVar
+
+            new.args
+                .zip(inTypes)
+                .forEach { (v, t) ->
+                    require(t != Types.tbd)
+                    new.updateVar(v, v.copy(type = t))
+                }
+
+            new.instrs.toList().forEach {
+                it.inferTypes(new, putFn, fillType)
             }
 
-        new.instrs.toList().forEach {
-            it.inferTypes(new, putFn, fillType)
+            fillType?.let {
+                new.fillArg = new.newVar().copy(type = it)
+            }
+
+            putFn(new)
+
+            newName
+        }.getOrElse {
+            error("While trying to expand function \"$name\" as func${fillType?.let { "[$it]" } ?: ""}[${inTypes.contents}][?]: $it")
         }
-
-        fillType?.let {
-            new.fillArg = new.newVar().copy(type = it)
-        }
-
-        putFn(new)
-
-        return newName
     }
 
     override fun toString(): String {

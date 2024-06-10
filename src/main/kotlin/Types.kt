@@ -44,7 +44,7 @@ data class ArrayType(
     val of: Type,
     val length: Int?
 ): Type("arr", listOf()) {
-    val shape by lazy {
+    val shape: List<Int> by lazy {
         val sha = mutableListOf<Int>()
         var curr: Type = this
         while (curr is ArrayType) {
@@ -123,6 +123,11 @@ fun Type.cycle(): Type =
         else -> error("")
     }
 
+class AutoByteType: Type("autobyte", listOf()) {
+    override fun equals(other: Any?) =
+        other == Types.byte
+}
+
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
 
@@ -130,6 +135,7 @@ object Types {
     val double = NumericType("float", listOf())
     val int = NumericType("int", listOf(double))
     val byte = NumericType("byte", listOf(int, double))
+    val autobyte = AutoByteType()
     val size = NumericType("size", listOf(int, double))
 
     /* general */

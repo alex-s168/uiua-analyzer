@@ -63,6 +63,7 @@ fun main() {
         it.expandStackOps()
         it.basicOpt()
         it.lowerPervasive(blocks::putBlock)
+        it.lowerEach(blocks::putBlock)
         it.lowerRows(blocks::putBlock)
         it.lowerReduce(blocks::putBlock)
         it.lowerRange(blocks::putBlock)

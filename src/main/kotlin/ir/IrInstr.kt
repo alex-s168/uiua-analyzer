@@ -38,7 +38,8 @@ data class IrInstr(
             outs.forEachIndexed { index, irVar ->
                 if (index > 0)
                     res.append(", ")
-                res.append(irVar)
+                res.append('%')
+                res.append(irVar.id)
             }
             res.append(" = ")
         }
@@ -48,7 +49,7 @@ data class IrInstr(
             is ArrImmInstr -> "arr-make ${instr.values.flatten().contents}"
             is NumImmInstr -> "imm ${instr.value}"
             is PushFnInstr -> "fn-make ${instr.fn}"
-            is CommentInstr -> "comment ${instr.comment}"
+            is CommentInstr -> "comment \"${instr.comment}\""
             is FlagInstr -> "flag ${instr.flag}"
             is PushFnRefInstr -> "fn ${instr.fn}"
             else -> instr::class.simpleName
@@ -101,7 +102,7 @@ data class IrInstr(
 
             is NumImmInstr -> {
                 val ty = if (floor(instr.value) == instr.value) {
-                    if (instr.value in 0.0..255.0) Types.byte
+                    if (instr.value in 0.0..255.0) Types.autobyte
                     else Types.int
                 } else Types.double
                 updateType(outs[0], ty)
@@ -208,10 +209,14 @@ data class IrInstr(
                 Prim.ADD,
                 Prim.SUB,
                 Prim.MUL -> {
-                    val ty: Type = args.firstOrNull { it.type is ArrayType }?.let { arr ->
+                    val ty: Type = (args.firstOrNull { it.type is ArrayType }?.let { arr ->
                         arr.type // TODO: problem with arr[int] + arr[double]
                     } ?: args.map { it.type }.reduce { a, b ->
                         a.combine(b)
+                    }).let {
+                        // we don't want inaccuracy
+                        if (it is AutoByteType) Types.int
+                        else it
                     }
                     updateType(outs[0], ty)
                 }
@@ -298,25 +303,35 @@ data class IrInstr(
 
                 Prim.EACH -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
-                    val inp = args[1].type as ArrayType
 
-                    val new = fnblock.expandFor(listOf(inp.inner), putFn, fillType)
+                    val highestRank = args.drop(1)
+                        .filter { it.type is ArrayType && it.type.length != 1 }
+                        .maxBy { (it.type as ArrayType).shape.size }
+                        .type as ArrayType
+
+                    val inps = args.drop(1).map {
+                        if (it.type !is ArrayType || it.type.length == 1) it.type
+                        else it.type.inner
+                    }
+                    val new = fnblock.expandFor(inps, putFn, fillType)
                     val newb = parent.ref(new)!!
 
                     args[0] = fnRef(new)
 
-                    updateType(outs[0], inp.mapInner { newb.rets[0].type })
+                    outs.zip(newb.rets).forEach { (out, ret) ->
+                        updateType(out, highestRank.mapInner { ret.type })
+                    }
                 }
 
                 Prim.ROWS -> {
-                    // TODO: thats not how rows works
-
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
 
-                    val inps = args.drop(1).map { arg ->
-                        arg.type as ArrayType
+                    val inps = args.drop(1).map {
+                        if (it.type !is ArrayType || it.type.length == 1) it.type
+                        else it.type.of
                     }
-                    val new = fnblock.expandFor(inps.map { it.of }, putFn, fillType)
+
+                    val new = fnblock.expandFor(inps, putFn, fillType)
                     val newb = parent.ref(new)!!
 
                     args[0] = fnRef(new)
@@ -341,6 +356,11 @@ data class IrInstr(
                     outs.zip(parent.ref(opFnExp)!!.rets).forEach { (out, ret) ->
                         updateType(out, ret.type)
                     }
+                }
+
+                Prim.FIX -> {
+                    val argTy = args[0].type
+                    updateType(outs[0], Types.array(argTy, 1))
                 }
 
                 Prim.REVERSE -> {

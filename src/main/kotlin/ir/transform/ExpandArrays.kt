@@ -11,6 +11,8 @@ fun IrBlock.expandArrays() {
             var idx = instrs.indexOf(instr)
             instrs.removeAt(idx)
 
+            instrs.add(idx ++, comment("+++ array literal"))
+
             val values = instr.instr.values
                 .mapA { it.map { it.toDouble() } }
                 .flatten()
@@ -27,6 +29,8 @@ fun IrBlock.expandArrays() {
                 PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
                 mutableListOf(arr)
             ))
+
+            instrs.add(idx ++, comment("--- array literal"))
         }
     }
 }
