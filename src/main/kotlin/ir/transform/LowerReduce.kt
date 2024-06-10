@@ -25,135 +25,40 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                     val every = instr.args.last()
                     val everyTy = every.type as FnType
 
-                    val notEnoughElemsFn = IrBlock(anonFnName(), ref, fillArg = fillArg).apply {
-                        fillArg?.let { fillArg = newVar().copy(type = it.type) }
+                    let {
+                        val arrSource = instrDeclFor(arr)
+                        if (arrSource?.instr is PrimitiveInstr && arrSource?.instr.id == Prim.Comp.ARR_MATERIALIZE) {
+                            val what = arrSource.args.first()
+                            val argArr = instrDeclFor(what)!!.args
 
-                        args += newVar().copy(type = arrTy) // arr
-                        args += newVar().copy(type = firstTy) // first
-                        args += newVar().copy(type = everyTy) // every
-                        extra.forEach {
-                            args += newVar().copy(type = it.type)
-                        }
+                            val elems = if (argArr.size < 2) {
+                                val default = fillArg ?: error("(comptime catched) panic: no default for reduce with arg array")
+                                val new = argArr.toMutableList()
+                                repeat(2 - argArr.size) {
+                                    new += default
+                                }
+                                new
+                            } else argArr
 
-                        val default = fillArg ?: if (accTy is NumericType) {
-                            val v = newVar().copy(type = accTy)
-                            instrs += IrInstr(
-                                mutableListOf(v),
-                                NumImmInstr(0.0),
-                                mutableListOf()
-                            )
-                            v
-                        } else {
-                            val v = newVar().copy(type = accTy)
-                            instrs += IrInstr(
-                                mutableListOf(v),
-                                PrimitiveInstr(Prim.Comp.PANIC),
-                                mutableListOf()
-                            )
-                            v
-                        }
-
-                        rets += default
-
-                        putBlock(this)
-                    }
-
-                    val enoughElemsFn = IrBlock(anonFnName(), ref).apply {
-                        val arr = newVar().copy(type = arrTy).also { args += it }
-                        val first = newVar().copy(type = firstTy).also { args += it }
-                        val every = newVar().copy(type = everyTy).also { args += it }
-                        val extra = extra.map {
-                            newVar().copy(type = it.type).also { args += it }
-                        }
-
-                        val elem0 = oneDimLoad(arr, ::newVar, 0) { instrs += it }
-                        val elem1 = oneDimLoad(arr, ::newVar, 1) { instrs += it }
-
-                        val iter0res = newVar().copy(type = accTy)
-                        instrs += IrInstr(
-                            mutableListOf(iter0res),
-                            PrimitiveInstr(Prim.CALL),
-                            mutableListOf(first, elem0, elem1).also { it += extra }
-                        )
-
-                        val accBox = newVar().copy(type = Types.box(accTy))
-                        instrs += IrInstr(
-                            mutableListOf(accBox),
-                            PrimitiveInstr(Prim.BOX),
-                            mutableListOf(iter0res)
-                        )
-
-                        val len = newVar().copy(type = Types.size)
-                        instrs += IrInstr(
-                            mutableListOf(len),
-                            PrimitiveInstr(Prim.LEN),
-                            mutableListOf(arr)
-                        )
-
-                        val start = newVar().copy(type = Types.int)
-                        instrs += IrInstr(
-                            mutableListOf(start),
-                            NumImmInstr(2.0),
-                            mutableListOf()
-                        )
-
-                        val iterFn = IrBlock(anonFnName(), ref).apply {
-                            val counter = newVar().copy(type = Types.int).also { args += it }
-                            val arr = newVar().copy(type = arrTy).also { args += it }
-                            val accBox = newVar().copy(type = Types.box(accTy)).also { args += it }
-                            val every = newVar().copy(type = everyTy).also { args += it }
-                            val extra = extra.map {
-                                newVar().copy(type = it.type).also { args += it }
-                            }
-
-                            val acc = newVar().copy(type = accTy)
-                            instrs += IrInstr(
-                                mutableListOf(acc),
-                                PrimitiveInstr(Prim.UN_BOX),
-                                mutableListOf(accBox)
-                            )
-
-                            val elem = oneDimLoad(arr, ::newVar, counter) { instrs += it }
-
-                            val newAcc = newVar().copy(type = accTy)
-                            instrs += IrInstr(
-                                mutableListOf(newAcc),
+                            val accInit = newVar().copy(type = accTy)
+                            instrs.add(idx ++, IrInstr(
+                                mutableListOf(accInit),
                                 PrimitiveInstr(Prim.CALL),
-                                mutableListOf(every, acc, elem).also { it += extra }
-                            )
+                                mutableListOf(first, elems[0], elems[1]).also { it += extra }
+                            ))
 
-                            instrs += IrInstr(
-                                mutableListOf(),
-                                PrimitiveInstr(Prim.Comp.BOX_STORE),
-                                mutableListOf(accBox, newAcc)
-                            )
+                            elems.drop(2).fold(accInit) { acc, x ->
+                                val acc2 = newVar().copy(type = accTy)
+                                instrs.add(idx ++, IrInstr(
+                                    mutableListOf(acc2),
+                                    PrimitiveInstr(Prim.CALL),
+                                    mutableListOf(every, acc, x).also { it += extra }
+                                ))
+                                acc2
+                            }.into(instr.outs[0]) { instrs.add(idx ++, it) }
 
-                            putBlock(this)
+                            return@forEach
                         }
-
-                        val iterFnRef = newVar().copy(type = iterFn.type())
-                        instrs += IrInstr(
-                            mutableListOf(iterFnRef),
-                            PushFnRefInstr(iterFn.name),
-                            mutableListOf(),
-                        )
-
-                        instrs += IrInstr(
-                            mutableListOf(),
-                            PrimitiveInstr(Prim.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
-                            mutableListOf(start, len, iterFnRef, arr, accBox, every).also { it += extra }
-                        )
-
-                        val acc = newVar().copy(type = accTy)
-                        instrs += IrInstr(
-                            mutableListOf(acc),
-                            PrimitiveInstr(Prim.UN_BOX),
-                            mutableListOf(accBox)
-                        )
-
-                        rets += acc
-
-                        putBlock(this)
                     }
 
                     val len = newVar().copy(type = Types.size)
@@ -163,27 +68,122 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                         mutableListOf(arr)
                     ))
 
-                    // args to fns:
-                    //  arr
-                    //  first
-                    //  every
-                    //  ...extra
-
-                    // <notEnough | notEnough | enough> len
-
                     val (zero, one, two) = constants(::newVar, 0.0, 1.0, 2.0, type = Types.int) {
                         instrs.add(idx ++, it)
                     }
 
+                    fun buildLenFn(len: Int) =
+                        IrBlock(anonFnName(), ref, fillArg = fillArg).apply {
+                            fillArg?.let { fillArg = newVar().copy(type = it.type) }
+
+                            val arr = newVar().copy(type = arrTy).also { args += it }
+
+                            val res0 = newVar().copy(type = arrTy.of).also { rets += it }
+                            val res1 = newVar().copy(type = arrTy.of).also { rets += it }
+
+                            if (fillArg == null) {
+                                instrs += IrInstr(
+                                    mutableListOf(res0, res1),
+                                    PrimitiveInstr(Prim.Comp.PANIC),
+                                    mutableListOf()
+                                )
+                            } else {
+                                if (len == 0) {
+                                    fillArg!!.into(res0, instrs::add)
+                                    fillArg!!.into(res1, instrs::add)
+                                }
+                                else if (len == 1) {
+                                    oneDimLoad(res0, arr, ::newVar, 0) { instrs += it }
+                                    fillArg!!.into(res1, instrs::add)
+                                }
+                                else {
+                                    oneDimLoad(res0, arr, ::newVar, 0) { instrs += it }
+                                    oneDimLoad(res1, arr, ::newVar, 1) { instrs += it }
+                                }
+                            }
+
+                            putBlock(this)
+                        }
+
+                    val elem0 = newVar().copy(type = arrTy.of)
+                    val elem1 = newVar().copy(type = arrTy.of)
+
                     switch(
-                        dest = instr.outs,
+                        dest = listOf(elem0, elem1),
                         newVar = ::newVar,
                         on = len,
-                        inputs = listOf(arr, first, every) + extra,
-                        zero to notEnoughElemsFn,
-                        one to notEnoughElemsFn,
-                        two to enoughElemsFn,
+                        inputs = listOf(arr),
+                        zero to buildLenFn(0),
+                        one to buildLenFn(1),
+                        two to buildLenFn(2),
                     ) { instrs.add(idx ++, it) }
+
+                    val iter0res = newVar().copy(type = accTy)
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(iter0res),
+                        PrimitiveInstr(Prim.CALL),
+                        mutableListOf(first, elem0, elem1).also { it += extra }
+                    ))
+
+                    val accBox = newVar().copy(type = Types.box(accTy))
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(accBox),
+                        PrimitiveInstr(Prim.BOX),
+                        mutableListOf(iter0res)
+                    ))
+
+                    val iterFn = IrBlock(anonFnName(), ref).apply {
+                        val counter = newVar().copy(type = Types.int).also { args += it }
+                        val arr = newVar().copy(type = arrTy).also { args += it }
+                        val accBox = newVar().copy(type = Types.box(accTy)).also { args += it }
+                        val every = newVar().copy(type = everyTy).also { args += it }
+                        val extra = extra.map {
+                            newVar().copy(type = it.type).also { args += it }
+                        }
+
+                        val acc = newVar().copy(type = accTy)
+                        instrs += IrInstr(
+                            mutableListOf(acc),
+                            PrimitiveInstr(Prim.UN_BOX),
+                            mutableListOf(accBox)
+                        )
+
+                        val elem = oneDimLoad(arr, ::newVar, counter) { instrs += it }
+
+                        val newAcc = newVar().copy(type = accTy)
+                        instrs += IrInstr(
+                            mutableListOf(newAcc),
+                            PrimitiveInstr(Prim.CALL),
+                            mutableListOf(every, acc, elem).also { it += extra }
+                        )
+
+                        instrs += IrInstr(
+                            mutableListOf(),
+                            PrimitiveInstr(Prim.Comp.BOX_STORE),
+                            mutableListOf(accBox, newAcc)
+                        )
+
+                        putBlock(this)
+                    }
+
+                    val iterFnRef = newVar().copy(type = iterFn.type())
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(iterFnRef),
+                        PushFnRefInstr(iterFn.name),
+                        mutableListOf(),
+                    ))
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(),
+                        PrimitiveInstr(Prim.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
+                        mutableListOf(two, len, iterFnRef, arr, accBox, every).also { it += extra }
+                    ))
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.UN_BOX),
+                        mutableListOf(accBox)
+                    ))
                 }
             }
         }

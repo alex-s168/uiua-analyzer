@@ -1,9 +1,6 @@
 package me.alex_s168.uiua.ir.transform
 
-import me.alex_s168.uiua.BoxType
-import me.alex_s168.uiua.Prim
-import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.Types
+import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 
@@ -26,10 +23,12 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
                         ))
                         unboxed
                     } else arg
+                    val operateTy = operate.type as ArrayType
 
                     val out = if (arg.type is BoxType) {
                         newVar().copy(type = arg.type.of)
                     } else instr.outs[0]
+                    val outTy = out.type
 
                     val len = newVar().copy(type = Types.size)
                     instrs.add(idx ++, IrInstr(
@@ -45,8 +44,63 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
                         PrimitiveInstr(Prim.Comp.ARR_ALLOC),
                         mutableListOf(shape)
                     ))
+                    
+                    val block = IrBlock(anonFnName(), ref).apply {
+                        val idx = newVar().copy(type = Types.size).also { args += it }
+                        val operate = newVar().copy(type = operateTy).also { args += it }
+                        val out = newVar().copy(type = outTy).also { args += it }
+                        val lenM1 = newVar().copy(type = Types.size).also { args += it }
 
-                    // TODO: reverse into out
+                        val indec = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
+
+                        val temp = newVar().copy(type = operateTy.of)
+                        instrs += IrInstr(
+                            mutableListOf(temp),
+                            PrimitiveInstr(Prim.Comp.ARR_LOAD),
+                            mutableListOf(operate, indec)
+                        )
+
+                        val revIdx = newVar().copy(type = Types.size)
+                        instrs += IrInstr(
+                            mutableListOf(revIdx),
+                            PrimitiveInstr(Prim.SUB),
+                            mutableListOf(idx, lenM1)
+                        )
+
+                        val revIdcs = listOf(revIdx).wrapInArgArray(::newVar) { instrs += it }
+
+                        instrs += IrInstr(
+                            mutableListOf(),
+                            PrimitiveInstr(Prim.Comp.ARR_STORE),
+                            mutableListOf(out, revIdcs, temp)
+                        )
+
+                        putBlock(this)
+                    }
+
+                    val (zero, one) = constants(::newVar, 0.0, 1.0, type = Types.size) {
+                        instrs.add(idx ++, it)
+                    }
+
+                    val blockFn = newVar().copy(type = block.type())
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(blockFn),
+                        PushFnRefInstr(block.name),
+                        mutableListOf()
+                    ))
+
+                    val lenM1 = newVar().copy(type = Types.size)
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(lenM1),
+                        PrimitiveInstr(Prim.SUB),
+                        mutableListOf(one, len)
+                    ))
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(),
+                        PrimitiveInstr(Prim.Comp.REPEAT),
+                        mutableListOf(zero, len, blockFn, operate, out, lenM1)
+                    ))
 
                     out.into(instr.outs[0]) { instrs.add(idx ++, it) }
                 }

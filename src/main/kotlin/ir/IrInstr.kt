@@ -309,6 +309,8 @@ data class IrInstr(
                 }
 
                 Prim.ROWS -> {
+                    // TODO: thats not how rows works
+
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
 
                     val inps = args.drop(1).map { arg ->

@@ -155,7 +155,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
             is PrimitiveInstr -> when (instr.instr.id) {
                 Prim.ADD -> instr.binary(body, Inst::add)
-                Prim.SUB -> instr.binary(body, Inst::sub)
+                Prim.SUB -> instr.binary(body, Inst::sub, reverse = true)
                 Prim.MUL -> instr.binary(body, Inst::mul)
                 Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
                 Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
