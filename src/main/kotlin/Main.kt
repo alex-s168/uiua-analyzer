@@ -50,8 +50,10 @@ fun main() {
 
     val blocks = assembly.functions.toIr()
 
-    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)/*, Types.array(Types.int)*/), blocks::putBlock)
+    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
     blocks[expanded]!!.private = false
+
+    val file = File(".out.uac").printWriter()
 
     val compile = blocks[expanded]!!.findAllRequiredCompile {
         // only reorder if you know what you are doing!
@@ -74,9 +76,11 @@ fun main() {
         it.lowerSimple()
         it.basicOpt()
 
-        println(it)
-        println()
+        file.println(it)
+        file.println()
     }
+
+    file.close()
 
     val out = StringBuilder()
     out.append(loadRes("runtime.mlir")!!)
@@ -118,10 +122,5 @@ fun main() {
         ?.let { println("Generated .out.o") }
         ?: run {
             println("Could not compile to object file!")
-            println()
-            println("Generated MLIR:")
-            println("=================")
-            println()
-            println(out.toString())
         }
 }

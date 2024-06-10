@@ -3,7 +3,7 @@
 # fn ← (∵(□ +1 °/×))
 # fn = /+
 
-# geometric mean
+# convert from base, input tile endian
 fn = /+×ⁿ⇡⧻, 3
 
 # fn = /+ rev

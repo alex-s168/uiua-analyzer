@@ -48,7 +48,7 @@ data class IrInstr(
             is ArrImmInstr -> "arr-make ${instr.values.flatten().contents}"
             is NumImmInstr -> "imm ${instr.value}"
             is PushFnInstr -> "fn-make ${instr.fn}"
-            is CommentInstr -> "comment \"${instr.comment}\""
+            is CommentInstr -> "# ${instr.comment}"
             is FlagInstr -> "flag ${instr.flag}"
             is PushFnRefInstr -> "fn ${instr.fn}"
             else -> instr::class.simpleName

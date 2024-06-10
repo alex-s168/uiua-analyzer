@@ -83,14 +83,14 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                             val res0 = newVar().copy(type = arrTy.of).also { rets += it }
                             val res1 = newVar().copy(type = arrTy.of).also { rets += it }
 
-                            if (fillArg == null) {
-                                instrs += IrInstr(
-                                    mutableListOf(res0, res1),
-                                    PrimitiveInstr(Prim.Comp.PANIC),
-                                    mutableListOf()
-                                )
-                            } else {
-                                if (len == 0) {
+                            if (len < 2) {
+                                if (fillArg == null) {
+                                    instrs += IrInstr(
+                                        mutableListOf(res0, res1),
+                                        PrimitiveInstr(Prim.Comp.PANIC),
+                                        mutableListOf()
+                                    )
+                                } else if (len == 0) {
                                     fillArg!!.into(res0, instrs::add)
                                     fillArg!!.into(res1, instrs::add)
                                 }
@@ -98,10 +98,10 @@ fun IrBlock.lowerReduce(putBlock: (IrBlock) -> Unit) {
                                     oneDimLoad(res0, arr, ::newVar, 0) { instrs += it }
                                     fillArg!!.into(res1, instrs::add)
                                 }
-                                else {
-                                    oneDimLoad(res0, arr, ::newVar, 0) { instrs += it }
-                                    oneDimLoad(res1, arr, ::newVar, 1) { instrs += it }
-                                }
+                            }
+                            else {
+                                oneDimLoad(res0, arr, ::newVar, 0) { instrs += it }
+                                oneDimLoad(res1, arr, ::newVar, 1) { instrs += it }
                             }
 
                             putBlock(this)

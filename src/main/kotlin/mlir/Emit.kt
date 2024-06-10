@@ -4,6 +4,7 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import me.alex_s168.uiua.ir.transform.constants
 import kotlin.math.max
 
 fun IrVar.asMLIR(): MLIRVar =
@@ -169,8 +170,8 @@ fun IrBlock.emitMLIR(): List<String> {
                 Prim.LT -> {
                     val out = instr.outs[0]
                     val outTy = out.type
-                    val a = castIfNec(body, instr.args[0], outTy).asMLIR()
-                    val b = castIfNec(body, instr.args[1], outTy).asMLIR()
+                    val a = castIfNec(body, instr.args[1], outTy).asMLIR()
+                    val b = castIfNec(body, instr.args[0], outTy).asMLIR()
 
                     castLaterIfNec(body, out, Types.bool) { dest ->
                         body += when (outTy) {
@@ -346,12 +347,19 @@ fun IrBlock.emitMLIR(): List<String> {
                 }
 
                 Prim.Comp.PANIC -> {
-                    val rtPanic = Types.func(listOf(), listOf())
+                    val rtPanic = Types.func(listOf(Types.int, Types.int), listOf())
+
+                    val idBlock = newVar().asMLIR()
+                    body += Inst.constant(idBlock, "i64", uid.toString())
+
+                    val idInst = newVar().asMLIR()
+                    body += Inst.constant(idInst, "i64", instrs.indexOf(instr).toString())
 
                     body += Inst.funcCall(
                         dests = listOf(),
                         "_\$_rt_panic",
-                        rtPanic.toMLIR()
+                        rtPanic.toMLIR(),
+                        idBlock, idInst
                     )
 
                     instr.outs.forEach {

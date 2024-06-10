@@ -6,6 +6,8 @@ import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
 import kotlin.math.max
 
+private var nextBlockId = 0
+
 data class IrBlock(
     val name: String,
     val ref: (String) -> IrBlock?,
@@ -16,6 +18,8 @@ data class IrBlock(
     var fillArg: IrVar? = null,
     var private: Boolean = true,
 ) {
+    val uid = nextBlockId ++
+
     var nextVar: ULong = 0u
 
     fun shouldInline(): Boolean =
@@ -131,7 +135,7 @@ data class IrBlock(
             res.append('\n')
         }
 
-        res.append("BLOCK ")
+        res.append("block($uid) ")
         res.append(name)
         fillArg?.let {
             res.append(" fill ")
@@ -145,8 +149,9 @@ data class IrBlock(
         }
         res.append(")\n")
 
-        instrs.forEach {
-            res.append("  ")
+        val idxSize = (instrs.size - 1).toString().length
+        instrs.forEachIndexed { index, it ->
+            res.append("${index.toString().padStart(idxSize)}| ")
             res.append(it.toString())
             res.append('\n')
         }

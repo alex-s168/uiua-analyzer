@@ -62,9 +62,13 @@ fun IrBlock.lowerBoxesToArrays() {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
 
+                    instrs.add(idx ++, comment("+++ box_load"))
+
                     oneDimLoad(dest = instr.outs[0], instr.args[0], ::newVar, 0) {
                         instrs.add(idx ++, it)
                     }
+
+                    instrs.add(idx ++, comment("--- box_load"))
                 }
 
                 Prim.Comp.BOX_STORE -> {
