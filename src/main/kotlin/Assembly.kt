@@ -65,12 +65,18 @@ data class Assembly(
                         PushFnInstr.parse(arr)
                     }
                     else if (instr.startsWith("copy_to_temp")) {
-                        val ts = instr.substringAfter("copy_to_temp [\"").substringBefore("\"")
-                        CopyTempStackInstr(ts)
+                        val (stack, count) = instr
+                            .substringAfter("copy_to_temp [")
+                            .substringBeforeLast(']')
+                            .split(',')
+                        CopyTempStackInstr(stack, count.toInt())
                     }
                     else if (instr.startsWith("pop_temp")) {
-                        val ts = instr.substringAfter("pop_temp [\"").substringBefore("\"")
-                        PopTempStackInstr(ts)
+                        val (stack, count) = instr
+                            .substringAfter("pop_temp [")
+                            .substringBeforeLast(']')
+                            .split(',')
+                        PopTempStackInstr(stack, count.toInt())
                     }
                     else if (instr.startsWith('"')) {
                         FlagInstr(instr.drop(1).dropLast(1))

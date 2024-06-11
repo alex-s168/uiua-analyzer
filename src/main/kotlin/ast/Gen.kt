@@ -2,10 +2,14 @@ package me.alex_s168.uiua.ast
 
 import blitz.Either
 import blitz.collections.addFront
+import blitz.collections.removeLast
 import blitz.collections.removeLastInto
 import me.alex_s168.uiua.*
+import kotlin.math.max
 
 fun astify(input: List<Instr>): ASTRoot {
+    println(input)
+
     val tempStack = mutableMapOf<String, MutableList<AstNode>>()
     fun getTempStack(stack: String) =
         tempStack.getOrPut(stack) { mutableListOf() }
@@ -20,14 +24,17 @@ fun astify(input: List<Instr>): ASTRoot {
     input.forEachIndexed { _, op ->
         when (op) {
             is CopyTempStackInstr -> {
-                val value = stack.lastOrNull() ?: AstNode(Either.ofB(Either.ofA(AstArgNode(argId))))
-                argCount = argId + 1
-                getTempStack(op.stack).add(value)
+                val value = stack.takeLast(op.count).toMutableList()
+                repeat(op.count - value.size) {
+                    value += AstNode(Either.ofB(Either.ofA(AstArgNode(argId))))
+                }
+                argCount = argId + op.count - value.size
+                getTempStack(op.stack).addAll(value)
             }
 
             is PopTempStackInstr -> {
-                val value = getTempStack(op.stack).removeLast()
-                stack.add(value)
+                val value = getTempStack(op.stack).removeLastInto(op.count)
+                stack.addAll(value)
             }
 
             else -> {
@@ -35,7 +42,7 @@ fun astify(input: List<Instr>): ASTRoot {
 
                 repeat(sig.inputs - stack.size) {
                     stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))
-                    argCount = argId
+                    argCount = max(argCount, argId)
                 }
 
                 val args = stack.removeLastInto(sig.inputs)

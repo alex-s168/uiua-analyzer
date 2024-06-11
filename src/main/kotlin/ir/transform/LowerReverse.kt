@@ -19,6 +19,64 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
                     ))
                 }
 
+                Prim.PICK -> {
+                    var idx = instrs.indexOf(instr)
+                    instrs.removeAt(idx)
+
+                    val at = instr.args[0]
+                    val arr = instr.args[1]
+
+                    val idc = listOf(at).wrapInArgArray(::newVar) {
+                        instrs.add(idx ++, it)
+                    }
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.Comp.ARR_LOAD),
+                        mutableListOf(arr, idc)
+                    ))
+                }
+
+                Prim.UNDO_PICK -> {
+                    var idx = instrs.indexOf(instr)
+                    instrs.removeAt(idx)
+
+                    val at = instr.args[0]
+                    val arr = instr.args[1]
+                    val value = instr.args[2]
+
+                    instrs.add(idx ++, comment("+++ undo_pick"))
+
+                    val oldlen = newVar().copy(type = Types.size)
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(oldlen),
+                        PrimitiveInstr(Prim.LEN),
+                        mutableListOf(arr)
+                    ))
+
+                    val sha = listOf(oldlen).wrapInArgArray(::newVar) {
+                        instrs.add(idx ++, it)
+                    }
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+                        mutableListOf(sha)
+                    ))
+
+                    val idc = listOf(at).wrapInArgArray(::newVar) {
+                        instrs.add(idx ++, it)
+                    }
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(),
+                        PrimitiveInstr(Prim.Comp.ARR_STORE),
+                        mutableListOf(instr.outs[0], idc, value)
+                    ))
+
+                    instrs.add(idx ++, comment("--- undo_pick"))
+                }
+
                 Prim.REVERSE -> {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)

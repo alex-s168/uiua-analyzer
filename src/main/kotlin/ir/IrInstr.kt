@@ -376,12 +376,13 @@ data class IrInstr(
                 }
 
                 Prim.PICK -> {
-                    val arr = args[0].type as ArrayType
+                    val arr = args[1].type as ArrayType
                     updateType(outs[0], arr.of)
                 }
 
                 Prim.UNDO_PICK -> {
-
+                    val arr = args[1].type as ArrayType
+                    updateType(outs[0], arr)
                 }
             }
         }

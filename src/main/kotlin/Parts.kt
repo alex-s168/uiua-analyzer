@@ -138,8 +138,15 @@ data class PushFnRefInstr(
     val fn: String
 ): ImmInstr()
 
-data class CopyTempStackInstr(val stack: String): Instr()
-data class PopTempStackInstr(val stack: String): Instr()
+data class CopyTempStackInstr(
+    val stack: String,
+    val count: Int,
+): Instr()
+
+data class PopTempStackInstr(
+    val stack: String,
+    val count: Int,
+): Instr()
 
 data class CommentInstr(
     val comment: String
