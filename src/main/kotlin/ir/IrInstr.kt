@@ -4,6 +4,7 @@ import blitz.collections.contents
 import blitz.flatten
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ast.AstNode
+import java.lang.reflect.Array
 import kotlin.math.floor
 
 /* funny type inference algo:
@@ -372,6 +373,15 @@ data class IrInstr(
                         require(argTy is ArrayType)
                     }
                     updateType(outs[0], argTy)
+                }
+
+                Prim.PICK -> {
+                    val arr = args[0].type as ArrayType
+                    updateType(outs[0], arr.of)
+                }
+
+                Prim.UNDO_PICK -> {
+
                 }
             }
         }

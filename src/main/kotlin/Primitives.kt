@@ -60,6 +60,9 @@ object Prim {
     val ROWS = prim("ROWS")
     val REVERSE = prim("REVERSE")
     val FIX = prim("FIX")
+    val SHAPE = prim("SHAPE")
+    val PICK = prim("PICK")
+    val UNDO_PICK = prim("UNDO_PICK")
 
     const val FILL = "FILL"
 }

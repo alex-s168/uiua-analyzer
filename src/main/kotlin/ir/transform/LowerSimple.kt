@@ -38,6 +38,40 @@ fun IrBlock.lowerSimple() {
 
                     instrs.add(idx ++, comment("--- len"))
                 }
+
+                Prim.SHAPE -> {
+                    var idx = instrs.indexOf(instr)
+                    instrs.removeAt(idx)
+
+                    instrs.add(idx ++, comment("+++ shape"))
+
+                    val arr = instr.args[0]
+                    val arrTy = arr.type as ArrayType
+
+                    val dims = arrTy.shape.mapIndexed { dim, _ ->
+                        val const = newVar().copy(type = Types.size)
+                        instrs.add(idx++, IrInstr(
+                            mutableListOf(const),
+                            NumImmInstr(dim.toDouble()),
+                            mutableListOf()
+                        ))
+                        val v = newVar().copy(type = Types.size)
+                        instrs.add(idx ++, IrInstr(
+                            mutableListOf(v),
+                            PrimitiveInstr(Prim.Comp.DIM),
+                            mutableListOf(arr, const)
+                        ))
+                        v
+                    }.wrapInArgArray(::newVar) { instrs.add(idx ++, it) }
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
+                        mutableListOf(dims)
+                    ))
+
+                    instrs.add(idx ++, comment("--- shape"))
+                }
             }
         }
     }

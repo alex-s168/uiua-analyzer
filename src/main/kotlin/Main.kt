@@ -74,6 +74,7 @@ fun main() {
         it.expandArrays()
         it.lowerBoxesToArrays()
         it.lowerSimple()
+        it.lowerArrMat() // TODO: get rid of that
         it.basicOpt()
 
         file.println(it)

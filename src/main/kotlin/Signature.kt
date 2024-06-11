@@ -60,6 +60,8 @@ internal fun signature(
             fn.fn.signature.mapIns { it + 2 } // arg 0 & arg 1
         }
         Prim.REVERSE -> Signature(1, 1)
+        Prim.PICK -> Signature(2, 1)
+        Prim.UNDO_PICK -> Signature(3, 1)
 
         else -> error("Unknown primitive instruction ${instr.id}!")
     }
