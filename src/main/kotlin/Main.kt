@@ -50,7 +50,10 @@ fun main() {
 
     val blocks = assembly.functions.toIr()
 
-    val expanded = blocks["fn"]!!.expandFor(listOf(Types.array(Types.int)), blocks::putBlock)
+    val expanded = blocks["fn"]!!.expandFor(listOf(
+        Types.array(Types.array(Types.int)),
+        Types.array(Types.array(Types.int)),
+    ), blocks::putBlock)
     blocks[expanded]!!.private = false
 
     val file = File(".out.uac").printWriter()
@@ -64,6 +67,7 @@ fun main() {
 
         it.expandStackOps()
         it.basicOpt()
+        it.lowerTable(blocks::putBlock)
         it.lowerPervasive(blocks::putBlock)
         it.lowerEach(blocks::putBlock)
         it.lowerRows(blocks::putBlock)

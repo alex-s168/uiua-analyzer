@@ -63,6 +63,7 @@ object Prim {
     val SHAPE = prim("SHAPE")
     val PICK = prim("PICK")
     val UNDO_PICK = prim("UNDO_PICK")
+    val TABLE = prim("TABLE")
 
     const val FILL = "FILL"
 }

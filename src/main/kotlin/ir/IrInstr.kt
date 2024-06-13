@@ -384,6 +384,19 @@ data class IrInstr(
                     val arr = args[1].type as ArrayType
                     updateType(outs[0], arr)
                 }
+
+                Prim.TABLE -> {
+                    val (_, fn) = parent.funDeclFor(args[0])!!
+                    val arr0 = args[1].type as ArrayType
+                    val arr1 = args[2].type as ArrayType
+
+                    val fnExp = fn.expandFor(listOf(arr0.of, arr1.of), putFn, fillType)
+                    val fnExpBlock = parent.ref(fnExp)!!
+
+                    outs.zip(fnExpBlock.rets).forEach { (out, ret) ->
+                        updateType(out, Types.array(Types.array(ret.type)))
+                    }
+                }
             }
         }
     }

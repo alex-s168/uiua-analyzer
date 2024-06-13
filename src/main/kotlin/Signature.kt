@@ -62,6 +62,7 @@ internal fun signature(
         Prim.REVERSE -> Signature(1, 1)
         Prim.PICK -> Signature(2, 1)
         Prim.UNDO_PICK -> Signature(3, 1)
+        Prim.TABLE -> Signature(3, 1)
 
         else -> error("Unknown primitive instruction ${instr.id}!")
     }
