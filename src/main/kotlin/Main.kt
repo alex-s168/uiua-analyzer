@@ -11,6 +11,7 @@ import me.alex_s168.uiua.mlir.emitMLIRFinalize
 import java.io.File
 import kotlin.random.Random
 import kotlin.random.nextULong
+import kotlin.system.exitProcess
 
 fun anonFnName(): String =
     "_\$anon_${Random.nextULong()}"
@@ -109,7 +110,7 @@ fun main() {
 
     // TODO: add --ownership-based-buffer-deallocation back (after --one-shot-bufferize)
     val llvmLowerStr = if (llvmLower) " convert-to-llvm," else ""
-    val mlirOptFlags = listOf("--pass-pipeline=builtin.module(func(cse, canonicalize), inline, sccp, sroa, one-shot-bufferize, convert-bufferization-to-memref, convert-tensor-to-linalg, convert-linalg-to-affine-loops, lower-affine, convert-scf-to-cf, mem2reg,$llvmLowerStr reconcile-unrealized-casts)")
+    val mlirOptFlags = listOf("--pass-pipeline=builtin.module(func(cse, canonicalize), inline, sccp, sroa, one-shot-bufferize, convert-bufferization-to-memref, convert-tensor-to-linalg, convert-linalg-to-affine-loops, func.func(affine-parallelize), affine-loop-fusion, func.func(affine-loop-invariant-code-motion, affine-loop-tile, affine-super-vectorize, affine-loop-unroll, affine-scalrep), lower-affine, async-parallel-for, convert-scf-to-cf, mem2reg, math-uplift-to-fma,$llvmLowerStr reconcile-unrealized-casts)")
     val mlirTranslateFlags = listOf("--mlir-to-llvmir")
     val clangFlags = listOf("-x", "ir")
 
@@ -126,5 +127,6 @@ fun main() {
         ?.let { println("Generated .out.o") }
         ?: run {
             println("Could not compile to object file!")
+            exitProcess(1)
         }
 }

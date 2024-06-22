@@ -101,6 +101,9 @@ object Inst {
     fun affineParallelFor(counters: List<MLIRVar>, start: List<String>, end: List<String>, ops: List<String>) =
         "affine.parallel (${counters.joinToString()}) = (${start.joinToString()}) to (${end.joinToString()}) {\n  ${ops.joinToString("\n  ")}\n}"
 
+    fun affineFor(counter: MLIRVar, start: String, end: String, ops: List<String>) =
+        "affine.for $counter = $start to $end {\n  ${ops.joinToString("\n  ")}\n}"
+
     fun constant(dest: MLIRVar, type: MLIRType, value: String) =
         "$dest = arith.constant $value : $type"
 

@@ -136,7 +136,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun subview(body: MutableList<String>, arr: IrVar, indecies: List<IrVar>): IrVar {
         val arrTy = arr.type as ArrayType
-        val dest = newVar().copy(type = arrTy.shape.drop(indecies.size).shapeToType(arrTy.inner))
+        val dest = newVar().copy(type = arrTy.shape.drop(indecies.size).shapeToType(arrTy.inner).copy(vaOff = true))
         subview(body, dest, arr, indecies)
         return dest
     }
@@ -356,10 +356,10 @@ fun IrBlock.emitMLIR(): List<String> {
                         fillArg
                     )
 
-                    body += Inst.affineParallelFor(
-                        listOf(counter.asMLIR()),
-                        listOf(start),
-                        listOf(ends),
+                    body += Inst.affineFor(
+                        counter.asMLIR(),
+                        start,
+                        ends,
                         inner
                     )
                 }

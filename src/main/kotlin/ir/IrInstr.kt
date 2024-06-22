@@ -97,7 +97,7 @@ data class IrInstr(
 
         when (instr) {
             is ArrImmInstr -> {
-                updateType(outs[0], instr.type)
+                updateType(outs[0], instr.type.copy(vaOff = true))
             }
 
             is NumImmInstr -> {
@@ -155,7 +155,7 @@ data class IrInstr(
                 }
 
                 Prim.Comp.ARR_MATERIALIZE -> {
-                    updateType(outs[0], args[0].type)
+                    updateType(outs[0], (args[0].type as ArrayType).copy(vaOff = true))
                 }
 
                 Prim.Comp.ARR_ALLOC -> {
@@ -323,6 +323,11 @@ data class IrInstr(
                     outs.zip(newb.rets).forEach { (out, ret) ->
                         updateType(out, highestRank.mapInner { ret.type }.copyType())
                     }
+                }
+
+                Prim.SHAPE -> {
+                    val arg = args[0].type as ArrayType
+                    updateType(outs[0], Types.array(Types.size, arg.shape.size))
                 }
 
                 Prim.ROWS -> {

@@ -103,9 +103,9 @@ fun List<Int>.shapeEq(other: List<Int>): Boolean =
 
 fun List<Int>.shapeToType(elem: Type): ArrayType {
     val left = toMutableList()
-    var arr = ArrayType(elem, left.removeLast().let { if (it < 0) null else it }, false)
+    var arr = Types.array(elem, left.removeLast().let { if (it < 0) null else it })
     while (left.isNotEmpty())
-        arr = ArrayType(arr, left.removeLast().let { if (it < 0) null else it }, false)
+        arr = Types.array(arr, left.removeLast().let { if (it < 0) null else it })
     return arr
 }
 
@@ -124,18 +124,6 @@ data class FnType(
     override fun toString(): String =
         "func${fillType?.let { "[$it]" } ?: ""}[${args.joinToString()}][${rets.joinToString()}]"
 }
-
-fun Type.cycle(): Type =
-    when (this) {
-        Types.tbd -> Types.int
-        Types.int -> Types.byte
-        Types.byte -> Types.double
-        Types.double -> Types.opaque
-        Types.opaque -> Types.box(Types.tbd)
-        is BoxType -> Types.array(of)
-        is ArrayType -> Types.box(of.cycle())
-        else -> error("")
-    }
 
 class AutoByteType: Type("autobyte", listOf()) {
     override fun equals(other: Any?) =
@@ -172,7 +160,7 @@ object Types {
     ) = FnType(fillType, args, rets)
 
     /* array */
-    fun array(of: Type, length: Int? = null, vaOff: Boolean = false) = ArrayType(of, length, vaOff)
+    fun array(of: Type, length: Int? = null, vaOff: Boolean = of is ArrayType) = ArrayType(of, length, vaOff)
 
     /* native */
     fun pointer(to: Type) = PtrType(to)
