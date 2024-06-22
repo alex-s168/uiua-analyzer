@@ -212,8 +212,8 @@ data class IrInstr(
                 Prim.SUB,
                 Prim.MUL -> {
                     val ty: Type = (args.firstOrNull { it.type is ArrayType }?.let { arr ->
-                        arr.type // TODO: problem with arr[int] + arr[double]
-                    } ?: args.map { it.type }.reduce { a, b ->
+                        arr.type.copyType() // TODO: problem with arr[int] + arr[double]
+                    } ?: args.map { it.type.copyType() }.reduce { a, b ->
                         a.combine(b)
                     }).let {
                         // we don't want inaccuracy
@@ -321,7 +321,7 @@ data class IrInstr(
                     args[0] = fnRef(new)
 
                     outs.zip(newb.rets).forEach { (out, ret) ->
-                        updateType(out, highestRank.mapInner { ret.type })
+                        updateType(out, highestRank.mapInner { ret.type }.copyType())
                     }
                 }
 
@@ -372,12 +372,12 @@ data class IrInstr(
                     } else {
                         require(argTy is ArrayType)
                     }
-                    updateType(outs[0], argTy)
+                    updateType(outs[0], argTy.copyType())
                 }
 
                 Prim.PICK -> {
                     val arr = args[1].type as ArrayType
-                    updateType(outs[0], arr.of)
+                    updateType(outs[0], arr.of.makeVaOffIfArray())
                 }
 
                 Prim.UNDO_PICK -> {

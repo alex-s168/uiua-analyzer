@@ -21,6 +21,8 @@ object Prim {
         val ARR_ALLOC = prim("cARR_ALLOC") // [shape: arg_arr]
         val ARR_STORE = prim("cARR_STORE") // [dest], [indecies: arg_arr], [value]
         val ARR_LOAD = prim("cARR_LOAD") // [arr], [indecies: arr_arg]
+        val ARR_CLONE = prim("cARR_CLONE")
+        val ARR_COPY = prim("cARR_COPY") // [dest], [src]
         val ARR_DESTROY = prim("cARR_DESTROY")
 
         val REPEAT = prim("cREPEAT") // [start], [end], [fn which takes counter], [additional]...

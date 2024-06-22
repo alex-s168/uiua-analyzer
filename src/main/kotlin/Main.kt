@@ -52,7 +52,6 @@ fun main() {
 
     val expanded = blocks["fn"]!!.expandFor(listOf(
         Types.array(Types.array(Types.int)),
-        Types.array(Types.array(Types.int)),
     ), blocks::putBlock)
     blocks[expanded]!!.private = false
 

@@ -8,20 +8,28 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
     instrs.toList().forEach { instr ->
         if (instr.instr is PrimitiveInstr) {
             when (instr.instr.id) {
-                Prim.FIX -> { // TODO: move somewhere else
+                // TODO: move somewhere else
+
+                Prim.FIX -> {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
+
+                    instrs.add(idx ++, comment("+++ fix"))
 
                     instrs.add(idx ++, IrInstr(
                         mutableListOf(instr.outs[0]),
                         PrimitiveInstr(Prim.BOX),
                         mutableListOf(instr.args[0])
                     ))
+
+                    instrs.add(idx ++, comment("--- fix"))
                 }
 
                 Prim.PICK -> {
                     var idx = instrs.indexOf(instr)
                     instrs.removeAt(idx)
+
+                    instrs.add(idx ++, comment("+++ pick"))
 
                     val at = instr.args[0]
                     val arr = instr.args[1]
@@ -35,6 +43,8 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
                         PrimitiveInstr(Prim.Comp.ARR_LOAD),
                         mutableListOf(arr, idc)
                     ))
+
+                    instrs.add(idx ++, comment("--- pick"))
                 }
 
                 Prim.UNDO_PICK -> {
@@ -47,21 +57,10 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
 
                     instrs.add(idx ++, comment("+++ undo_pick"))
 
-                    val oldlen = newVar().copy(type = Types.size)
-                    instrs.add(idx ++, IrInstr(
-                        mutableListOf(oldlen),
-                        PrimitiveInstr(Prim.LEN),
-                        mutableListOf(arr)
-                    ))
-
-                    val sha = listOf(oldlen).wrapInArgArray(::newVar) {
-                        instrs.add(idx ++, it)
-                    }
-
                     instrs.add(idx ++, IrInstr(
                         mutableListOf(instr.outs[0]),
-                        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
-                        mutableListOf(sha)
+                        PrimitiveInstr(Prim.Comp.ARR_CLONE),
+                        mutableListOf(arr)
                     ))
 
                     val idc = listOf(at).wrapInArgArray(::newVar) {
@@ -124,7 +123,7 @@ fun IrBlock.lowerReverse(putBlock: (IrBlock) -> Unit) {
 
                         val indec = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
 
-                        val temp = newVar().copy(type = operateTy.of)
+                        val temp = newVar().copy(type = operateTy.of.makeVaOffIfArray())
                         instrs += IrInstr(
                             mutableListOf(temp),
                             PrimitiveInstr(Prim.Comp.ARR_LOAD),

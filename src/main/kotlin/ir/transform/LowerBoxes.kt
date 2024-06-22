@@ -9,7 +9,6 @@ private fun Type.convBox(): Type =
     when (this) {
         is BoxType -> Types.array(of, 1).also { it.convBox() }
         is PtrType -> Types.pointer(to.convBox())
-        is ArrayType -> Types.array(of, length)
         else -> this
     }
 

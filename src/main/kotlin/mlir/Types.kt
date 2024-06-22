@@ -3,20 +3,33 @@ package me.alex_s168.uiua.mlir
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrVar
 
+class NewlyAllocArrayType(
+    of: Type,
+    len: Int?
+): ArrayType(of, len, false) {
+    companion object {
+        fun from(ty: ArrayType) =
+            NewlyAllocArrayType(ty.of, ty.length)
+    }
+}
+
 typealias MLIRType = String
 
 fun List<Int>.shapeToMLIR() =
     map { if (it == -1) "?" else it.toString() }
 
 fun List<Int>.shapeToMLIRStrides(): String =
-    drop(1).plus(1).shapeToMLIR().joinToString(separator = "x")
+    drop(1).plus(1).shapeToMLIR().joinToString(separator = ",")
+
+fun List<Int>.shapeToMLIRStrided(vaOff: Boolean) =
+    "strided<[${shapeToMLIRStrides()}]${if (vaOff) ", offset: ?" else ""}>"
 
 object Ty {
-    fun memref(shape: List<Int>, type: MLIRType): MLIRType =
-        "memref<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, strided<[${shape.shapeToMLIRStrides()}]>>"
+    fun memref(shape: List<Int>, type: MLIRType, vaOff: Boolean): MLIRType =
+        "memref<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}>"
 
-    fun tensor(shape: List<Int>, type: MLIRType): MLIRType =
-        "tensor<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, strided<[${shape.shapeToMLIRStrides()}]>>"
+    fun tensor(shape: List<Int>, type: MLIRType, vaOff: Boolean): MLIRType =
+        "tensor<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}>"
 
     // https://mlir.llvm.org/docs/TargetLLVMIR/#ranked-memref-types
     fun memrefStruct(shape: List<Int>) =
@@ -41,11 +54,12 @@ fun ptrlit(literal: String) =
 
 fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
     when (this) {
+        is NewlyAllocArrayType -> "memref<${shape.shapeToMLIR().joinToString(separator = "x")} x ${inner.toMLIR(wantTensor)}>"
         is ArrayType -> inner.toMLIR(wantTensor).let {
-            if (wantTensor) Ty.tensor(shape, it)
-            else Ty.memref(shape, it)
+            if (wantTensor) Ty.tensor(shape, it, vaOff)
+            else Ty.memref(shape, it, vaOff)
         }
-        is BoxType -> Ty.memref(listOf(1), of.toMLIR(wantTensor))
+        is BoxType -> Ty.memref(listOf(1), of.toMLIR(wantTensor), false)
         Types.int -> Ty.int(64)
         Types.byte -> Ty.int(8)
         Types.bool -> Ty.int(1)

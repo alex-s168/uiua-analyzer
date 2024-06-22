@@ -72,6 +72,46 @@ fun IrBlock.lowerSimple() {
 
                     instrs.add(idx ++, comment("--- shape"))
                 }
+
+                Prim.Comp.ARR_CLONE -> {
+                    var idx = instrs.indexOf(instr)
+                    instrs.removeAt(idx)
+
+                    instrs.add(idx ++, comment("+++ copy"))
+
+                    val arr = instr.args[0]
+                    val arrTy = arr.type as ArrayType
+
+                    val dims = arrTy.shape.mapIndexed { dim, _ ->
+                        val const = newVar().copy(type = Types.size)
+                        instrs.add(idx++, IrInstr(
+                            mutableListOf(const),
+                            NumImmInstr(dim.toDouble()),
+                            mutableListOf()
+                        ))
+                        val v = newVar().copy(type = Types.size)
+                        instrs.add(idx ++, IrInstr(
+                            mutableListOf(v),
+                            PrimitiveInstr(Prim.Comp.DIM),
+                            mutableListOf(arr, const)
+                        ))
+                        v
+                    }.wrapInArgArray(::newVar) { instrs.add(idx ++, it) }
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(instr.outs[0]),
+                        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+                        mutableListOf(dims)
+                    ))
+
+                    instrs.add(idx ++, IrInstr(
+                        mutableListOf(),
+                        PrimitiveInstr(Prim.Comp.ARR_COPY),
+                        mutableListOf(instr.outs[0], arr)
+                    ))
+
+                    instrs.add(idx ++, comment("--- copy"))
+                }
             }
         }
     }

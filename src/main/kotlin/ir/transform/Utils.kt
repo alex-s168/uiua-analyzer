@@ -54,7 +54,7 @@ fun oneDimLoad(dest: IrVar, arr: IrVar, newVar: () -> IrVar, idx: Int, put: (IrI
 }
 
 fun oneDimLoad(arr: IrVar, newVar: () -> IrVar, idx: Int, put: (IrInstr) -> Unit): IrVar {
-    val variable = newVar().copy(type = (arr.type as ArrayType).of)
+    val variable = newVar().copy(type = (arr.type as ArrayType).of.makeVaOffIfArray())
     oneDimLoad(dest = variable, arr = arr, newVar = newVar, idx = idx, put = put)
     return variable
 }
@@ -70,7 +70,7 @@ fun oneDimLoad(dest: IrVar, arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (I
 }
 
 fun oneDimLoad(arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit): IrVar {
-    val variable = newVar().copy(type = (arr.type as ArrayType).of)
+    val variable = newVar().copy(type = (arr.type as ArrayType).of.makeVaOffIfArray())
     oneDimLoad(dest = variable, arr = arr, newVar = newVar, idx = idx, put = put)
     return variable
 }
@@ -86,7 +86,7 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
         val arr = newVar().copy(type = arrTy).also { args += it }
         val idx = newVar().copy(type = idx.type).also { args += it }
 
-        val value = newVar().copy(type = arrTy.of).also { rets += it }
+        val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
 
         if (fillArg == null) {
             instrs += IrInstr(
@@ -105,7 +105,7 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
         val arr = newVar().copy(type = arrTy).also { args += it }
         val idx = newVar().copy(type = idx.type).also { args += it }
 
-        val value = newVar().copy(type = arrTy.of).also { rets += it }
+        val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
 
         val idc = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
 
@@ -148,7 +148,7 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
 }
 
 fun oneDimFillLoad(fill: IrVar?, arr: IrVar, putBlock: (IrBlock) -> Unit, ref: (String) -> IrBlock?, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit): IrVar {
-    val variable = newVar().copy(type = (arr.type as ArrayType).of)
+    val variable = newVar().copy(type = (arr.type as ArrayType).of.makeVaOffIfArray())
     oneDimFillLoad(dest = variable, fill = fill, arr = arr, putBlock = putBlock, ref = ref, newVar = newVar, idx = idx, put = put)
     return variable
 }

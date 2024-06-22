@@ -40,9 +40,10 @@ fun Type.combine(other: Type): Type =
         else -> error("")
     }
 
-data class ArrayType(
+open class ArrayType(
     val of: Type,
-    val length: Int?
+    val length: Int?,
+    val vaOff: Boolean,
 ): Type("arr", listOf()) {
     val shape: List<Int> by lazy {
         val sha = mutableListOf<Int>()
@@ -77,7 +78,20 @@ data class ArrayType(
         shape.shapeToType(fn(inner))
 
     override fun toString(): String =
-        "arr[$of]${length ?: "?"}"
+        "arr[$of]${length ?: "?"}" + if (vaOff) "vaoff" else ""
+
+    fun copy(ofi: Type = this.of, length: Int? = this.length, vaOff: Boolean = this.vaOff) =
+        ArrayType(ofi, length, vaOff)
+
+    override fun equals(other: Any?) =
+        other is ArrayType && other.of == of && length == other.length && vaOff == other.vaOff
+
+    override fun hashCode(): Int {
+        var result = of.hashCode()
+        result = 31 * result + length.hashCode()
+        result = 31 * result + vaOff.hashCode()
+        return result
+    }
 }
 
 // TODO: verify
@@ -89,9 +103,9 @@ fun List<Int>.shapeEq(other: List<Int>): Boolean =
 
 fun List<Int>.shapeToType(elem: Type): ArrayType {
     val left = toMutableList()
-    var arr = ArrayType(elem, left.removeLast().let { if (it < 0) null else it })
+    var arr = ArrayType(elem, left.removeLast().let { if (it < 0) null else it }, false)
     while (left.isNotEmpty())
-        arr = ArrayType(arr, left.removeLast().let { if (it < 0) null else it })
+        arr = ArrayType(arr, left.removeLast().let { if (it < 0) null else it }, false)
     return arr
 }
 
@@ -128,6 +142,15 @@ class AutoByteType: Type("autobyte", listOf()) {
         other == Types.byte
 }
 
+fun Type.makeVaOffIfArray() =
+    if (this is ArrayType) this.copy(vaOff = true)
+    else this
+
+// TODO: USE EVERYWHERE!!!!!!!
+fun Type.copyType() =
+    if (this is ArrayType && this.vaOff) this.copy(vaOff = false)
+    else this
+
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
 
@@ -149,7 +172,7 @@ object Types {
     ) = FnType(fillType, args, rets)
 
     /* array */
-    fun array(of: Type, length: Int? = null) = ArrayType(of, length)
+    fun array(of: Type, length: Int? = null, vaOff: Boolean = false) = ArrayType(of, length, vaOff)
 
     /* native */
     fun pointer(to: Type) = PtrType(to)
