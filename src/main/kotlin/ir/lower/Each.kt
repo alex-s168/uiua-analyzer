@@ -1,14 +1,15 @@
-package me.alex_s168.uiua.ir.transform
+package me.alex_s168.uiua.ir.lower
 
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import me.alex_s168.uiua.ir.lowerPrimPass
 
 private fun lowerEachRec(
     newVar: () -> IrVar,
     fill: IrVar?,
-    ref: (String) -> IrBlock?,
+    ref: Map<String, IrBlock>,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
     inputs: List<IrVar>,
@@ -60,30 +61,13 @@ private fun lowerEachRec(
     ))
 }
 
-fun IrBlock.lowerEach(putBlock: (IrBlock) -> Unit) {
-    instrs.toList().forEach { instr ->
-        if (instr.instr is PrimitiveInstr) {
-            when (instr.instr.id) {
-                Prim.EACH -> {
-                    var idx = instrs.indexOf(instr)
-                    instrs.removeAt(idx)
+val lowerEach = lowerPrimPass<(IrBlock) -> Unit>(Prim.EACH) { put, newVar, a, putBlock ->
+    val fn = args[0]
 
-                    instrs.add(idx ++, comment("+++ each"))
+    val highestRank = args.drop(1)
+        .filter { it.type is ArrayType && it.type.length != 1 }
+        .maxBy { (it.type as ArrayType).shape.size }
+        .type as ArrayType
 
-                    val fn = instr.args[0]
-
-                    val highestRank = instr.args.drop(1)
-                        .filter { it.type is ArrayType && it.type.length != 1 }
-                        .maxBy { (it.type as ArrayType).shape.size }
-                        .type as ArrayType
-
-                    lowerEachRec(::newVar, fillArg, ref, {
-                        instrs.add(idx ++, it)
-                    }, putBlock, instr.args.drop(1), instr.outs, fn, highestRank.shape.size)
-
-                    instrs.add(idx ++, comment("--- each"))
-                }
-            }
-        }
-    }
+    lowerEachRec(newVar, a.block.fillArg, a.block.ref, put, putBlock, args.drop(1), outs, fn, highestRank.shape.size)
 }

@@ -83,7 +83,7 @@ data class IrInstr(
         }
 
         fun fnRef(to: String): IrVar {
-            val fn = parent.ref(to)!!
+            val fn = parent.ref[to]!!
             val newv = parent.newVar().copy(type = fn.type())
             parent.instrs.add(
                 parent.instrs.indexOf(this), IrInstr(
@@ -109,7 +109,7 @@ data class IrInstr(
             }
 
             is PushFnRefInstr -> {
-                val fn = parent.ref(instr.fn)!!
+                val fn = parent.ref[instr.fn]!!
                 updateType(outs[0], fn.type())
             }
 
@@ -184,7 +184,7 @@ data class IrInstr(
                     val callArgs = args.drop(1)
 
                     val exp = fn.expandFor(callArgs.map { it.type }, putFn, fillType)
-                    val expb = parent.ref(exp)!!
+                    val expb = parent.ref[exp]!!
 
                     outs.zip(expb.rets).forEach { (a, b) ->
                         updateType(a, b.type)
@@ -272,7 +272,7 @@ data class IrInstr(
                             putFn,
                             fillType
                         )
-                        val expb = parent.ref(exp)!!
+                        val expb = parent.ref[exp]!!
                         fns[index] = fnRef(exp)
                         expb
                     }
@@ -289,13 +289,13 @@ data class IrInstr(
                     val inp = args[1].type as ArrayType
 
                     val first = fnblock.expandFor(listOf(inp.of, inp.of), putFn, fillType)
-                    val firstb = parent.ref(first)!!
+                    val firstb = parent.ref[first]!!
                     val accTy = firstb.rets[0].type
 
                     args[0] = fnRef(first)
 
                     val all = fnblock.expandFor(listOf(accTy, inp.of), putFn, fillType)
-                    val allb = parent.ref(all)!!
+                    val allb = parent.ref[all]!!
                     require(allb.rets[0].type == accTy)
 
                     args.add(fnRef(all))
@@ -316,7 +316,7 @@ data class IrInstr(
                         else it.type.inner
                     }
                     val new = fnblock.expandFor(inps, putFn, fillType)
-                    val newb = parent.ref(new)!!
+                    val newb = parent.ref[new]!!
 
                     args[0] = fnRef(new)
 
@@ -339,7 +339,7 @@ data class IrInstr(
                     }
 
                     val new = fnblock.expandFor(inps, putFn, fillType)
-                    val newb = parent.ref(new)!!
+                    val newb = parent.ref[new]!!
 
                     args[0] = fnRef(new)
 
@@ -354,13 +354,13 @@ data class IrInstr(
                     val opArgs = args.drop(2)
 
                     val fillValFnExp = fillValFn.expandFor(listOf(), putFn, fillType)
-                    val fillValFnExpBlock = parent.ref(fillValFnExp)!!
+                    val fillValFnExpBlock = parent.ref[fillValFnExp]!!
                     val opFnExp = opFn.expandFor(opArgs.map { it.type }, putFn, fillValFnExpBlock.rets[0].type)
 
                     args[0] = fnRef(fillValFnExp)
                     args[1] = fnRef(opFnExp)
 
-                    outs.zip(parent.ref(opFnExp)!!.rets).forEach { (out, ret) ->
+                    outs.zip(parent.ref[opFnExp]!!.rets).forEach { (out, ret) ->
                         updateType(out, ret.type)
                     }
                 }
@@ -386,7 +386,7 @@ data class IrInstr(
                 }
 
                 Prim.UNDO_PICK -> {
-                    val arr = args[1].type as ArrayType
+                    val arr = args[0].type as ArrayType
                     updateType(outs[0], arr)
                 }
 
@@ -396,7 +396,7 @@ data class IrInstr(
                     val arr1 = args[2].type as ArrayType
 
                     val fnExp = fn.expandFor(listOf(arr0.of, arr1.of), putFn, fillType)
-                    val fnExpBlock = parent.ref(fnExp)!!
+                    val fnExpBlock = parent.ref[fnExp]!!
 
                     outs.zip(fnExpBlock.rets).forEach { (out, ret) ->
                         updateType(out, Types.array(Types.array(ret.type)))

@@ -1,10 +1,8 @@
 package me.alex_s168.uiua
 
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.opt.optInlineCUse
-import me.alex_s168.uiua.ir.opt.optRemUnused
-import me.alex_s168.uiua.ir.putBlock
-import me.alex_s168.uiua.ir.toIr
+import me.alex_s168.uiua.ir.*
+import me.alex_s168.uiua.ir.lower.*
+import me.alex_s168.uiua.ir.opt.*
 import me.alex_s168.uiua.ir.transform.*
 import me.alex_s168.uiua.mlir.emitMLIR
 import me.alex_s168.uiua.mlir.emitMLIRFinalize
@@ -31,7 +29,7 @@ private fun IrBlock.findAllRequiredCompile(dosth: (IrBlock) -> Unit): Set<IrBloc
             while (idx < block.instrs.size) {
                 val it = block.instrs[idx]
                 if (it.instr is PushFnRefInstr) {
-                    val fn = block.ref(it.instr.fn)!!
+                    val fn = block.ref[it.instr.fn]!!
                     val oldSize = block.instrs.size
                     rec(fn)
                     idx += block.instrs.size - oldSize
@@ -56,36 +54,65 @@ fun main() {
     ), blocks::putBlock)
     blocks[expanded]!!.private = false
 
-    val file = File(".out.uac").printWriter()
+    fun Pass<Unit>.generic(): Pass<(IrBlock) -> Unit> =
+        Pass(name) { b, _ -> internalRun(b, Unit) }
 
-    val compile = blocks[expanded]!!.findAllRequiredCompile {
-        // only reorder if you know what you are doing!
-        fun IrBlock.basicOpt() {
-            optInlineCUse()
-            optRemUnused()
+    fun Pass<(IrBlock) -> Unit>.generic() =
+        this
+
+    val passes = passPipeline(listOf(
+        lowerDup.generic(),
+        lowerOver.generic(),
+        lowerFlip.generic(),
+        inlineCUse.generic(),
+        remUnused.generic(),
+        lowerPervasive.generic(),
+        lowerEach.generic(),
+        lowerRows.generic(),
+        comptimeReduceEval.generic(),
+        lowerReduce.generic(),
+        lowerRange.generic(),
+        lowerReverse.generic(),
+        lowerFix.generic(),
+        lowerPick.generic(),
+        lowerUndoPick.generic(),
+        lowerBox.generic(),
+        lowerUnBox.generic(),
+        lowerArrImm.generic(),
+        boxConv.generic(),
+        lowerBoxLoad.generic(),
+        lowerBoxStore.generic(),
+        lowerBoxCreate.generic(),
+        lowerBoxDestroy.generic(),
+        lowerClone.generic(),
+        lowerShape.generic(),
+        lowerLen.generic(),
+        evalDim.generic(),
+        remUnused.generic(), // before materialize!
+        remArrMat.generic(),
+        lowerMaterialize.generic(),
+        fixArgArrays.generic(),
+        inlineCUse.generic(),
+        remUnused.generic(),
+    ))
+
+    val compile = File(".out.uac").printWriter().use { file ->
+        blocks[expanded]!!.findAllRequiredCompile {
+            // only reorder if you know what you are doing!
+
+            val res = runCatching {
+                passes(it, blocks::putBlock)
+            }
+
+            file.println(it)
+            file.println()
+
+            res.onFailure {
+                println("in apply pass pipeline")
+                throw it
+            }
         }
-
-        it.expandStackOps()
-        it.basicOpt()
-        it.lowerTable(blocks::putBlock)
-        it.lowerPervasive(blocks::putBlock)
-        it.lowerEach(blocks::putBlock)
-        it.lowerRows(blocks::putBlock)
-        it.lowerReduce(blocks::putBlock)
-        it.lowerRange(blocks::putBlock)
-        it.lowerReverse(blocks::putBlock)
-        it.expandBoxes()
-        it.expandArrays()
-        it.lowerBoxesToArrays()
-        it.lowerSimple()
-        it.lowerArrMat() // TODO: get rid of that
-        it.basicOpt()
-
-        file.println(it)
-        file.println()
     }
-
-    file.close()
 
     val out = StringBuilder()
     out.append(loadRes("runtime.mlir")!!)

@@ -158,283 +158,293 @@ fun IrBlock.emitMLIR(): List<String> {
         }
     }
 
-    instrs.forEach { instr ->
-        when (instr.instr) {
-            is NumImmInstr -> {
-                val value = instr.instr.value
-                val ty = instr.outs[0].type
-                val valueStr = when (ty) {
-                    Types.int,
-                    Types.byte,
-                    Types.size,
-                    is PtrType -> value.toULong().toString()
-                    else -> value.toString()
-                }
-                body += Inst.constant(
-                    instr.outs[0].asMLIR(),
-                    ty.toMLIR(),
-                    valueStr
-                )
-            }
+    instrs.forEachIndexed { idx, instr ->
+        runCatching {
+            when (instr.instr) {
+                is NumImmInstr -> {
+                    val value = instr.instr.value
+                    val ty = instr.outs[0].type
+                    val valueStr = when (ty) {
+                        Types.int,
+                        Types.byte,
+                        Types.size,
+                        is PtrType -> value.toULong().toString()
 
-            is PushFnRefInstr -> {
-                val fn = instr.instr.fn.legalizeMLIR()
-                body += Inst.funcConstant(
-                    dest = instr.outs[0].asMLIR(),
-                    fn = "@$fn",
-                    fnType = instr.outs[0].type.toMLIR()
-                )
-            }
-
-            is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.ADD -> instr.binary(body, Inst::add)
-                Prim.SUB -> instr.binary(body, Inst::sub, reverse = true)
-                Prim.MUL -> instr.binary(body, Inst::mul)
-                Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
-                Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
-
-                Prim.LT -> {
-                    cmp(instr, "slt", "ult")
-                }
-                Prim.EQ -> {
-                    cmp(instr, "eq", "eq")
-                }
-
-                Prim.MAX -> {
-                    val out = instr.outs[0]
-                    val outTy = out.type
-                    val a = castIfNec(body, instr.args[0], outTy).asMLIR()
-                    val b = castIfNec(body, instr.args[1], outTy).asMLIR()
-
-                    body += when (outTy) {
-                        Types.double -> "${out.asMLIR()} = arith.maxnumf $a, $b : f64"
-                        Types.int -> "${out.asMLIR()} = arith.maxsi $a, $b : i64"
-                        Types.byte -> "${out.asMLIR()} = arith.maxui $a, $b : i8"
-                        Types.size -> "${out.asMLIR()} = arith.maxui $a, $b : index"
-                        else -> error("")
+                        else -> value.toString()
                     }
-                }
-
-                Prim.PRIMES -> {
-                    val rtPrimes = Types.func(
-                        args = listOf(Types.int),
-                        rets = listOf(Types.array(Types.int))
-                    )
-
-                    body += Inst.funcCall(
-                        dests = listOf(instr.outs[0].asMLIR()),
-                        fn = "_\$_rt_primes",
-                        fnType = rtPrimes.toMLIR(),
-                        castIfNec(body, instr.args[0], Types.int).asMLIR()
+                    body += Inst.constant(
+                        instr.outs[0].asMLIR(),
+                        ty.toMLIR(),
+                        valueStr
                     )
                 }
 
-                Prim.SWITCH -> {
-                    val conds = argArr(instr.args[0]).map {
-                        (instrDeclFor(it)!!.instr as NumImmInstr).value.toULong()
+                is PushFnRefInstr -> {
+                    val fn = instr.instr.fn.legalizeMLIR()
+                    body += Inst.funcConstant(
+                        dest = instr.outs[0].asMLIR(),
+                        fn = "@$fn",
+                        fnType = instr.outs[0].type.toMLIR()
+                    )
+                }
+
+                is PrimitiveInstr -> when (instr.instr.id) {
+                    Prim.ADD -> instr.binary(body, Inst::add)
+                    Prim.SUB -> instr.binary(body, Inst::sub, reverse = true)
+                    Prim.MUL -> instr.binary(body, Inst::mul)
+                    Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
+                    Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
+
+                    Prim.LT -> {
+                        cmp(instr, "slt", "ult")
                     }
-                    val targets = argArr(instr.args[1])
-                    val on = castIfNec(body, instr.args[2], Types.size)
-                    val args = instr.args.drop(3)
 
-                    val cases = (conds.dropLast(1).map { "case $it " } + conds.last().let { "default " })
-                        .zip(targets)
-                        .map { (cond, target) ->
-                            val inner = mutableListOf<String>()
-                            val dests = instr.outs.map { newVar().copy(type = it.type) }
+                    Prim.EQ -> {
+                        cmp(instr, "eq", "eq")
+                    }
 
-                            inner += callWithOptFill(
-                                dests,
-                                target,
-                                args,
-                                fillArg
-                            )
+                    Prim.MAX -> {
+                        val out = instr.outs[0]
+                        val outTy = out.type
+                        val a = castIfNec(body, instr.args[0], outTy).asMLIR()
+                        val b = castIfNec(body, instr.args[1], outTy).asMLIR()
 
-                            inner += "scf.yield ${dests.joinToString { it.asMLIR() }} : ${dests.joinToString { it.type.toMLIR() }}"
-
-                            "$cond{\n  ${inner.joinToString("\n  ")}\n}"
+                        body += when (outTy) {
+                            Types.double -> "${out.asMLIR()} = arith.maxnumf $a, $b : f64"
+                            Types.int -> "${out.asMLIR()} = arith.maxsi $a, $b : i64"
+                            Types.byte -> "${out.asMLIR()} = arith.maxui $a, $b : i8"
+                            Types.size -> "${out.asMLIR()} = arith.maxui $a, $b : index"
+                            else -> error("")
                         }
-                    body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} -> ${instr.outs.joinToString { it.type.toMLIR() }}\n${cases.joinToString("\n")}"
-                }
+                    }
 
-                Prim.Comp.ARG_ARR -> {} // ignore
+                    Prim.PRIMES -> {
+                        val rtPrimes = Types.func(
+                            args = listOf(Types.int),
+                            rets = listOf(Types.array(Types.int))
+                        )
 
-                Prim.Comp.ARR_MATERIALIZE -> TODO()
+                        body += Inst.funcCall(
+                            dests = listOf(instr.outs[0].asMLIR()),
+                            fn = "_\$_rt_primes",
+                            fnType = rtPrimes.toMLIR(),
+                            castIfNec(body, instr.args[0], Types.int).asMLIR()
+                        )
+                    }
 
-                Prim.Comp.ARR_ALLOC -> {
-                    val type = instr.outs[0].type as ArrayType
-                    val shape = type.shape
-                    val mShape = argArr(instr.args[0]).map { castIfNec(body, it, Types.size).asMLIR() }
+                    Prim.SWITCH -> {
+                        val conds = argArr(instr.args[0]).map {
+                            (instrDeclFor(it)!!.instr as NumImmInstr).value.toULong()
+                        }
+                        val targets = argArr(instr.args[1])
+                        val on = castIfNec(body, instr.args[2], Types.size)
+                        val args = instr.args.drop(3)
 
-                    val temp = newVar().copy(type = NewlyAllocArrayType.from(type))
+                        val cases = (conds.dropLast(1).map { "case $it " } + conds.last().let { "default " })
+                            .zip(targets)
+                            .map { (cond, target) ->
+                                val inner = mutableListOf<String>()
+                                val dests = instr.outs.map { newVar().copy(type = it.type) }
 
-                    body += Inst.memRefAlloc(
-                        temp.asMLIR(),
-                        temp.type.toMLIR(),
-                        *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
-                    )
+                                inner += callWithOptFill(
+                                    dests,
+                                    target,
+                                    args,
+                                    fillArg
+                                )
 
-                    subview(body, instr.outs[0], temp, listOf())
-                }
+                                inner += "scf.yield ${dests.joinToString { it.asMLIR() }} : ${dests.joinToString { it.type.toMLIR() }}"
 
-                Prim.Comp.ARR_STORE -> {
-                    val arr = instr.args[0]
-                    val arrTy = arr.type as ArrayType
-                    val indecies = argArr(instr.args[1])
-                    val value = instr.args[2]
+                                "$cond{\n  ${inner.joinToString("\n  ")}\n}"
+                            }
+                        body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} -> ${instr.outs.joinToString { it.type.toMLIR() }}\n${
+                            cases.joinToString(
+                                "\n"
+                            )
+                        }"
+                    }
 
-                    if (value.type is ArrayType) {
-                        val view = subview(body, arr, indecies)
+                    Prim.Comp.ARG_ARR -> {} // ignore
+
+                    Prim.Comp.ARR_MATERIALIZE -> TODO()
+
+                    Prim.Comp.ARR_ALLOC -> {
+                        val type = instr.outs[0].type as ArrayType
+                        val shape = type.shape
+                        val shapeDecl = instrDeclFor(instr.args[0])!!
+                        val mShape = shapeDecl.args.map { castIfNec(body, it, Types.size).asMLIR() }
+
+                        val temp = newVar().copy(type = NewlyAllocArrayType.from(type))
+
+                        body += Inst.memRefAlloc(
+                            temp.asMLIR(),
+                            temp.type.toMLIR(),
+                            *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
+                        )
+
+                        subview(body, instr.outs[0], temp, listOf())
+                    }
+
+                    Prim.Comp.ARR_STORE -> {
+                        val arr = instr.args[0]
+                        val arrTy = arr.type as ArrayType
+                        val indecies = argArr(instr.args[1])
+                        val value = instr.args[2]
+
+                        if (value.type is ArrayType) {
+                            val view = subview(body, arr, indecies)
+                            body += Inst.memRefCopy(
+                                value.asMLIR(),
+                                value.type.toMLIR(),
+                                view.asMLIR(),
+                                view.type.toMLIR()
+                            )
+                        } else {
+                            body += Inst.memRefStore(
+                                arr.type.toMLIR(),
+                                castIfNec(body, value, arrTy.inner).asMLIR(),
+                                arr.asMLIR(),
+                                *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+                            )
+                        }
+                    }
+
+                    Prim.Comp.ARR_COPY -> {
                         body += Inst.memRefCopy(
-                            value.asMLIR(),
-                            value.type.toMLIR(),
-                            view.asMLIR(),
-                            view.type.toMLIR()
+                            instr.args[1].asMLIR(),
+                            instr.args[1].type.toMLIR(),
+                            instr.args[0].asMLIR(),
+                            instr.args[0].type.toMLIR()
                         )
                     }
-                    else {
-                        body += Inst.memRefStore(
-                            arr.type.toMLIR(),
-                            castIfNec(body, value, arrTy.inner).asMLIR(),
-                            arr.asMLIR(),
-                            *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+
+                    Prim.Comp.ARR_LOAD -> {
+                        val arr = instr.args[0]
+                        val indecies = argArr(instr.args[1])
+
+                        if (instr.outs[0].type is ArrayType) {
+                            // TODO: create subview primitive and use arr copy + arr load at higher level
+                            subview(body, instr.outs[0], arr, indecies)
+                        } else {
+                            body += Inst.memRefLoad(
+                                instr.outs[0].asMLIR(),
+                                arr.type.toMLIR(),
+                                arr.asMLIR(),
+                                *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+                            )
+                        }
+                    }
+
+                    Prim.Comp.ARR_DESTROY -> {
+                        body += Inst.memRefDealloc(
+                            instr.args[0].asMLIR(),
+                            instr.args[0].type.toMLIR()
                         )
                     }
-                }
 
-                Prim.Comp.ARR_COPY -> {
-                    body += Inst.memRefCopy(
-                        instr.args[1].asMLIR(),
-                        instr.args[1].type.toMLIR(),
-                        instr.args[0].asMLIR(),
-                        instr.args[0].type.toMLIR()
-                    )
-                }
+                    Prim.Comp.REPEAT -> {
+                        val start = castIfNec(body, instr.args[0], Types.size).asMLIR()
 
-                Prim.Comp.ARR_LOAD -> {
-                    val arr = instr.args[0]
-                    val indecies = argArr(instr.args[1])
+                        val ends = castIfNec(body, instr.args[1], Types.size).asMLIR()
+                        val fn = instr.args[2]
+                        val fnTy = fn.type as FnType
 
-                    if (instr.outs[0].type is ArrayType) {
-                        // TODO: create subview primitive and use arr copy + arr load at higher level
-                        subview(body, instr.outs[0], arr, indecies)
-                    }
-                    else {
-                        body += Inst.memRefLoad(
-                            instr.outs[0].asMLIR(),
-                            arr.type.toMLIR(),
-                            arr.asMLIR(),
-                            *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+                        val additional = instr.args.drop(3).toMutableList()
+
+                        val counter = newVar().copy(type = Types.size)
+
+                        val inner = mutableListOf<String>()
+
+                        inner += callWithOptFill(
+                            listOf(),
+                            fn,
+                            additional.also { it.add(0, castIfNec(inner, counter, fnTy.args[0])) },
+                            fillArg
+                        )
+
+                        body += Inst.affineFor(
+                            counter.asMLIR(),
+                            start,
+                            ends,
+                            inner
                         )
                     }
-                }
 
-                Prim.Comp.ARR_DESTROY -> {
-                    body += Inst.memRefDealloc(
-                        instr.args[0].asMLIR(),
-                        instr.args[0].type.toMLIR()
-                    )
-                }
+                    Prim.Comp.DIM -> {
+                        castLaterIfNec(body, instr.outs[0], Types.size) { dest ->
+                            val dim = castIfNec(body, instr.args[1], Types.size)
+                            body += Inst.memRefDim(
+                                dest = dest.asMLIR(),
+                                memRefType = instr.args[0].type.toMLIR(),
+                                memRef = instr.args[0].asMLIR(),
+                                dim = dim.asMLIR()
+                            )
+                        }
+                    }
 
-                Prim.Comp.REPEAT -> {
-                    val start = castIfNec(body, instr.args[0], Types.size).asMLIR()
+                    Prim.Comp.PANIC -> {
+                        val rtPanic = Types.func(listOf(Types.int, Types.int), listOf())
 
-                    val ends = castIfNec(body, instr.args[1], Types.size).asMLIR()
-                    val fn = instr.args[2]
-                    val fnTy = fn.type as FnType
+                        val idBlock = newVar().asMLIR()
+                        body += Inst.constant(idBlock, "i64", uid.toString())
 
-                    val additional = instr.args.drop(3).toMutableList()
+                        val idInst = newVar().asMLIR()
+                        body += Inst.constant(idInst, "i64", instrs.indexOf(instr).toString())
 
-                    val counter = newVar().copy(type = Types.size)
+                        body += Inst.funcCall(
+                            dests = listOf(),
+                            "_\$_rt_panic",
+                            rtPanic.toMLIR(),
+                            idBlock, idInst
+                        )
 
-                    val inner = mutableListOf<String>()
+                        instr.outs.forEach {
+                            body += Inst.undef(it.asMLIR(), it.type.toMLIR())
+                        }
+                    }
 
-                    inner += callWithOptFill(
-                        listOf(),
-                        fn,
-                        additional.also { it.add(0, castIfNec(inner, counter, fnTy.args[0])) },
-                        fillArg
-                    )
+                    Prim.FILL -> {
+                        val (_, fillValFn) = funDeclFor(instr.args[0])!!
+                        val opFn = instr.args[1]
+                        val opArgs = instr.args.drop(2)
 
-                    body += Inst.affineFor(
-                        counter.asMLIR(),
-                        start,
-                        ends,
-                        inner
-                    )
-                }
+                        val fillVal = newVar().copy(type = fillValFn.type().rets.first())
+                        body += callWithOptFill(
+                            listOf(fillVal),
+                            fillValFn,
+                            listOf(),
+                        )
 
-                Prim.Comp.DIM -> {
-                    castLaterIfNec(body, instr.outs[0], Types.size) { dest ->
-                        val dim = castIfNec(body, instr.args[1], Types.size)
-                        body += Inst.memRefDim(
-                            dest = dest.asMLIR(),
-                            memRefType = instr.args[0].type.toMLIR(),
-                            memRef = instr.args[0].asMLIR(),
-                            dim = dim.asMLIR()
+                        body += callWithOptFill(
+                            instr.outs,
+                            opFn,
+                            opArgs,
+                            fillVal
                         )
                     }
-                }
 
-                Prim.Comp.PANIC -> {
-                    val rtPanic = Types.func(listOf(Types.int, Types.int), listOf())
+                    Prim.CALL -> {
+                        val fn = instr.args[0]
+                        val args = instr.args.drop(1)
 
-                    val idBlock = newVar().asMLIR()
-                    body += Inst.constant(idBlock, "i64", uid.toString())
-
-                    val idInst = newVar().asMLIR()
-                    body += Inst.constant(idInst, "i64", instrs.indexOf(instr).toString())
-
-                    body += Inst.funcCall(
-                        dests = listOf(),
-                        "_\$_rt_panic",
-                        rtPanic.toMLIR(),
-                        idBlock, idInst
-                    )
-
-                    instr.outs.forEach {
-                        body += Inst.undef(it.asMLIR(), it.type.toMLIR())
+                        body += callWithOptFill(
+                            instr.outs,
+                            fn,
+                            args,
+                            fillArg
+                        )
                     }
+
+                    else -> error("primitive ${instr.instr.id} not implemented")
                 }
 
-                Prim.FILL -> {
-                    val (_, fillValFn) = funDeclFor(instr.args[0])!!
-                    val opFn = instr.args[1]
-                    val opArgs = instr.args.drop(2)
+                is CommentInstr -> {}
 
-                    val fillVal = newVar().copy(type = fillValFn.type().rets.first())
-                    body += callWithOptFill(
-                        listOf(fillVal),
-                        fillValFn,
-                        listOf(),
-                    )
-
-                    body += callWithOptFill(
-                        instr.outs,
-                        opFn,
-                        opArgs,
-                        fillVal
-                    )
-                }
-
-                Prim.CALL -> {
-                    val fn = instr.args[0]
-                    val args = instr.args.drop(1)
-
-                    body += callWithOptFill(
-                        instr.outs,
-                        fn,
-                        args,
-                        fillArg
-                    )
-                }
-
-                else -> error("primitive ${instr.instr.id} not implemented")
+                else -> error("$instr not implemented")
             }
-
-            is CommentInstr -> {}
-
-            else -> error("$instr not implemented")
+        }.onFailure {
+            println("in mlir emit instr $uid:$idx: ${it.message}")
+            throw it
         }
     }
 

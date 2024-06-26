@@ -62,7 +62,7 @@ fun List<AstNode>.toIr(tbCorr: MutableList<Pair<AstNode, IrVar>>, putAnonFn: (Fu
 }
 
 fun Function.toIr(
-    getFn: (String) -> IrBlock?,
+    getFn: Map<String, IrBlock>,
     putFn: (IrBlock) -> Unit,
     name: String
 ): IrBlock {
@@ -74,7 +74,7 @@ fun Function.toIr(
 }
 
 fun ASTRoot.toIr(
-    getFn: (String) -> IrBlock?,
+    getFn: Map<String, IrBlock>,
     putFn: (IrBlock) -> Unit,
     name: String
 ): IrBlock {
@@ -110,7 +110,7 @@ fun Map<String, Function>.toIr(): MutableMap<String, IrBlock> {
     val new = mutableMapOf<String, IrBlock>()
 
     forEach { (k, v) ->
-        new.putBlock(v.toIr(new::get, new::putBlock, k))
+        new.putBlock(v.toIr(new, new::putBlock, k))
     }
 
     return new

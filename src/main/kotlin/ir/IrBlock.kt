@@ -12,7 +12,7 @@ private var nextGVarId: ULong = 0u
 
 data class IrBlock(
     val name: String,
-    val ref: (String) -> IrBlock?,
+    val ref: Map<String, IrBlock>,
     var instrs: MutableList<IrInstr> = mutableListOf(),
     var flags: MutableList<String> = mutableListOf(),
     var args: MutableList<IrVar> = mutableListOf(),
@@ -45,7 +45,7 @@ data class IrBlock(
     fun funDeclFor(v: IrVar): Pair<String, IrBlock>? {
         val fn = instrDeclFor(v)?.instr as? PushFnRefInstr
         return fn?.let { a ->
-            ref(a.fn)?.let { a.fn to it }
+            ref[a.fn]?.let { a.fn to it }
         }
     }
 
@@ -91,7 +91,7 @@ data class IrBlock(
 
         return runCatching {
             val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"
-            if (ref(newName) != null) return newName
+            if (ref[newName] != null) return newName
 
             val new = IrBlock(
                 newName,
@@ -171,4 +171,7 @@ data class IrBlock(
             rets.map { it.type },
             fillArg?.type
         )
+
+    override fun hashCode(): Int =
+        uid.hashCode()
 }

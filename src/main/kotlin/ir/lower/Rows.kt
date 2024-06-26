@@ -1,31 +1,16 @@
-package me.alex_s168.uiua.ir.transform
+package me.alex_s168.uiua.ir.lower
 
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
+import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.transform.*
 
-fun IrBlock.lowerRows(putBlock: (IrBlock) -> Unit ) {
-    instrs.toList().forEach { instr ->
-        if (instr.instr is PrimitiveInstr) {
-            when (instr.instr.id) {
-                Prim.ROWS -> {
-                    rows(instr, putBlock)
-                }
-            }
-        }
-    }
-}
+val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, putBlock ->
+    val outTypes = outs.map { it.type as ArrayType }
 
-private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
-    var idx = instrs.indexOf(instr)
-    instrs.removeAt(idx)
-
-    instrs.add(idx ++, comment("+++ $instr"))
-
-    val outTypes = instr.outs.map { it.type as ArrayType }
-
-    val fn = instr.args[0]
-    val inputs = instr.args.drop(1)
+    val fn = args[0]
+    val inputs = args.drop(1)
 
     val maxInputsLen = newVar().copy(type = Types.size)
 
@@ -35,15 +20,17 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
             NumImmInstr(0.0),
             mutableListOf()
         )
-    }, ref, ::newVar, putBlock, {
-        instrs.add(idx ++, it)
-    }, mutableListOf(maxInputsLen), *inputs.toTypedArray()) {
+    }, a.block.ref, newVar, putBlock, put, mutableListOf(maxInputsLen), *inputs.toTypedArray()) {
         val inputs = args
         val maxInputsLen = rets[0]
 
+        fun put(it: IrInstr) {
+            instrs.add(it)
+        }
+
         val inputsLens = inputs.map {
             val v = newVar().copy(type = Types.size)
-            instrs.add(IrInstr(
+            put(IrInstr(
                 mutableListOf(v),
                 PrimitiveInstr(Prim.LEN),
                 mutableListOf(it)
@@ -53,9 +40,9 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
 
         val inputsLensArgArr = inputs.zip(inputsLens).filterNot { (it, _) ->
             it.type !is ArrayType || it.type.length == 1
-        }.map { it.second }.wrapInArgArray(::newVar, Types.size) { instrs += it }
+        }.map { it.second }.wrapInArgArray(::newVar, Types.size, put = ::put)
         val inputsLensArr = newVar().copy(type = inputsLensArgArr.type)
-        instrs.add(IrInstr(
+        put(IrInstr(
             mutableListOf(inputsLensArr),
             PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
             mutableListOf(inputsLensArgArr),
@@ -76,13 +63,13 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
             putBlock(this)
         }
         val reduceBodyFn = newVar().copy(type = reduceBody.type())
-        instrs.add(IrInstr(
+        put(IrInstr(
             mutableListOf(reduceBodyFn),
             PushFnRefInstr(reduceBody.name),
             mutableListOf()
         ))
 
-        instrs.add(IrInstr(
+        put(IrInstr(
             mutableListOf(maxInputsLen),
             PrimitiveInstr(Prim.REDUCE),
             mutableListOf(reduceBodyFn, inputsLensArr, reduceBodyFn)
@@ -101,7 +88,7 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
     //     free result from iter i
     //   ^ array
 
-    val empty = IrBlock(anonFnName(), ref, fillArg = fillArg).apply {
+    val empty = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
         fillArg?.let { fillArg = newVar().copy(type = it.type) }
 
         val fn = newVar().copy(type = fn.type).also { args += it }
@@ -127,7 +114,7 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
         putBlock(this)
     }
 
-    val full = IrBlock(anonFnName(), ref, fillArg = fillArg).apply {
+    val full = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
         fillArg?.let { fillArg = newVar().copy(type = it.type) }
 
         val fn = newVar().copy(type = fn.type).also { args += it }
@@ -246,18 +233,15 @@ private fun IrBlock.rows(instr: IrInstr, putBlock: (IrBlock) -> Unit) {
         putBlock(this)
     }
 
-    val (zero, one) = constants(::newVar, 0.0, 1.0, type = Types.size) {
-        instrs.add(idx ++, it)
-    }
+    val (zero, one) = constants(newVar, 0.0, 1.0, type = Types.size, put = put)
 
     switch(
-        instr.outs,
-        ::newVar,
+        outs,
+        newVar,
         maxInputsLen,
         mutableListOf(fn, maxInputsLen).also { it += inputs },
         zero to empty,
         one to full,
-    ) { instrs.add(idx ++, it) }
-
-    instrs.add(idx ++, comment("--- $instr"))
+        put = put
+    )
 }

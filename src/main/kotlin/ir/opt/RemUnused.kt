@@ -1,9 +1,11 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.ir.IrBlock
+import me.alex_s168.uiua.ir.optAwayPass
 
-fun IrBlock.optRemUnused() {
-    instrs.removeIf {
-        it.outs.size > 0 && it.outs.all { !varUsed(it) }
+val remUnused = optAwayPass(
+    "rem unused",
+    { true },
+    { a ->
+        outs.size > 0 && outs.all { a.unused(it) }
     }
-}
+)

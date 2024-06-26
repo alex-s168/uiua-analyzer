@@ -6,7 +6,7 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
 fun List<IrVar>.wrapInArgArray(newVar: () -> IrVar, type: Type = first().type, put: (IrInstr) -> Unit): IrVar {
-    val v = newVar().copy(type = Types.array(type))
+    val v = newVar().copy(type = Types.array(type, size))
     put(IrInstr(
         mutableListOf(v),
         PrimitiveInstr(Prim.Comp.ARG_ARR),
@@ -75,7 +75,16 @@ fun oneDimLoad(arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Un
     return variable
 }
 
-fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) -> Unit, ref: (String) -> IrBlock?, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit) {
+fun oneDimFillLoad(
+    dest: IrVar,
+    fill: IrVar?,
+    arr: IrVar,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    idx: IrVar,
+    put: (IrInstr) -> Unit
+) {
     put(comment("+++ one dim fill load"))
 
     val arrTy = arr.type as ArrayType
@@ -147,7 +156,15 @@ fun oneDimFillLoad(dest: IrVar, fill: IrVar?, arr: IrVar, putBlock: (IrBlock) ->
     put(comment("--- one dim fill load"))
 }
 
-fun oneDimFillLoad(fill: IrVar?, arr: IrVar, putBlock: (IrBlock) -> Unit, ref: (String) -> IrBlock?, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Unit): IrVar {
+fun oneDimFillLoad(
+    fill: IrVar?,
+    arr: IrVar,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    idx: IrVar,
+    put: (IrInstr) -> Unit
+): IrVar {
     val variable = newVar().copy(type = (arr.type as ArrayType).of.makeVaOffIfArray())
     oneDimFillLoad(dest = variable, fill = fill, arr = arr, putBlock = putBlock, ref = ref, newVar = newVar, idx = idx, put = put)
     return variable
@@ -184,7 +201,7 @@ fun switch(
 fun filled(
     fillType: Type,
     fillBody: IrBlock.(IrVar) -> Unit,
-    ref: (String) -> IrBlock?,
+    ref: Map<String, IrBlock>,
     newVar: () -> IrVar,
     putBlock: IrBlock.() -> Unit,
     put: (IrInstr) -> Unit,
@@ -239,3 +256,6 @@ fun comment(msg: String): IrInstr =
         CommentInstr(msg),
         mutableListOf()
     )
+
+fun unfailure(block: () -> Boolean): Boolean =
+    runCatching { block() }.getOrDefault(false)

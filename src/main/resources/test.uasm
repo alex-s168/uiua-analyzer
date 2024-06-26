@@ -1,11 +1,13 @@
 comment "(fn"
 2
-copy_to_temp ["Under",2,3]
-PICK 3
-10
 MUL 2
-pop_temp ["Under",2,3]
-UNDO_PICK 3
+2
+copy_to_temp ["Under",2,4]
+PICK 4
+10
+MUL 3
+pop_temp ["Under",2,4]
+UNDO_PICK 4
 comment "fn)"
 
 TOP SLICES
@@ -18,14 +20,17 @@ TOP SLICES
 0 0
 0 0
 0 0
+0 0
+0 0
 
 BINDINGS
-func ["fn",[1,1],[1,7],8500720658569609195,false]
+func ["fn",[1,1],[1,9],11410727729798442474,false]
 
 SPANS
-["test.ua",[15,1,256,202],[15,3,258,204]]
-["test.ua",[15,9,268,210],[15,10,270,211]]
-["test.ua",[15,7,264,208],[15,8,267,209]]
+["test.ua",[19,1,307,237],[19,3,309,239]]
+["test.ua",[19,16,327,252],[19,17,329,253]]
+["test.ua",[19,9,319,245],[19,10,321,246]]
+["test.ua",[19,7,315,243],[19,8,318,244]]
 
 FILES
-test.ua: "# fn = (+ /× : /+ .)\r\n# fn ← (⬚0≡+)\r\n# fn ← (∵(□ +1 °/×))\r\n# fn = /+\r\n\r\n# convert from base, input tile endian\r\n# fn ← /+×ⁿ⇡⧻, 3\r\n\r\n# fn = /+ rev\r\n\r\n# fn ← ⁿ÷:1⧻⟜/×\r\n\r\n# ⍜now (⍥(◌ fn .) 100000000 [85 105 117 97])\r\n\r\nfn = ⍜⊡(×10) 2"
+test.ua: "# fn = (+ /× : /+ .)\r\n# fn ← (⬚0≡+)\r\n# fn ← (∵(□ +1 °/×))\r\n# fn = /+\r\n\r\n# convert from base, input tile endian\r\n# fn ← /+×ⁿ⇡⧻, 3\r\n\r\n# fn = /+ rev\r\n\r\n# fn ← ⁿ÷:1⧻⟜/×\r\n\r\n# ⍜now (⍥(◌ fn .) 100000000 [85 105 117 97])\r\n\r\n# fn = ⍜⊡(×10) 2\r\n\r\n# fn = ⍜⍉⊞(/+×)\r\n\r\nfn = ⍜⊡(×10) 2 ×2"
