@@ -127,7 +127,8 @@ class Analysis(val block: IrBlock) {
         val argArrayUsing = mapOf(
             Prim.Comp.ARR_ALLOC to 0,
             Prim.Comp.ARR_STORE to 1,
-            Prim.Comp.ARR_LOAD to 1
+            Prim.Comp.ARR_LOAD to 1,
+            Prim.RESHAPE to 0,
         )
 
         val pervasive = arrayOf(

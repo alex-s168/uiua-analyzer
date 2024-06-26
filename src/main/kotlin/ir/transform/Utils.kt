@@ -259,3 +259,65 @@ fun comment(msg: String): IrInstr =
 
 fun unfailure(block: () -> Boolean): Boolean =
     runCatching { block() }.getOrDefault(false)
+
+fun reduceBody(
+    put: (IrInstr) -> Unit,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    type: Type,
+    body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
+): IrVar {
+    val reduceBody = IrBlock(anonFnName(), ref).apply {
+        val a = newVar().copy(type = type).also { args += it }
+        val b = newVar().copy(type = type).also { args += it }
+
+        val res = newVar().copy(type = type).also { rets += it }
+
+        body(a, b, res)
+
+        putBlock(this)
+    }
+
+    val reduceBodyFn = newVar().copy(type = reduceBody.type())
+    put(IrInstr(
+        mutableListOf(reduceBodyFn),
+        PushFnRefInstr(reduceBody.name),
+        mutableListOf()
+    ))
+
+    return reduceBodyFn
+}
+
+fun reduce(
+    dest: IrVar,
+    arr: IrVar,
+    put: (IrInstr) -> Unit,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    type: Type,
+    body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
+) {
+    val reuceBody = reduceBody(put, putBlock, ref, newVar, type, body)
+
+    put(IrInstr(
+        mutableListOf(dest),
+        PrimitiveInstr(Prim.REDUCE),
+        mutableListOf(reuceBody, arr, reuceBody)
+    ))
+}
+
+fun reduce(
+    arr: IrVar,
+    put: (IrInstr) -> Unit,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    type: Type,
+    body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
+): IrVar {
+    val mult = newVar().copy(type = type)
+    reduce(mult, arr, put, putBlock, ref, newVar, type, body)
+    return mult
+}

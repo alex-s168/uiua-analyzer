@@ -48,32 +48,13 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
             mutableListOf(inputsLensArgArr),
         ))
 
-        val reduceBody = IrBlock(anonFnName(), ref).apply {
-            val a = newVar().copy(type = Types.size).also { args += it }
-            val b = newVar().copy(type = Types.size).also { args += it }
-
-            val res = newVar().copy(type = Types.size).also { rets += it }
-
+        reduce(maxInputsLen, inputsLensArr, ::put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
             instrs += IrInstr(
                 mutableListOf(res),
                 PrimitiveInstr(Prim.MAX),
                 mutableListOf(a, b)
             )
-
-            putBlock(this)
         }
-        val reduceBodyFn = newVar().copy(type = reduceBody.type())
-        put(IrInstr(
-            mutableListOf(reduceBodyFn),
-            PushFnRefInstr(reduceBody.name),
-            mutableListOf()
-        ))
-
-        put(IrInstr(
-            mutableListOf(maxInputsLen),
-            PrimitiveInstr(Prim.REDUCE),
-            mutableListOf(reduceBodyFn, inputsLensArr, reduceBodyFn)
-        ))
     }
 
     // !!! to allocate the array, we first have to run the function once to get the dimension of the inner arrays

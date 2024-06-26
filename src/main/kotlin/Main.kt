@@ -65,8 +65,9 @@ fun main() {
         lowerOver.generic(),
         lowerFlip.generic(),
         inlineCUse.generic(),
-        remUnused.generic(),
+        // remUnused.generic(),
         lowerPervasive.generic(),
+        lowerUnShape.generic(),
         lowerEach.generic(),
         lowerRows.generic(),
         comptimeReduceEval.generic(),
@@ -88,12 +89,12 @@ fun main() {
         lowerShape.generic(),
         lowerLen.generic(),
         evalDim.generic(),
-        remUnused.generic(), // before materialize!
-        remArrMat.generic(),
+        // remUnused.generic(), // before materialize!
+        // remArrMat.generic(),
         lowerMaterialize.generic(),
         fixArgArrays.generic(),
         inlineCUse.generic(),
-        remUnused.generic(),
+        // remUnused.generic(),
     ))
 
     val compile = File(".out.uac").printWriter().use { file ->
@@ -130,10 +131,10 @@ fun main() {
 
     File(inMlir).writeText(out.toString())
 
-    val mlirOpt = "mlir-opt"
-    val mlirTranslate = "mlir-translate"
+    val mlirOpt = "/home/alex/llvm-project/build/bin/mlir-opt"
+    val mlirTranslate = "/home/alex/llvm-project/build/bin/mlir-translate"
     val clang = "clang"
-    val llvmLower = true
+    val llvmLower = false
 
     // TODO: add --ownership-based-buffer-deallocation back (after --one-shot-bufferize)
     val llvmLowerStr = if (llvmLower) " convert-to-llvm," else ""

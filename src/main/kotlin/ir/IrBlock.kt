@@ -23,8 +23,8 @@ data class IrBlock(
     val uid = nextBlockId ++
 
     fun shouldInline(): Boolean =
-        // false // TODO: figure out why mlir stupid
-        instrs.size < 40 // should be called on expanded blocks
+        false
+        // instrs.size < 40 // should be called on expanded blocks
 
     fun newVar(): IrVar =
         IrVar(Types.tbd, nextGVarId ++)

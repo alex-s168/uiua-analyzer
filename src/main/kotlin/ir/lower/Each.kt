@@ -32,7 +32,7 @@ private fun lowerEachRec(
         val innerFn = newVar().copy(type = innerFn.type).also { args += it }
         val inputs = inputs.map {
             val ty = if (it.type !is ArrayType || it.type.length == 1) it.type
-            else it.type.of
+            else it.type.of.makeVaOffIfArray()
             newVar().copy(type = ty).also { args += it }
         }
 

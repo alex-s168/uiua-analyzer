@@ -57,7 +57,7 @@ object Prim {
     val FLIP = prim("FLIP")
     val OVER = prim("OVER")
 
-    val EACH = prim("EACH") // [fn] [arrays]...
+    val EACH = prim("EACH") // [fn], [arrays]...
     val REDUCE = prim("REDUCE")
     val ROWS = prim("ROWS")
     val REVERSE = prim("REVERSE")
@@ -66,6 +66,8 @@ object Prim {
     val PICK = prim("PICK")
     val UNDO_PICK = prim("UNDO_PICK")
     val TABLE = prim("TABLE")
+    val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
+    val UN_SHAPE = prim("UN_SHAPE")
 
     const val FILL = "FILL"
 }

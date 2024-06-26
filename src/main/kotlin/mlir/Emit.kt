@@ -282,7 +282,9 @@ fun IrBlock.emitMLIR(): List<String> {
                             *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
                         )
 
-                        subview(body, instr.outs[0], temp, listOf())
+                        val temp2 = newVar().copy(type = type.copyVarShape().copyType())
+                        subview(body, temp2, temp, listOf())
+                        body += "${instr.outs[0].asMLIR()} = memref.cast ${temp2.asMLIR()} : ${temp2.type.toMLIR()} to ${type.toMLIR()}"
                     }
 
                     Prim.Comp.ARR_STORE -> {
@@ -399,7 +401,7 @@ fun IrBlock.emitMLIR(): List<String> {
                         )
 
                         instr.outs.forEach {
-                            body += Inst.undef(it.asMLIR(), it.type.toMLIR())
+                            body += "${it.asMLIR()} = ub.poison : ${it.type.toMLIR()}"
                         }
                     }
 
@@ -433,6 +435,20 @@ fun IrBlock.emitMLIR(): List<String> {
                             args,
                             fillArg
                         )
+                    }
+
+                    Prim.RESHAPE -> {
+                        // TODO: uiua reshape vs compiler reshape:  uiua reshape lowers to clone and then compieler reshape
+
+                        val sha = argArr(instr.args[0])
+                            .map { castIfNec(body, it, Types.size) }
+
+                        val arr = instr.args[1]
+                        val arrTy = arr.type as ArrayType
+
+                        val out = instr.outs[0]
+
+                        body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[][${sha.joinToString()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
                     }
 
                     else -> error("primitive ${instr.instr.id} not implemented")

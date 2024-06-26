@@ -335,7 +335,7 @@ data class IrInstr(
 
                     val inps = args.drop(1).map {
                         if (it.type !is ArrayType || it.type.length == 1) it.type
-                        else it.type.of
+                        else it.type.of.makeVaOffIfArray()
                     }
 
                     val new = fnblock.expandFor(inps, putFn, fillType)
@@ -401,6 +401,34 @@ data class IrInstr(
                     outs.zip(fnExpBlock.rets).forEach { (out, ret) ->
                         updateType(out, Types.array(Types.array(ret.type)))
                     }
+                }
+
+                Prim.RESHAPE -> {
+                    val sha = args[0]
+                    val shaTy = sha.type as ArrayType
+                    val arr = args[1]
+                    val arrTy = arr.type as ArrayType
+
+                    require(shaTy.length != null) {
+                        "length of shape has to be known at comptime!"
+                    }
+
+                    val resTy = List(shaTy.length) { -1 }.shapeToType(arrTy.inner)
+
+                    updateType(outs[0], resTy)
+                }
+
+                Prim.UN_SHAPE -> {
+                    val sha = args[0]
+                    val shaTy = sha.type as ArrayType
+
+                    require(shaTy.length != null) {
+                        "length of shape has to be known at comptime!"
+                    }
+
+                    val resTy = List(shaTy.length) { -1 }.shapeToType(Types.int)
+
+                    updateType(outs[0], resTy)
                 }
             }
         }
