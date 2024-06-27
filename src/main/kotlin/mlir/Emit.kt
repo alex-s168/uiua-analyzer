@@ -4,8 +4,6 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
-import me.alex_s168.uiua.ir.transform.constants
-import kotlin.math.max
 
 fun IrVar.asMLIR(): MLIRVar =
     "%${id}"
@@ -152,8 +150,9 @@ fun IrBlock.emitMLIR(): List<String> {
                 Types.double -> "${dest.asMLIR()} = arith.cmpf $s, $a, $b : f64"
                 Types.int -> "${dest.asMLIR()} = arith.cmpi $s, $a, $b : i64"
                 Types.byte -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : i8"
+                Types.bool -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : i1"
                 Types.size -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : index"
-                else -> error("")
+                else -> error("cmp not implemented for $outTy")
             }
         }
     }
@@ -168,6 +167,7 @@ fun IrBlock.emitMLIR(): List<String> {
                         Types.int,
                         Types.byte,
                         Types.size,
+                        Types.bool,
                         is PtrType -> value.toULong().toString()
 
                         else -> value.toString()
@@ -253,11 +253,11 @@ fun IrBlock.emitMLIR(): List<String> {
                                     fillArg
                                 )
 
-                                inner += "scf.yield ${dests.joinToString { it.asMLIR() }} : ${dests.joinToString { it.type.toMLIR() }}"
+                                inner += "scf.yield ${dests.joinToString { it.asMLIR() }} ${if (instr.outs.isEmpty()) "" else ":"} ${dests.joinToString { it.type.toMLIR() }}"
 
                                 "$cond{\n  ${inner.joinToString("\n  ")}\n}"
                             }
-                        body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} -> ${instr.outs.joinToString { it.type.toMLIR() }}\n${
+                        body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} ${if (instr.outs.isEmpty()) "" else "->"} ${instr.outs.joinToString { it.type.toMLIR() }}\n${
                             cases.joinToString(
                                 "\n"
                             )
@@ -385,8 +385,6 @@ fun IrBlock.emitMLIR(): List<String> {
                     }
 
                     Prim.Comp.PANIC -> {
-                        val rtPanic = Types.func(listOf(Types.int, Types.int), listOf())
-
                         val idBlock = newVar().asMLIR()
                         body += Inst.constant(idBlock, "i64", uid.toString())
 
@@ -395,8 +393,8 @@ fun IrBlock.emitMLIR(): List<String> {
 
                         body += Inst.funcCall(
                             dests = listOf(),
-                            "_\$_rt_panic",
-                            rtPanic.toMLIR(),
+                            UARuntime.panic.name,
+                            UARuntime.panic.type.toMLIR(),
                             idBlock, idInst
                         )
 

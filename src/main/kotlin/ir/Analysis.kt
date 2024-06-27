@@ -131,6 +131,11 @@ class Analysis(val block: IrBlock) {
             Prim.RESHAPE to 0,
         )
 
+        val boundChecked = mapOf( // second pair: array idx, idx idx
+            Prim.Comp.ARR_LOAD to (0 to 1),
+            Prim.Comp.ARR_STORE to (0 to 1),
+        )
+
         val pervasive = arrayOf(
             Prim.ADD,
             Prim.SUB,

@@ -130,7 +130,7 @@ data class FnType(
 
 class AutoByteType: Type("autobyte", listOf()) {
     override fun equals(other: Any?) =
-        other == Types.byte
+        other == Types.byte || other == Types.autobyte
 }
 
 fun Type.makeVaOffIfArray() =

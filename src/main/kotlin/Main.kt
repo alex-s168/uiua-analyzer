@@ -65,7 +65,7 @@ fun main() {
         lowerOver.generic(),
         lowerFlip.generic(),
         inlineCUse.generic(),
-        // remUnused.generic(),
+        remUnused.generic(),
         lowerPervasive.generic(),
         lowerUnShape.generic(),
         lowerEach.generic(),
@@ -88,13 +88,14 @@ fun main() {
         lowerClone.generic(),
         lowerShape.generic(),
         lowerLen.generic(),
+        boundsChecking.generic(),
         evalDim.generic(),
-        // remUnused.generic(), // before materialize!
-        // remArrMat.generic(),
+        remUnused.generic(), // before materialize!
+        remArrMat.generic(),
         lowerMaterialize.generic(),
         fixArgArrays.generic(),
         inlineCUse.generic(),
-        // remUnused.generic(),
+        remUnused.generic(),
     ))
 
     val compile = File(".out.uac").printWriter().use { file ->
@@ -135,6 +136,9 @@ fun main() {
     val mlirTranslate = "/home/alex/llvm-project/build/bin/mlir-translate"
     val clang = "clang"
     val llvmLower = false
+
+    // stolen from somewhere:
+    // --tensor-bufferize --linalg-bufferize --arith-bufferize --func-bufferize --normalize-memrefs --memref-expand --convert-scf-to-cf --convert-linalg-to-affine-loops --convert-linalg-to-std --lower-affine --arith-expand --convert-arith-to-llvm  --one-shot-bufferize="bufferize-function-boundaries" --finalizing-bufferize --buffer-deallocation-pipeline --fold-memref-alias-ops --finalize-memref-to-llvm --convert-cf-to-llvm --convert-to-llvm --canonicalize --llvm-legalize-for-export --reconcile-unrealized-casts
 
     // TODO: add --ownership-based-buffer-deallocation back (after --one-shot-bufferize)
     val llvmLowerStr = if (llvmLower) " convert-to-llvm," else ""
