@@ -1,11 +1,7 @@
 package me.alex_s168.uiua.ir
 
 import blitz.collections.contents
-import me.alex_s168.uiua.FnType
-import me.alex_s168.uiua.PushFnRefInstr
-import me.alex_s168.uiua.Type
-import me.alex_s168.uiua.Types
-import kotlin.math.max
+import me.alex_s168.uiua.*
 
 private var nextBlockId = 0
 private var nextGVarId: ULong = 0u
@@ -23,8 +19,7 @@ data class IrBlock(
     val uid = nextBlockId ++
 
     fun shouldInline(): Boolean =
-        false
-        // instrs.size < 40 // should be called on expanded blocks
+        inlineConfig(this)
 
     fun newVar(): IrVar =
         IrVar(Types.tbd, nextGVarId ++)
@@ -48,6 +43,9 @@ data class IrBlock(
             ref[a.fn]?.let { a.fn to it }
         }
     }
+
+    fun terminating(): Boolean =
+        instrs.any { it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.PANIC }
 
     fun varUsed(variable: IrVar): Boolean =
         if (variable in rets) true

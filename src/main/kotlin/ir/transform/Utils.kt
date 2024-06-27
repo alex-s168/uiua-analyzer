@@ -75,6 +75,7 @@ fun oneDimLoad(arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (IrInstr) -> Un
     return variable
 }
 
+// TODO: make primitive!
 fun oneDimFillLoad(
     dest: IrVar,
     fill: IrVar?,

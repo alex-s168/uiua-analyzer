@@ -4,9 +4,12 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import me.alex_s168.uiua.mlir.Inst.pDests
 
 fun IrVar.asMLIR(): MLIRVar =
     "%${id}"
+
+private val knowFns = mutableMapOf<IrVar, IrBlock>()
 
 fun IrBlock.emitMLIR(): List<String> {
     val body = mutableListOf<String>()
@@ -86,7 +89,7 @@ fun IrBlock.emitMLIR(): List<String> {
     }
 
     fun callWithOptFill(dests: List<IrVar>, fn: IrVar, args: List<IrVar>, fill: IrVar? = null): List<String> {
-        funDeclFor(fn)?.let { (_, block) ->
+        (funDeclFor(fn)?.second ?: knowFns[fn])?.let { block ->
             return callWithOptFill(dests, block, args, fill)
         }
 
@@ -180,6 +183,7 @@ fun IrBlock.emitMLIR(): List<String> {
                 }
 
                 is PushFnRefInstr -> {
+                    knowFns[instr.outs[0]] = ref[instr.instr.fn]!!
                     val fn = instr.instr.fn.legalizeMLIR()
                     body += Inst.funcConstant(
                         dest = instr.outs[0].asMLIR(),
@@ -233,35 +237,123 @@ fun IrBlock.emitMLIR(): List<String> {
                     }
 
                     Prim.SWITCH -> {
-                        val conds = argArr(instr.args[0]).map {
+                        val conds = argArr(instr.args[0]).mapTo(mutableListOf()) {
                             (instrDeclFor(it)!!.instr as NumImmInstr).value.toULong()
                         }
-                        val targets = argArr(instr.args[1])
+                        val targets = argArr(instr.args[1]).toMutableList()
                         val on = castIfNec(body, instr.args[2], Types.size)
                         val args = instr.args.drop(3)
 
-                        val cases = (conds.dropLast(1).map { "case $it " } + conds.last().let { "default " })
-                            .zip(targets)
-                            .map { (cond, target) ->
-                                val inner = mutableListOf<String>()
-                                val dests = instr.outs.map { newVar().copy(type = it.type) }
+                        val terminating = conds.zip(targets).filter { (_, it) ->
+                            funDeclFor(it)?.second?.terminating() == true
+                        }
 
-                                inner += callWithOptFill(
-                                    dests,
-                                    target,
+                        // we do this for now because terminating
+                        terminating.forEach { (c, t) ->
+                            conds.remove(c)
+                            targets.remove(t)
+
+                            val const = newVar().copy(type = Types.size)
+                            body += "${const.asMLIR()} = arith.constant $c : index"
+
+                            val cond = newVar().copy(type = Types.bool)
+                            val inst = IrInstr(
+                                mutableListOf(cond),
+                                PrimitiveInstr(""),
+                                mutableListOf(const, on)
+                            )
+                            cmp(inst, "eq", "eq")
+
+                            val inner = mutableListOf<String>()
+                            val dests = instr.outs.map { newVar().copy(type = it.type) }
+
+                            inner += callWithOptFill(
+                                dests,
+                                t,
+                                args,
+                                fillArg
+                            )
+
+                            body += "scf.if ${cond.asMLIR()} {\n  ${inner.joinToString("\n  ")}\n}"
+                        }
+
+                        when (conds.size) {
+                            0 -> {}
+                            1 -> {
+                                body += callWithOptFill(
+                                    instr.outs,
+                                    targets[0],
+                                    args,
+                                    fillArg
+                                )
+                            }
+                            2 -> {
+                                val const = newVar().copy(type = Types.size)
+                                body += "${const.asMLIR()} = arith.constant ${conds[0]} : index"
+
+                                val cond = newVar().copy(type = Types.bool)
+                                val inst = IrInstr(
+                                    mutableListOf(cond),
+                                    PrimitiveInstr(""),
+                                    mutableListOf(const, on)
+                                )
+                                cmp(inst, "eq", "eq")
+
+                                fun gyield(dsts: List<IrVar>) =
+                                    if (dsts.isEmpty()) "scf.yield"
+                                    else "scf.yield ${dsts.map { it.asMLIR() }.joinToString()} : ${dsts.map { it.type.toMLIR() }.joinToString()}"
+
+                                val then = mutableListOf<String>()
+                                val thenDests = instr.outs.map { newVar().copy(type = it.type) }
+
+                                then += callWithOptFill(
+                                    thenDests,
+                                    targets[0],
                                     args,
                                     fillArg
                                 )
 
-                                inner += "scf.yield ${dests.joinToString { it.asMLIR() }} ${if (instr.outs.isEmpty()) "" else ":"} ${dests.joinToString { it.type.toMLIR() }}"
+                                then += gyield(thenDests)
 
-                                "$cond{\n  ${inner.joinToString("\n  ")}\n}"
+                                val els = mutableListOf<String>()
+                                val elsDests = instr.outs.map { newVar().copy(type = it.type) }
+
+                                els += callWithOptFill(
+                                    elsDests,
+                                    targets[1],
+                                    args,
+                                    fillArg
+                                )
+
+                                els += gyield(elsDests)
+
+                                body += "${pDests(instr.outs.map { it.asMLIR() })}scf.if ${cond.asMLIR()} -> (${instr.outs.map { it.type.toMLIR() }.joinToString()}) {\n  ${then.joinToString("\n  ")}\n} else {\n  ${els.joinToString("\n  ")}\n}"
                             }
-                        body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} ${if (instr.outs.isEmpty()) "" else "->"} ${instr.outs.joinToString { it.type.toMLIR() }}\n${
-                            cases.joinToString(
-                                "\n"
-                            )
-                        }"
+                            else -> {
+                                val cases = (conds.dropLast(1).map { "case $it " } + conds.last().let { "default " })
+                                    .zip(targets)
+                                    .map { (cond, target) ->
+                                        val inner = mutableListOf<String>()
+                                        val dests = instr.outs.map { newVar().copy(type = it.type) }
+
+                                        inner += callWithOptFill(
+                                            dests,
+                                            target,
+                                            args,
+                                            fillArg
+                                        )
+
+                                        inner += "scf.yield ${dests.joinToString { it.asMLIR() }} ${if (instr.outs.isEmpty()) "" else ":"} ${dests.joinToString { it.type.toMLIR() }}"
+
+                                        "$cond{\n  ${inner.joinToString("\n  ")}\n}"
+                                    }
+                                body += "${Inst.pDests(instr.outs.map { it.asMLIR() })}scf.index_switch ${on.asMLIR()} ${if (instr.outs.isEmpty()) "" else "->"} ${instr.outs.joinToString { it.type.toMLIR() }}\n${
+                                    cases.joinToString(
+                                        "\n"
+                                    )
+                                }"
+                            }
+                        }
                     }
 
                     Prim.Comp.ARG_ARR -> {} // ignore
@@ -364,10 +456,14 @@ fun IrBlock.emitMLIR(): List<String> {
                             fillArg
                         )
 
-                        body += Inst.affineFor(
+                        val one = newVar().copy(type = Types.size).asMLIR()
+                        body += "$one = arith.constant 1 : index"
+
+                        body += Inst.scfFor(
                             counter.asMLIR(),
                             start,
                             ends,
+                            one,
                             inner
                         )
                     }

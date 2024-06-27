@@ -20,6 +20,9 @@ class Analysis(val block: IrBlock) {
             }
         }
 
+    fun terminating() =
+        block.terminating()
+
     fun isCalling(instr: IrInstr, idx: Int) =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {

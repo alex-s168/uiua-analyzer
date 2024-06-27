@@ -104,6 +104,9 @@ object Inst {
     fun affineFor(counter: MLIRVar, start: String, end: String, ops: List<String>) =
         "affine.for $counter = $start to $end {\n  ${ops.joinToString("\n  ")}\n}"
 
+    fun scfFor(counter: MLIRVar, start: MLIRVar, end: MLIRVar, step: MLIRVar, ops: List<String>) =
+        "scf.forall ($counter) = ($start) to ($end) step ($step) {\n  ${ops.joinToString("\n  ")}\n}"
+
     fun constant(dest: MLIRVar, type: MLIRType, value: String) =
         "$dest = arith.constant $value : $type"
 

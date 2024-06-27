@@ -4,41 +4,35 @@
 #include <stddef.h>
 
 typedef struct {
-    void*    allocationPtr;
-    int64_t* alignedPtr;
-    size_t   elemsOff;
-    size_t   sizes;
-    size_t   strides;
-} I64Arr;
+    void *alloc;
+    int64_t *aligned;
+    size_t elemsOff;
+    size_t sizes[2];
+    size_t strides[2];
+} I64A2;
 
-#define EXPAND(arr) arr.allocationPtr,arr.alignedPtr,arr.elemsOff,arr.sizes,arr.strides
-
-extern double fn_$__arr_start_int_end__maybe_(void*,int64_t*,size_t,size_t,size_t);
-
-extern void _$_rt_panic(uint64_t block, uint64_t inst) {
-    printf("panic at %lu : %lu\n", block, inst);
-    exit(1);
-}
+extern I64A2 fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(void*,int64_t*,size_t,size_t,size_t,size_t,size_t);
 
 int main() {
-    I64Arr arr;
-    arr.sizes = 4;
-    arr.strides = 1;
-    arr.elemsOff = 0;
-    arr.allocationPtr = aligned_alloc(64, sizeof(int64_t) * arr.sizes);
-    arr.alignedPtr = arr.allocationPtr;
+    I64A2 a;
+    a.alloc = malloc(sizeof(int64_t) * 3 * 3);
+    a.aligned = a.alloc;
+    a.elemsOff = 0;
 
-    arr.alignedPtr[0] = 85;
-    arr.alignedPtr[1] = 105;
-    arr.alignedPtr[2] = 117;
-    arr.alignedPtr[3] = 97;
+    a.sizes[0] = 3;
+    a.sizes[1] = 3;
+    a.strides[0] = 1;
+    a.strides[1] = 1;
 
-    double sum;
-    for (size_t i = 0; i < 100000000; i ++) {
-        sum = fn_$__arr_start_int_end__maybe_(EXPAND(arr));
+    I64A2 res = fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(a.alloc,a.aligned,a.elemsOff,a.sizes[0],a.sizes[1],a.strides[0],a.strides[1]);
+    int64_t *elems = res.aligned + res.elemsOff;
+    for (size_t i = 0; i < res.sizes[0]; i ++) {
+        for (size_t j = 0; j < res.sizes[1]; j ++) {
+            int64_t elem = elems[i * res.sizes[1] + j];
+            printf("%lld ", elem);
+        }
+        printf("\n");
     }
-
-    printf("%f\n", sum);
 
     return 0;
 }
