@@ -21,8 +21,12 @@ int main() {
 
     a.sizes[0] = 3;
     a.sizes[1] = 3;
-    a.strides[0] = 1;
+    a.strides[0] = 3;
     a.strides[1] = 1;
+
+    a.aligned[3* 0+0] = 1;
+    a.aligned[3* 1+1] = 2;
+    a.aligned[3* 2+2] = 3;
 
     I64A2 res = fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(a.alloc,a.aligned,a.elemsOff,a.sizes[0],a.sizes[1],a.strides[0],a.strides[1]);
     int64_t *elems = res.aligned + res.elemsOff;

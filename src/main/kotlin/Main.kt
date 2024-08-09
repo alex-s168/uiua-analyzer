@@ -154,7 +154,7 @@ fun main() {
     val mlirOpt = "/home/alex/llvm-project/build/bin/mlir-opt"
     val mlirTranslate = "/home/alex/llvm-project/build/bin/mlir-translate"
     val clang = "clang"
-    val llvmLower = false
+    val llvmLower = true
 
     // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, canonicalize, loop-invariant-code-motion, control-flow-sink, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
     // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-parallel, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, convert-to-llvm, canonicalize, reconcile-unrealized-casts)"
@@ -182,7 +182,7 @@ fun main() {
 
     Unit.run(listOf(mlirOpt, "-o", optMlir, inMlir) + mlirOptFlags)
         ?.run(listOf(mlirTranslate, "-o", outLlc, optMlir) + mlirTranslateFlags)
-        ?.run(listOf(clang, "-c", "-O3", "-o", outObj) + clangFlags + outLlc)
+        ?.run(listOf(clang, "-c", "-O3", "-march=native", "-o", outObj) + clangFlags + outLlc)
         ?.let { println("Generated .out.o") }
         ?: run {
             println("Could not compile to object file!")
