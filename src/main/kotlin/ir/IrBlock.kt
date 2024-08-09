@@ -6,6 +6,18 @@ import me.alex_s168.uiua.*
 private var nextBlockId = 0
 private var nextGVarId: ULong = 0u
 
+enum class Lifetime {
+    LOCAL,
+    GLOBAL, // if the value gets stored in something that leaves the scope
+    ;
+
+    override fun toString(): String =
+        when (this) {
+            LOCAL -> "local"
+            GLOBAL -> "global"
+        }
+}
+
 data class IrBlock(
     val name: String,
     val ref: Map<String, IrBlock>,
@@ -17,6 +29,8 @@ data class IrBlock(
     var private: Boolean = true,
 ) {
     val uid = nextBlockId ++
+
+    val lifetimes = mutableMapOf<IrVar, Lifetime>()
 
     fun shouldInline(): Boolean =
         inlineConfig(this)
@@ -142,6 +156,10 @@ data class IrBlock(
         args.forEachIndexed { index, irVar ->
             if (index > 0)
                 res.append(", ")
+            lifetimes[irVar]?.let {
+                res.append(it)
+                res.append(" ")
+            }
             res.append(irVar)
         }
         res.append(")\n")

@@ -92,7 +92,7 @@ data class Function(
 abstract class Instr
 
 data class PrimitiveInstr(
-    val id: String,
+    var id: String,
     val loc: SpanRef? = null
 ): Instr() {
     override fun toString(): String =

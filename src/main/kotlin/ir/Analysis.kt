@@ -7,6 +7,9 @@ class Analysis(val block: IrBlock) {
     val removed = mutableListOf<IrInstr>()
     val added = mutableListOf<IrInstr>()
 
+    fun variables() =
+        block.instrs.flatMap { it.outs } + block.args
+
     fun origin(v: IrVar): IrInstr? =
         block.instrDeclFor(v)
 
@@ -79,6 +82,14 @@ class Analysis(val block: IrBlock) {
         block.rets
             .filter { it.id == v.id }
             .map { null }
+
+    fun usagesAfter(v: IrVar, inst: IrInstr) =
+        block.instrs.indexOf(inst).let { instIdx ->
+            usages(v)
+                .map(block.instrs::indexOf)
+                .filter { it > instIdx }
+                .map(block.instrs::get)
+        }
 
     fun unused(v: IrVar) =
         usages(v).isEmpty()

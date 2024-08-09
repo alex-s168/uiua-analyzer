@@ -57,18 +57,6 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
         }
     }
 
-    // !!! to allocate the array, we first have to run the function once to get the dimension of the inner arrays
-
-    //   execute iter 0
-    //   allocate array
-    //   copy result from iter 0 into array
-    //   free result from iter 0
-    //   repeat for remaining iters:
-    //     execute iter i
-    //     copy result from iter i into array
-    //     free result from iter i
-    //   ^ array
-
     val empty = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
         fillArg?.let { fillArg = newVar().copy(type = it.type) }
 
@@ -96,6 +84,18 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
     }
 
     val full = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
+        // !!! to allocate the array, we first have to run the function once to get the dimension of the inner arrays
+
+        //   execute iter 0
+        //   allocate array
+        //   copy result from iter 0 into array
+        //   free result from iter 0
+        //   repeat for remaining iters:
+        //     execute iter i
+        //     copy result from iter i into array
+        //     free result from iter i
+        //   ^ array
+
         fillArg?.let { fillArg = newVar().copy(type = it.type) }
 
         val fn = newVar().copy(type = fn.type).also { args += it }

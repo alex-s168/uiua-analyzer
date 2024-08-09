@@ -160,6 +160,33 @@ fun IrBlock.emitMLIR(): List<String> {
         }
     }
 
+    fun memRefCopy(dest: IrVar, src: IrVar) {
+        if ((src.type as ArrayType).shape.size == 1) {
+            val count = newVar().copy(type = Types.size).asMLIR()
+            val zero = newVar().copy(type = Types.size).asMLIR()
+            body += Inst.constant(zero, Types.size.toMLIR(), "0")
+            val one = newVar().copy(type = Types.size).asMLIR()
+            body += Inst.constant(one, Types.size.toMLIR(), "1")
+            body += Inst.memRefDim(count, src.type.toMLIR(), src.asMLIR(), zero)
+            val idx = newVar().copy(type = Types.size).asMLIR()
+
+            val inner = mutableListOf<String>()
+
+            val value = newVar().copy(type = src.type.of)
+            inner += Inst.memRefLoad(value.asMLIR(), src.type.toMLIR(), src.asMLIR(), idx)
+            inner += Inst.memRefStore(src.type.toMLIR(), value.asMLIR(), dest.asMLIR(), idx)
+
+            Inst.scfFor(idx, zero, count, one, inner)
+        } else {
+            body += Inst.memRefCopy(
+                src.asMLIR(),
+                src.type.toMLIR(),
+                dest.asMLIR(),
+                dest.type.toMLIR()
+            )
+        }
+    }
+
     instrs.forEachIndexed { idx, instr ->
         runCatching {
             when (instr.instr) {
@@ -358,7 +385,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                     Prim.Comp.ARG_ARR -> {} // ignore
 
-                    Prim.Comp.ARR_MATERIALIZE -> TODO()
+                    Prim.Comp.ARR_MATERIALIZE -> TODO("in higher level impl arr materialize using alloc and rep store")
 
                     Prim.Comp.ARR_ALLOC -> {
                         val type = instr.outs[0].type as ArrayType
@@ -387,12 +414,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                         if (value.type is ArrayType) {
                             val view = subview(body, arr, indecies)
-                            body += Inst.memRefCopy(
-                                value.asMLIR(),
-                                value.type.toMLIR(),
-                                view.asMLIR(),
-                                view.type.toMLIR()
-                            )
+                            memRefCopy(view, value)
                         } else {
                             body += Inst.memRefStore(
                                 arr.type.toMLIR(),
@@ -404,12 +426,7 @@ fun IrBlock.emitMLIR(): List<String> {
                     }
 
                     Prim.Comp.ARR_COPY -> {
-                        body += Inst.memRefCopy(
-                            instr.args[1].asMLIR(),
-                            instr.args[1].type.toMLIR(),
-                            instr.args[0].asMLIR(),
-                            instr.args[0].type.toMLIR()
-                        )
+                        memRefCopy(instr.args[0], instr.args[1])
                     }
 
                     Prim.Comp.ARR_LOAD -> {

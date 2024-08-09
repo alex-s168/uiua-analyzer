@@ -48,6 +48,20 @@ fun <T> List<Pass<T>>.merge(name: String) =
         }
     }
 
+fun <A> analysisPass(name: String, run: (IrBlock, Analysis, A) -> Unit) =
+    Pass<A>(name) { it, arg ->
+        val a = Analysis(it)
+        run(it, a, arg)
+        a.finish(name)
+    }
+
+fun analysisPass(name: String, run: (IrBlock, Analysis) -> Unit) =
+    Pass<Unit>(name) { it, _ ->
+        val a = Analysis(it)
+        run(it, a)
+        a.finish(name)
+    }
+
 fun lowerPrimPass(
     primitive: String,
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
