@@ -65,7 +65,7 @@ data class IrBlock(
         if (variable in rets) true
         else instrs.any { variable in it.args }
 
-    fun inlinableCopy(cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null): IrBlock {
+    fun inlinableCopy(cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null, updateVar: (IrBlock, IrVar, IrVar) -> Unit = IrBlock::updateVar): IrBlock {
         val new = IrBlock(
             name,
             ref,
@@ -79,7 +79,7 @@ data class IrBlock(
             val n = (if (it in rets)
                 cRets.getOrNull(rets.indexOf(it))
             else null) ?: new.newVar().copy(type = it.type)
-            new.updateVar(it, n)
+            updateVar(new, it, n)
         }
 
         new.fillArg?.let { new.instrs.forEach { it.args.updateVar(new.fillArg!!, fill!!) } }
@@ -88,7 +88,7 @@ data class IrBlock(
 
         args.zip(cArgs).forEach { (a, b) ->
             require(a.type == b.type)
-            new.updateVar(a, b)
+            updateVar(new, a, b)
         }
 
         return new

@@ -135,7 +135,7 @@ data class PushFnInstr(
 }
 
 data class PushFnRefInstr(
-    val fn: String
+    var fn: String
 ): ImmInstr()
 
 data class CopyTempStackInstr(

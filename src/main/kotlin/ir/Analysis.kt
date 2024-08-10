@@ -17,9 +17,9 @@ class Analysis(val block: IrBlock) {
         block.funDeclFor(v)?.second
 
     fun callers() =
-        block.ref.values.filter { v ->
+        this.block.ref.values.filter { v ->
             v.instrs.any {
-                it.instr is PushFnRefInstr && it.instr.fn == block.name
+                it.instr is PushFnRefInstr && it.instr.fn == this.block.name
             }
         }
 
@@ -46,7 +46,7 @@ class Analysis(val block: IrBlock) {
         callers().forEach { block ->
             val ba = Analysis(block)
             block.instrs
-                .filter { it.instr is PushFnRefInstr && it.instr.fn == block.name }
+                .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
                 .forEach { inst ->
                     val ref = inst.outs[0]
                     ba.trace(ref) { a, b, v ->
@@ -79,9 +79,13 @@ class Analysis(val block: IrBlock) {
     fun usages(v: IrVar) =
         block.instrs
             .filter { it.args.any { it.id == v.id } } +
-        block.rets
-            .filter { it.id == v.id }
-            .map { null }
+                block.rets
+                    .filter { it.id == v.id }
+                    .map { null }
+
+    fun recUsages(v: IrVar): List<IrInstr> =
+        usages(v).filterNotNull()
+            .flatMap { it.outs.flatMap(::recUsages) + it }
 
     fun usagesAfter(v: IrVar, inst: IrInstr) =
         block.instrs.indexOf(inst).let { instIdx ->
@@ -122,7 +126,9 @@ class Analysis(val block: IrBlock) {
     }
 
     fun finish(dbgName: String) {
-        println("pass $dbgName finished:")
+        if (removed.isNotEmpty() || added.isNotEmpty()) {
+            println("pass $dbgName finished:")
+        }
         if (removed.isNotEmpty()) {
             println("  removed:")
             removed.forEach {
@@ -135,6 +141,103 @@ class Analysis(val block: IrBlock) {
                 println("    $it")
             }
         }
+    }
+
+    fun isPure(instr: IrInstr): Boolean =
+        when (instr.instr) {
+            is PrimitiveInstr -> when (instr.instr.id) {
+                Prim.Comp.USE,
+                Prim.Comp.ARR_MATERIALIZE,
+                Prim.Comp.DIM,
+                Prim.ADD,
+                Prim.SUB,
+                Prim.MUL,
+                Prim.DIV,
+                Prim.POW,
+                Prim.MAX,
+                Prim.LT,
+                Prim.EQ,
+                Prim.PRIMES,
+                Prim.RANGE -> true
+                else -> false
+            }
+            else -> true
+        }
+
+    fun idxRange(instrs: List<IrInstr>): IntRange? {
+        val idx = instrs.map(block.instrs::indexOf)
+        if (idx.isEmpty()) return null
+        return idx.min() .. idx.max()
+    }
+
+    fun canMove(instrs: List<IrInstr>): Boolean {
+        val range = idxRange(instrs)
+            ?: return true
+
+        val inRange = block.instrs.withIndex()
+            .filterTo(mutableListOf()) { it.index in range }
+
+        inRange.removeIf { isPure(it.value) }
+        inRange.removeIf { it.value in instrs }
+        return inRange.isEmpty()
+    }
+
+    fun fnRefs() =
+        callers().flatMap { blk ->
+            blk.instrs
+                .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
+                .map { blk to it }
+        }
+
+    fun updateFnType() {
+        fnRefs().forEach { (blk, instr) ->
+            val old = instr.outs[0]
+            val new = old.copy(type = this.block.type())
+            blk.updateVar(old, new)
+        }
+    }
+
+    fun allRelatedInstrs(variable: IrVar, after: IrInstr, dest: MutableList<IrInstr?> = mutableListOf()): MutableList<IrInstr?> {
+        val afterIdx = this.block.instrs.indexOf(after)
+
+        val li = recUsages(variable)
+            .toMutableList()
+        this.block.instrDeclFor(variable)
+            ?.let {
+                if (this.block.instrs.indexOf(it) > afterIdx) {
+                    li += it
+                }
+            }
+        li.removeIf { it in dest }
+        li.removeIf { this.block.instrs.indexOf(it) <= afterIdx }
+        dest.addAll(li)
+        li.flatMap { it.args }.map {
+            allRelatedInstrs(it, after, dest)
+        }
+        li.flatMap { it.outs }.map {
+            allRelatedInstrs(it, after, dest)
+        }
+        return dest
+    }
+
+    fun dependentCodeBlockAsMovable(variable: IrVar, after: IrInstr): List<IrInstr> {
+        if (variable in block.rets) return listOf()
+
+        val block = allRelatedInstrs(variable, after)
+        if (null in block) return listOf()
+        val blocknn = block.filterNotNull()
+
+        if (!canMove(blocknn)) return listOf()
+
+        return blocknn.sortedBy { this.block.instrs.indexOf(it) }
+    }
+
+    fun allDependencies(block: List<IrInstr>): List<IrVar> {
+        val all = block.flatMap(IrInstr::args)
+            .distinct()
+            .toMutableList()
+        all.removeIf { dep -> block.any { dep in it.outs } }
+        return all
     }
 
     companion object {

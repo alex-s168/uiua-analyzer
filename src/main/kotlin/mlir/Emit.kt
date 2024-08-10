@@ -66,9 +66,10 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
         if (fn.shouldInline()) {
-            val toInline = fn.inlinableCopy(args, dests, fill)
-            val c = toInline.emitMLIR()
-            return c
+            val toInline = fn.inlinableCopy(args, dests, fill) { blk, old, new ->
+                blk.updateVar(old, new)
+            }
+            return toInline.emitMLIR()
         }
 
         return listOf(if (fn.fillArg != null) {
@@ -162,6 +163,8 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun memRefCopy(dest: IrVar, src: IrVar) {
         if ((src.type as ArrayType).shape.size == 1) {
+            body += "// memRefCopy ${src.asMLIR()} to ${dest.asMLIR()}"
+
             val count = newVar().copy(type = Types.size).asMLIR()
             val zero = newVar().copy(type = Types.size).asMLIR()
             body += Inst.constant(zero, Types.size.toMLIR(), "0")
@@ -174,9 +177,9 @@ fun IrBlock.emitMLIR(): List<String> {
 
             val value = newVar().copy(type = src.type.of)
             inner += Inst.memRefLoad(value.asMLIR(), src.type.toMLIR(), src.asMLIR(), idx)
-            inner += Inst.memRefStore(src.type.toMLIR(), value.asMLIR(), dest.asMLIR(), idx)
+            inner += Inst.memRefStore(dest.type.toMLIR(), value.asMLIR(), dest.asMLIR(), idx)
 
-            Inst.scfFor(idx, zero, count, one, inner)
+            body += Inst.scfFor(idx, zero, count, one, inner)
         } else {
             body += Inst.memRefCopy(
                 src.asMLIR(),
@@ -414,6 +417,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                         if (value.type is ArrayType) {
                             val view = subview(body, arr, indecies)
+                                .let { it.copy(type = (it.type as ArrayType).copy(vaOff = true)) }
                             memRefCopy(view, value)
                         } else {
                             body += Inst.memRefStore(
