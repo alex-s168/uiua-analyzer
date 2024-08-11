@@ -65,6 +65,12 @@ open class ArrayType(
         curr
     }
 
+    fun mapShape(fn: (List<Int>) -> List<Int>) =
+        shape.let(fn).shapeToType(inner).copy(vaOff = vaOff)
+
+    fun mapShapeElems(fn: (Int) -> Int) =
+        mapShape { it.map(fn) }
+
     fun into(amount: Int): Type {
         var curr: Type = this
         repeat(amount) {

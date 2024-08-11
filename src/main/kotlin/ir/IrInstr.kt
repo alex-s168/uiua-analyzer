@@ -28,7 +28,7 @@ newb!!
 data class IrInstr(
     val outs: MutableList<IrVar>,
     val instr: Instr,
-    val args: MutableList<IrVar>,
+    var args: MutableList<IrVar>,
 
     val ast: AstNode? = null
 ) {

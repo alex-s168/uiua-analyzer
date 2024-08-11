@@ -126,6 +126,13 @@ fun main() {
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         remComments.generic(),
+        argRem.generic(),
+        switchDependentCodeMovement.generic(),
+        switchIndependentTrailingCodeMovement.generic(),
+        remUnused.generic(),
+        emptyArrayOpsRemove.generic(),
+        dce.generic(),
+        remUnused.generic(),
     ))
 
     val compile = File(".out.uac").printWriter().use { file ->
@@ -136,6 +143,7 @@ fun main() {
                 passes(it, blocks::putBlock)
                 dse(expanded, blocks)
                 passes2(it, blocks::putBlock)
+                dse(expanded, blocks)
             }
 
             file.println(it)

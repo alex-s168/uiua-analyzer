@@ -28,6 +28,8 @@ object Prim {
         val REPEAT = prim("cREPEAT") // [start], [end], [fn which takes counter], [additional]...
         val DIM = prim("cDIM") // [arr], [dim]
 
+        val SINK = prim("cSINK") // [val]
+
         /** outputs can be anything as program won't continue after this */
         val PANIC = prim("cPANIC")
     }

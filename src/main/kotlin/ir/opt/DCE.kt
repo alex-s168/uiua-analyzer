@@ -16,6 +16,9 @@ val dce = Pass<Unit>("DCE") { block, _ ->
         block.instrs.removeAt(idx)
     }
 
+    val newOuts = block.rets.mapTo(mutableListOf()) { block.newVar().copy(type = it.type) }
+    block.rets = newOuts
+
     block.rets.forEach {
         block.instrs.add(IrInstr(
             mutableListOf(it),

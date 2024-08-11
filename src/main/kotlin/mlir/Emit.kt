@@ -66,9 +66,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
         if (fn.shouldInline()) {
-            val toInline = fn.inlinableCopy(args, dests, fill) { blk, old, new ->
-                blk.updateVar(old, new)
-            }
+            val toInline = fn.inlinableCopy(args, dests, fill)
             return toInline.emitMLIR()
         }
 
@@ -518,6 +516,10 @@ fun IrBlock.emitMLIR(): List<String> {
                         instr.outs.forEach {
                             body += "${it.asMLIR()} = ub.poison : ${it.type.toMLIR()}"
                         }
+                    }
+
+                    Prim.Comp.SINK -> {
+                        // do nothing
                     }
 
                     Prim.FILL -> {

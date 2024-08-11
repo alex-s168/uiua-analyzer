@@ -251,7 +251,8 @@ class Analysis(val block: IrBlock) {
 
         val block = allRelatedInstrs(variable, after)
         if (null in block) return listOf()
-        val blocknn = block.filterNotNull()
+        val blocknn = block.filterNotNullTo(mutableListOf())
+        blocknn.removeIf { this.isPrim(it, Prim.Comp.SINK) }
 
         if (!canMove(blocknn)) return listOf()
 

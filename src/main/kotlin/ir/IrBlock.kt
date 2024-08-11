@@ -65,13 +65,27 @@ data class IrBlock(
         if (variable in rets) true
         else instrs.any { variable in it.args }
 
+    fun deepCopy(): IrBlock {
+        val a = args.mapTo(mutableListOf()) { newVar().copy(type = it.type) }
+        val r = rets.mapTo(mutableListOf()) { newVar().copy(type = it.type) }
+        val d = inlinableCopy(
+            a.toList(),
+            r.toList(),
+            fillArg
+        )
+        d.args = a
+        d.rets = r
+        return d
+    }
+
     fun inlinableCopy(cArgs: List<IrVar>, cRets: List<IrVar>, fill: IrVar? = null, updateVar: (IrBlock, IrVar, IrVar) -> Unit = IrBlock::updateVar): IrBlock {
         val new = IrBlock(
-            name,
+            anonFnName(),
             ref,
             instrs.mapTo(mutableListOf()) { it.deepCopy() },
             flags.toMutableList(),
             fillArg = fillArg,
+            private = this.private
         )
 
         val olds = new.instrs.flatMap { it.outs }.toSet()
