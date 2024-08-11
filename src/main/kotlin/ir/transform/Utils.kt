@@ -90,69 +90,74 @@ fun oneDimFillLoad(
 
     val arrTy = arr.type as ArrayType
 
-    val err = IrBlock(anonFnName(), ref).apply {
-        fillArg = fill?.let { newVar().copy(type = it.type) }
+    if (fill == null && !unfilledLoadBoundsCheck) {
+        oneDimLoad(dest, arr, newVar, idx, put)
+    }
+    else {
+        val err = IrBlock(anonFnName(), ref).apply {
+            fillArg = fill?.let { newVar().copy(type = it.type) }
 
-        val arr = newVar().copy(type = arrTy).also { args += it }
-        val idx = newVar().copy(type = idx.type).also { args += it }
+            val arr = newVar().copy(type = arrTy).also { args += it }
+            val idx = newVar().copy(type = idx.type).also { args += it }
 
-        val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
+            val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
 
-        if (fillArg == null) {
-            instrs += IrInstr(
-                mutableListOf(value),
-                PrimitiveInstr(Prim.Comp.PANIC),
-                mutableListOf()
-            )
-        } else {
-            fillArg!!.into(value) { instrs += it }
+            if (fillArg == null) {
+                instrs += IrInstr(
+                    mutableListOf(value),
+                    PrimitiveInstr(Prim.Comp.PANIC),
+                    mutableListOf()
+                )
+            } else {
+                fillArg!!.into(value) { instrs += it }
+            }
+
+            putBlock(this)
         }
 
-        putBlock(this)
-    }
+        val ok = IrBlock(anonFnName(), ref).apply {
+            val arr = newVar().copy(type = arrTy).also { args += it }
+            val idx = newVar().copy(type = idx.type).also { args += it }
 
-    val ok = IrBlock(anonFnName(), ref).apply {
-        val arr = newVar().copy(type = arrTy).also { args += it }
-        val idx = newVar().copy(type = idx.type).also { args += it }
+            val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
 
-        val value = newVar().copy(type = arrTy.of.makeVaOffIfArray()).also { rets += it }
+            val idc = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
 
-        val idc = listOf(idx).wrapInArgArray(::newVar) { instrs += it }
+            instrs += IrInstr(
+                mutableListOf(value),
+                PrimitiveInstr(Prim.Comp.ARR_LOAD),
+                mutableListOf(arr, idc)
+            )
 
-        instrs += IrInstr(
-            mutableListOf(value),
-            PrimitiveInstr(Prim.Comp.ARR_LOAD),
-            mutableListOf(arr, idc)
+            putBlock(this)
+        }
+
+        val len = newVar().copy(type = Types.size)
+        put(IrInstr(
+            mutableListOf(len),
+            PrimitiveInstr(Prim.LEN),
+            mutableListOf(arr)
+        ))
+
+        val lt = newVar().copy(type = Types.byte)
+        put(IrInstr(
+            mutableListOf(lt),
+            PrimitiveInstr(Prim.LT),
+            mutableListOf(len, idx) // idx < len
+        ))
+
+        val (zero, one) = constants(newVar, 0.0, 1.0, type = Types.size, put = put)
+
+        switch(
+            listOf(dest),
+            newVar,
+            lt,
+            listOf(arr, idx),
+            zero to err,
+            one to ok,
+            put = put,
         )
-
-        putBlock(this)
     }
-
-    val len = newVar().copy(type = Types.size)
-    put(IrInstr(
-        mutableListOf(len),
-        PrimitiveInstr(Prim.LEN),
-        mutableListOf(arr)
-    ))
-
-    val lt = newVar().copy(type = Types.byte)
-    put(IrInstr(
-        mutableListOf(lt),
-        PrimitiveInstr(Prim.LT),
-        mutableListOf(len, idx) // idx < len
-    ))
-
-    val (zero, one) = constants(newVar, 0.0, 1.0, type = Types.size, put = put)
-
-    switch(
-        listOf(dest),
-        newVar,
-        lt,
-        listOf(arr, idx),
-        zero to err,
-        one to ok,
-        put = put,
-    )
 
     put(comment("--- one dim fill load"))
 }

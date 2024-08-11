@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.mlir
 
+import blitz.collections.contents
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
@@ -67,7 +68,9 @@ fun IrBlock.emitMLIR(): List<String> {
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
         if (fn.shouldInline()) {
             val toInline = fn.inlinableCopy(args, dests, fill)
-            return toInline.emitMLIR()
+            val res = mutableListOf("// Inlined ${fn.name} (${args.contents}) -> (${dests.contents})")
+            res.addAll(toInline.emitMLIR())
+            return res
         }
 
         return listOf(if (fn.fillArg != null) {
@@ -143,18 +146,18 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun cmp(instr: IrInstr, s: String, u: String) {
         val out = instr.outs[0]
-        val outTy = out.type
-        val a = castIfNec(body, instr.args[1], outTy).asMLIR()
-        val b = castIfNec(body, instr.args[0], outTy).asMLIR()
+        val cmpTy = instr.args[0].type // TODO: find common between both
+        val a = castIfNec(body, instr.args[1], cmpTy).asMLIR()
+        val b = castIfNec(body, instr.args[0], cmpTy).asMLIR()
 
         castLaterIfNec(body, out, Types.bool) { dest ->
-            body += when (outTy) {
+            body += when (cmpTy) {
                 Types.double -> "${dest.asMLIR()} = arith.cmpf $s, $a, $b : f64"
                 Types.int -> "${dest.asMLIR()} = arith.cmpi $s, $a, $b : i64"
                 Types.byte -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : i8"
                 Types.bool -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : i1"
                 Types.size -> "${dest.asMLIR()} = arith.cmpi $u, $a, $b : index"
-                else -> error("cmp not implemented for $outTy")
+                else -> error("cmp not implemented for $cmpTy")
             }
         }
     }
@@ -272,11 +275,10 @@ fun IrBlock.emitMLIR(): List<String> {
                         val on = castIfNec(body, instr.args[2], Types.size)
                         val args = instr.args.drop(3)
 
+                        /*
                         val terminating = conds.zip(targets).filter { (_, it) ->
                             funDeclFor(it)?.second?.terminating() == true
                         }
-
-                        // we do this for now because terminating
                         terminating.forEach { (c, t) ->
                             conds.remove(c)
                             targets.remove(t)
@@ -295,6 +297,7 @@ fun IrBlock.emitMLIR(): List<String> {
                             val inner = mutableListOf<String>()
                             val dests = instr.outs.map { newVar().copy(type = it.type) }
 
+                            inner += "// terminating call -> ${dests.contents}"
                             inner += callWithOptFill(
                                 dests,
                                 t,
@@ -304,7 +307,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                             body += "scf.if ${cond.asMLIR()} {\n  ${inner.joinToString("\n  ")}\n}"
                         }
-
+*/
                         when (conds.size) {
                             0 -> {}
                             1 -> {

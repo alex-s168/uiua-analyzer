@@ -71,5 +71,5 @@ object Prim {
     val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
     val UN_SHAPE = prim("UN_SHAPE")
 
-    const val FILL = "FILL"
+    val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

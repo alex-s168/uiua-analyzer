@@ -36,6 +36,7 @@ class Analysis(val block: IrBlock) {
                 Prim.EACH -> idx == 0
                 Prim.Comp.REPEAT -> idx == 2
                 Prim.SWITCH -> idx == 1
+                Prim.FILL -> idx == 1
                 else -> false
             }
             else -> false
@@ -78,6 +79,10 @@ class Analysis(val block: IrBlock) {
 
                 if (isPrim(instr, Prim.Comp.REPEAT)) {
                     return a.deepOrigin(instr.args[idx + 2]) // +3 -1  (-1 bc takes counter)
+                }
+
+                if (isPrim(instr, Prim.FILL)) {
+                    return a.deepOrigin(instr.args[idx + 3])
                 }
             }
         }

@@ -52,7 +52,7 @@ object Inline {
 }
 
 val inlineConfig = Inline.all
-
+val unfilledLoadBoundsCheck = false
 
 fun main() {
     val test = loadRes("test.uasm")!!
