@@ -48,7 +48,6 @@ val switchDependentCodeMovement = Pass<Unit>("Switch Dependent Code Movement") {
                 v
             } else null
         }
-        println("add outs : $additionalOuts")
 
         block.instrs.removeAll(move)
 
@@ -60,8 +59,6 @@ val switchDependentCodeMovement = Pass<Unit>("Switch Dependent Code Movement") {
         }
 
         dests.forEach { dest ->
-            println(dest)
-
             val newDeps = deps.map { dep ->
                 dest.newVar().copy(type = dep.type)
                     .also(dest.args::add)

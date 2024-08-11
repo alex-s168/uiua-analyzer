@@ -105,7 +105,7 @@ fun main() {
         lowerClone.generic(),
         lowerShape.generic(),
         lowerLen.generic(),
-        // boundsChecking.generic(),
+        // boundsChecking.generic(),  // TODO
         evalDim.generic(),
         remUnused.generic(), // before materialize!
         remArrMat.generic(),
@@ -114,9 +114,18 @@ fun main() {
         fixArgArrays.generic(),
         inlineCUse.generic(),
 
+        constantTrace.generic(),
+        funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         dce.generic(),
+    ))
+
+    val passes2 = passPipeline(listOf(
+        remUnused.generic(),
+        switchDependentCodeMovement.generic(),
+        remUnused.generic(),
+        remComments.generic(),
     ))
 
     val compile = File(".out.uac").printWriter().use { file ->
@@ -125,6 +134,8 @@ fun main() {
 
             val res = runCatching {
                 passes(it, blocks::putBlock)
+                dse(expanded, blocks)
+                passes2(it, blocks::putBlock)
             }
 
             file.println(it)

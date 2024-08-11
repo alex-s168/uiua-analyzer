@@ -59,6 +59,32 @@ class Analysis(val block: IrBlock) {
         return res
     }
 
+    fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? {
+        origin(v)?.let { return this.block to it }
+
+        if (v in block.args) {
+            val idx = block.args.indexOf(v)
+
+            callerInstrs().forEach { (block, instr) ->
+                val a = Analysis(block)
+
+                if (isPrim(instr, Prim.CALL)) {
+                    return a.deepOrigin(instr.args[idx + 1])
+                }
+
+                if (isPrim(instr, Prim.SWITCH)) {
+                    return a.deepOrigin(instr.args[idx + 3])
+                }
+
+                if (isPrim(instr, Prim.Comp.REPEAT)) {
+                    return a.deepOrigin(instr.args[idx + 2]) // +3 -1  (-1 bc takes counter)
+                }
+            }
+        }
+
+        return null
+    }
+
     fun trace(v: IrVar, fn: (block: IrBlock, instr: IrInstr, v: IrVar) -> Unit) {
         usages(v).forEach {
             if (it != null) {
