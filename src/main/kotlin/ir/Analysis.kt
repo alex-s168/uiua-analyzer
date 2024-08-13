@@ -26,21 +26,24 @@ class Analysis(val block: IrBlock) {
     fun terminating() =
         block.terminating()
 
-    fun isCalling(instr: IrInstr, idx: Int) =
+    fun getCalling(instr: IrInstr): Int? =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
                 Prim.CALL,
                 Prim.REDUCE,
                 Prim.ROWS,
                 Prim.TABLE,
-                Prim.EACH -> idx == 0
-                Prim.Comp.REPEAT -> idx == 2
-                Prim.SWITCH -> idx == 1
-                Prim.FILL -> idx == 1
-                else -> false
+                Prim.EACH -> 0
+                Prim.Comp.REPEAT -> 2
+                Prim.SWITCH -> 1
+                Prim.FILL -> 1
+                else -> null
             }
-            else -> false
+            else -> null
         }
+
+    fun isCalling(instr: IrInstr, idx: Int) =
+        getCalling(instr) == idx
 
     fun callerInstrs(): List<Pair<IrBlock, IrInstr>> {
         val res = mutableListOf<Pair<IrBlock, IrInstr>>()

@@ -126,7 +126,7 @@ data class PtrType(
 }
 
 data class FnType(
-    val fillType: Type?,
+    var fillType: Type?,
     val args: List<Type>,
     val rets: List<Type>,
 ): Type("func", listOf()) {

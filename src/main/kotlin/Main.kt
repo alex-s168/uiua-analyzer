@@ -18,32 +18,6 @@ fun anonFnName(): String =
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
 
-private fun IrBlock.findAllRequiredCompile(dosth: (IrBlock) -> Unit): Set<IrBlock> {
-    val list = mutableSetOf<IrBlock>()
-
-    fun rec(block: IrBlock) {
-        if (list.none { it.name == block.name }) {
-            dosth(block)
-            list.add(block)
-
-            var idx = 0
-            while (idx < block.instrs.size) {
-                val it = block.instrs[idx]
-                if (it.instr is PushFnRefInstr) {
-                    val fn = block.ref[it.instr.fn]!!
-                    val oldSize = block.instrs.size
-                    rec(fn)
-                    idx += block.instrs.size - oldSize
-                }
-                idx ++
-            }
-        }
-    }
-    rec(this)
-
-    return list
-}
-
 object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
@@ -71,7 +45,7 @@ fun main() {
     fun Pass<(IrBlock) -> Unit>.generic() =
         this
 
-    val passes = passPipeline(listOf(
+    val passes = listOf(
         lowerDup.generic(),
         lowerOver.generic(),
         lowerFlip.generic(),
@@ -113,47 +87,70 @@ fun main() {
 
         fixArgArrays.generic(),
         inlineCUse.generic(),
-
+    )
+    // lower fill happens here
+    val passes2 = listOf(
         constantTrace.generic(),
         funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         dce.generic(),
-    ))
-
-    val passes2 = passPipeline(listOf(
+    )
+    // dse happens here
+    val passes3 = listOf(
         remUnused.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         remComments.generic(),
         argRem.generic(),
         switchDependentCodeMovement.generic(),
+        constantTrace.generic(),
+        funcInline.generic(),
         switchIndependentTrailingCodeMovement.generic(),
         remUnused.generic(),
         emptyArrayOpsRemove.generic(),
         dce.generic(),
         remUnused.generic(),
-    ))
+    )
 
     val compile = File(".out.uac").printWriter().use { file ->
-        blocks[expanded]!!.findAllRequiredCompile {
-            // only reorder if you know what you are doing!
+        val res = runCatching {
+            fun apply(pipe: List<Pass<(IrBlock) -> Unit>>) {
+                val alreadyDone = mutableSetOf<IrBlock>()
 
-            val res = runCatching {
-                passes(it, blocks::putBlock)
-                dse(expanded, blocks)
-                passes2(it, blocks::putBlock)
-                dse(expanded, blocks)
+                while (true) {
+                    val old = blocks.values.toList()
+                    val todo = (old - alreadyDone)
+                    if (todo.isEmpty()) break
+                    todo.forEach { b ->
+                        pipe.forEach {
+                            it.run(b, blocks::putBlock)
+                        }
+                    }
+                    alreadyDone.addAll(old)
+                }
             }
 
-            file.println(it)
-            file.println()
+            apply(passes)
+            blocks.values.toList().forEach { lowerFill.run(it) }
+            blocks.values.toList().forEach { Analysis(it).updateFnType() }
+            apply(passes2)
+            dse(expanded, blocks)
+            apply(passes3)
+            dse(expanded, blocks)
 
-            res.onFailure {
-                println("in apply pass pipeline")
-                throw it
+            blocks.values.forEach {
+                file.println(it)
+                file.println()
             }
         }
+
+        res.onFailure {
+            println("in apply pass pipeline")
+            throw it
+        }
+
+        blocks.values.toSet()
     }
 
     val out = StringBuilder()

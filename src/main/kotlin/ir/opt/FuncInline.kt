@@ -19,21 +19,5 @@ val funcInline = Pass<Unit>("Inline") { block, _ ->
                 }
             }
         }
-        // CANT DO THAT BECAUSE OTHER CALLS USE FILLS
-        /*else if (a.isPrim(instr, Prim.FILL)) {
-            val provider = block.funDeclFor(instr.args[0])?.second ?: return@forEach
-            val called = block.funDeclFor(instr.args[1])?.second ?: return@forEach
-
-            val fill = block.newVar().copy(type = provider.rets[0].type)
-
-            val idx = block.instrs.indexOf(instr)
-            block.instrs.removeAt(idx)
-
-            val instrs = mutableListOf<IrInstr>()
-            instrs += provider.inlinableCopy(listOf(), listOf(fill)).instrs
-            instrs += called.inlinableCopy(instr.args.drop(2), instr.outs.toList(), fill).instrs
-
-            block.instrs.addAll(idx, instrs)
-        }*/
     }
 }

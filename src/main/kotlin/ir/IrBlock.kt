@@ -101,7 +101,9 @@ data class IrBlock(
         new.fillArg = fill
 
         args.zip(cArgs).forEach { (a, b) ->
-            require(a.type == b.type)
+            require(a.type == b.type) {
+                "inlining arg types do not match:\n  call with ${cArgs.map { it.type }.contents}\n  fn with ${args.map { it.type }.contents}"
+            }
             updateVar(new, a, b)
         }
 
