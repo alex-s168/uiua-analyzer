@@ -348,6 +348,16 @@ data class IrInstr(
                     }
                 }
 
+                Prim.WHERE -> {
+                    val arrTy = args[0].type as ArrayType
+                    val shaLen = arrTy.shape.size
+
+                    val ty = if (shaLen == 1) Types.array(Types.size)
+                    else Types.array(Types.array(Types.size, length = shaLen))
+
+                    updateType(outs[0], ty)
+                }
+
                 Prim.FILL -> {
                     val (_, fillValFn) = parent.funDeclFor(args[0])!!
                     val (_, opFn) = parent.funDeclFor(args[1])!!

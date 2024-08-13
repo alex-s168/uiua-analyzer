@@ -59,6 +59,7 @@ internal fun signature(
             val fn = onStack(1).value.getA().instr as PushFnInstr
             fn.fn.signature.mapIns { it + 2 } // arg 0 & arg 1
         }
+        Prim.WHERE -> Signature(1, 1)
         Prim.REVERSE -> Signature(1, 1)
         Prim.PICK -> Signature(2, 1)
         Prim.UNDO_PICK -> Signature(3, 1)

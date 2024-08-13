@@ -27,6 +27,7 @@ object Prim {
 
         val REPEAT = prim("cREPEAT") // [start], [end], [fn which takes counter], [additional]...
         val DIM = prim("cDIM") // [arr], [dim]
+        val COUNT_NOTZERO = prim("cCOUNT_NOTZERO") // [arr]
 
         val SINK = prim("cSINK") // [val]
 
@@ -70,6 +71,7 @@ object Prim {
     val TABLE = prim("TABLE")
     val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
     val UN_SHAPE = prim("UN_SHAPE")
+    val WHERE = prim("WHERE")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

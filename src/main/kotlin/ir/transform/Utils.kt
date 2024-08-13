@@ -327,3 +327,49 @@ fun reduce(
     reduce(mult, arr, put, putBlock, ref, newVar, type, body)
     return mult
 }
+
+fun repeat(
+    size: IrVar,
+    put: (IrInstr) -> Unit,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    args: List<IrVar>,
+    body: IrBlock.(idx: IrVar, args: List<IrVar>) -> Unit
+) {
+    val (zero) = constants(newVar, 0.0, type = Types.size, put = put)
+
+    val block = IrBlock(anonFnName(), ref).apply {
+        val idx = this.newVar().copy(type = Types.size).also { this.args += it }
+        val args = args.map { this.newVar().copy(type = it.type).also { this.args += it } }
+
+        body(idx, args)
+
+        putBlock(this)
+    }
+
+    val fnref = newVar().copy(type = block.type())
+    put(IrInstr(
+        mutableListOf(fnref),
+        PushFnRefInstr(block.name),
+        mutableListOf()
+    ))
+
+    put(IrInstr(
+        mutableListOf(),
+        PrimitiveInstr(Prim.Comp.REPEAT),
+        mutableListOf(zero, size, fnref).also { it += args }
+    ))
+}
+
+fun ndRepeat(
+    sizes: List<IrVar>,
+    put: (IrInstr) -> Unit,
+    putBlock: (IrBlock) -> Unit,
+    ref: Map<String, IrBlock>,
+    newVar: () -> IrVar,
+    args: List<IrVar>,
+    body: IrBlock.(idc: List<IrVar>, args: List<IrVar>) -> Unit
+) {
+    TODO()
+}

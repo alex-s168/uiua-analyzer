@@ -105,7 +105,7 @@ fun main() {
         lowerClone.generic(),
         lowerShape.generic(),
         lowerLen.generic(),
-        // boundsChecking.generic(),  // TODO
+        // boundsChecking.generic(),  // TODO only for pick
         evalDim.generic(),
         remUnused.generic(), // before materialize!
         remArrMat.generic(),
