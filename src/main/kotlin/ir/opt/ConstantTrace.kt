@@ -14,6 +14,7 @@ val constantTrace = Pass<Unit>("const trace") { block, _ ->
             val fnv = it.args[0]
 
             if (block.instrDeclFor(fnv) == null) {
+                // TODO: if more than one caller, duplicate function
                 a.deepOrigin(fnv)?.let { (_, orig) ->
                     if (orig.instr is PushFnRefInstr) {
                         val newv = block.newVar().copy(type = block.ref[orig.instr.fn]!!.type())

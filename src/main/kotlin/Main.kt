@@ -175,6 +175,8 @@ fun main() {
     val llvmLower = true
     val enableBufferDealloc = false
 
+    // TODO: remove fill emit logic
+
     // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, canonicalize, loop-invariant-code-motion, control-flow-sink, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
     // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-parallel, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, convert-to-llvm, canonicalize, reconcile-unrealized-casts)"
     // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, scf-forall-to-for, canonicalize, control-flow-sink)"

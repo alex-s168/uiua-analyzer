@@ -73,19 +73,19 @@ class Analysis(val block: IrBlock) {
                 val a = Analysis(block)
 
                 if (isPrim(instr, Prim.CALL)) {
-                    return a.deepOrigin(instr.args[idx + 1])
+                    a.deepOrigin(instr.args[idx + 1])?.let { return it }
                 }
 
                 if (isPrim(instr, Prim.SWITCH)) {
-                    return a.deepOrigin(instr.args[idx + 3])
+                    a.deepOrigin(instr.args[idx + 3])?.let { return it }
                 }
 
                 if (isPrim(instr, Prim.Comp.REPEAT)) {
-                    return a.deepOrigin(instr.args[idx + 2]) // +3 -1  (-1 bc takes counter)
+                    a.deepOrigin(instr.args[idx + 2])?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
                 if (isPrim(instr, Prim.FILL)) {
-                    return a.deepOrigin(instr.args[idx + 3])
+                    a.deepOrigin(instr.args[idx + 3])?.let { return it }
                 }
             }
         }
