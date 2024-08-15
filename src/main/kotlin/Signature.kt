@@ -59,11 +59,17 @@ internal fun signature(
             val fn = onStack(1).value.getA().instr as PushFnInstr
             fn.fn.signature.mapIns { it + 2 } // arg 0 & arg 1
         }
+        Prim.TABLE -> {
+            val inner = onStack(0).value.getA().instr as PushFnInstr
+            require(inner.fn.signature.inputs >= 2) {
+                "function passed to table needs to take in 2 or more arguments"
+            }
+            inner.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst
+        }
         Prim.WHERE -> Signature(1, 1)
         Prim.REVERSE -> Signature(1, 1)
         Prim.PICK -> Signature(2, 1)
         Prim.UNDO_PICK -> Signature(3, 1)
-        Prim.TABLE -> Signature(3, 1)
         Prim.RESHAPE -> Signature(2, 1)
         Prim.UN_SHAPE -> Signature(1, 1)
 

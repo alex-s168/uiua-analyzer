@@ -3,6 +3,27 @@ package me.alex_s168.uiua.ir
 import blitz.collections.contents
 import me.alex_s168.uiua.*
 
+interface VarRef {
+    fun get(): IrVar
+    fun replace(with: IrVar)
+
+    companion object {
+        fun ofListElem(list: MutableList<IrVar>, index: Int) =
+            object : VarRef {
+                override fun get(): IrVar =
+                    list[index]
+
+                override fun replace(with: IrVar) {
+                    list[index] = with
+                }
+            }
+    }
+}
+
+fun List<VarRef>.filterCertainlyCalling(srcBlock: IrBlock, what: String) =
+    filter { srcBlock.instrDeclFor(it.get())
+        ?.let { it.instr is PushFnRefInstr && it.instr.fn == what } == true }
+
 class Analysis(val block: IrBlock) {
     val removed = mutableListOf<IrInstr>()
     val added = mutableListOf<IrInstr>()
@@ -26,6 +47,11 @@ class Analysis(val block: IrBlock) {
     fun terminating() =
         block.terminating()
 
+    // TODO: stop using this and use getDeepCalling instead
+    @Deprecated(
+        message = "stupid",
+        replaceWith = ReplaceWith("getDeepCalling"),
+    )
     fun getCalling(instr: IrInstr): Int? =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
@@ -40,6 +66,31 @@ class Analysis(val block: IrBlock) {
                 else -> null
             }
             else -> null
+        }
+
+    /** returns list of variables of fnrefs that might get called by given instr */
+    fun getDeepCalling(instr: IrInstr): List<VarRef> =
+        when (instr.instr) {
+            is PrimitiveInstr -> when (instr.instr.id) {
+                Prim.CALL,
+                Prim.REDUCE,
+                Prim.ROWS,
+                Prim.TABLE,
+                Prim.EACH -> listOf(VarRef.ofListElem(instr.args, 0))
+
+                Prim.Comp.REPEAT -> listOf(VarRef.ofListElem(instr.args, 2))
+
+                Prim.SWITCH -> origin(instr.args[1])!!.args
+                    .let { li -> List(li.size) { i ->
+                        VarRef.ofListElem(li, i) } }
+
+                Prim.FILL -> instr.args
+                    .let { li -> (0..<1).map {
+                        VarRef.ofListElem(li, it) } }
+
+                else -> emptyList()
+            }
+            else -> emptyList()
         }
 
     fun isCalling(instr: IrInstr, idx: Int) =

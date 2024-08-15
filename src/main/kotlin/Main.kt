@@ -54,6 +54,7 @@ fun main() {
         lowerPervasive.generic(),
         lowerUnShape.generic(),
         lowerEach.generic(),
+        lowerTable.generic(),
         lowerRows.generic(),
         comptimeReduceEval.generic(),
         lowerReduce.generic(),
@@ -90,6 +91,7 @@ fun main() {
     )
     // lower fill happens here
     val passes2 = listOf(
+        oneBlockOneCaller.generic(),
         constantTrace.generic(),
         funcInline.generic(),
         switchDependentCodeMovement.generic(),
@@ -104,6 +106,7 @@ fun main() {
         remComments.generic(),
         argRem.generic(),
         switchDependentCodeMovement.generic(),
+        oneBlockOneCaller.generic(),
         constantTrace.generic(),
         funcInline.generic(),
         switchIndependentTrailingCodeMovement.generic(),

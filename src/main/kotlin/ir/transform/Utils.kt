@@ -5,6 +5,42 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
+fun genCallBlockFnTail(innerFnType: FnType, ref: Map<String, IrBlock>): IrBlock {
+    return IrBlock(anonFnName(), ref).apply {
+        val outs = innerFnType.rets.map {
+            newVar().copy(type = it)
+                .also(rets::add)
+        }
+
+        val ar = innerFnType.args.map {
+            newVar().copy(type = it)
+                .also(args::add)
+        }
+
+        val fn = newVar().copy(type = innerFnType)
+            .also(args::add)
+
+        instrs += IrInstr(
+            outs.toMutableList(),
+            PrimitiveInstr(Prim.CALL),
+            (listOf(fn) + ar).toMutableList()
+        )
+    }
+}
+
+fun IrVar.genFix(put: (IrInstr) -> Unit, newVar: () -> IrVar): IrVar {
+    val out = newVar()
+        .copy(type = Types.array(this.type))
+
+    put(IrInstr(
+        mutableListOf(out),
+        PrimitiveInstr(Prim.FIX),
+        mutableListOf(this)
+    ))
+
+    return out
+}
+
 fun List<IrVar>.wrapInArgArray(newVar: () -> IrVar, type: Type = first().type, put: (IrInstr) -> Unit): IrVar {
     val v = newVar().copy(type = Types.array(type, size))
     put(IrInstr(
