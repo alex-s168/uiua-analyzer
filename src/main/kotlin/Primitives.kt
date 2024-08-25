@@ -72,6 +72,7 @@ object Prim {
     val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
     val UN_SHAPE = prim("UN_SHAPE")
     val WHERE = prim("WHERE")
+    val NOW = prim("NOW")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

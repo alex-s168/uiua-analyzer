@@ -502,6 +502,14 @@ fun IrBlock.emitMLIR(): List<String> {
                         }
                     }
 
+                    Prim.NOW -> {
+                        body += Inst.funcCall(
+                            dests = listOf(instr.outs[0].asMLIR()),
+                            UARuntime.time.name,
+                            UARuntime.time.type.toMLIR(),
+                        )
+                    }
+
                     Prim.Comp.PANIC -> {
                         val idBlock = newVar().asMLIR()
                         body += Inst.constant(idBlock, "i64", uid.toString())

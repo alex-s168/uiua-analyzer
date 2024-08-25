@@ -10,4 +10,9 @@ object UARuntime {
         "_\$_rt_panic",
         Types.func(listOf(Types.int, Types.int), listOf())
     )
+
+    val time = Func(
+        "_\$_rt_time",
+        Types.func(listOf(), listOf(Types.double))
+    )
 }

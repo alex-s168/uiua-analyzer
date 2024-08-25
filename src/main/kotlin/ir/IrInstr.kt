@@ -206,6 +206,10 @@ data class IrInstr(
                     updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
+                Prim.NOW -> {
+                    updateType(outs[0], Types.double)
+                }
+
                 Prim.EQ,
                 Prim.LT,
                 Prim.ADD,
