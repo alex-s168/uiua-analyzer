@@ -566,9 +566,7 @@ fun IrBlock.emitMLIR(): List<String> {
                         )
                     }
 
-                    Prim.RESHAPE -> {
-                        // TODO: uiua reshape vs compiler reshape:  uiua reshape lowers to clone and then compieler reshape
-
+                    Prim.Comp.RESHAPE_VIEW -> {
                         val sha = argArr(instr.args[0])
                             .map { castIfNec(body, it, Types.size) }
 

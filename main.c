@@ -37,6 +37,7 @@ int main() {
         }
         printf("\n");
     }
+    free(res.alloc);
 
     return 0;
 }

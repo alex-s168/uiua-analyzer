@@ -33,10 +33,11 @@ fun main() {
     val assembly = Assembly.parse(test)
 
     val blocks = assembly.functions.toIr()
-
+    val old = blocks.keys.toList()
     val expanded = blocks["fn"]!!.expandFor(listOf(
-        Types.array(Types.array(Types.int)),
+        // Types.array(Types.array(Types.int)),
     ), blocks::putBlock)
+    old.forEach(blocks::remove)
     blocks[expanded]!!.private = false
 
     fun Pass<Unit>.generic(): Pass<(IrBlock) -> Unit> =
@@ -71,6 +72,7 @@ fun main() {
         lowerBoxStore.generic(),
         lowerBoxCreate.generic(),
         lowerBoxDestroy.generic(),
+        lowerReshape.generic(),
 
         fixArgArrays.generic(),
         inlineCUse.generic(),

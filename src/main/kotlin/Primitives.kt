@@ -31,6 +31,8 @@ object Prim {
 
         val SINK = prim("cSINK") // [val]
 
+        val RESHAPE_VIEW = prim("cRESHAPE_VIEW") // [sha], [arr]
+
         /** outputs can be anything as program won't continue after this */
         val PANIC = prim("cPANIC")
     }
@@ -73,6 +75,7 @@ object Prim {
     val UN_SHAPE = prim("UN_SHAPE")
     val WHERE = prim("WHERE")
     val NOW = prim("NOW")
+    val JOIN = prim("JOIN")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

@@ -4,7 +4,6 @@ import blitz.collections.contents
 import blitz.flatten
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ast.AstNode
-import java.lang.reflect.Array
 import kotlin.math.floor
 
 /* funny type inference algo:
@@ -94,6 +93,28 @@ data class IrInstr(
             )
             return newv
         }
+
+        fun highestShapeType(a: ArrayType, b: ArrayType): ArrayType {
+            val asl = a.shape.size
+            val bsl = b.shape.size
+
+            if (asl > bsl)
+                return a
+
+            if (bsl > asl)
+                return b
+
+            return a.combineShape(b)
+        }
+
+        fun highestShapeType(a: Type, b: Type) =
+            when (a) {
+                is ArrayType -> when (b) {
+                    is ArrayType -> highestShapeType(a, b)
+                    else ->  a
+                }
+                else -> b
+            }
 
         when (instr) {
             is ArrImmInstr -> {
@@ -419,17 +440,23 @@ data class IrInstr(
 
                 Prim.RESHAPE -> {
                     val sha = args[0]
-                    val shaTy = sha.type as ArrayType
-                    val arr = args[1]
-                    val arrTy = arr.type as ArrayType
 
-                    require(shaTy.length != null) {
-                        "length of shape has to be known at comptime!"
+                    if (sha.type is ArrayType) {
+                        val arr = args[1]
+                        val innerTy = if (arr.type is ArrayType) arr.type.inner else arr.type
+
+                        require(sha.type.length != null) {
+                            "length of shape has to be known at comptime!"
+                        }
+
+                        val resTy = List(sha.type.length) { -1 }.shapeToType(innerTy)
+                        updateType(outs[0], resTy)
                     }
-
-                    val resTy = List(shaTy.length) { -1 }.shapeToType(arrTy.inner)
-
-                    updateType(outs[0], resTy)
+                    else { // copy the value as rows of new array
+                        val inner = args[1].type
+                        val resTy = Types.array(inner)
+                        updateType(outs[0], resTy)
+                    }
                 }
 
                 Prim.UN_SHAPE -> {
@@ -443,6 +470,14 @@ data class IrInstr(
                     val resTy = List(shaTy.length) { -1 }.shapeToType(Types.int)
 
                     updateType(outs[0], resTy)
+                }
+
+                Prim.JOIN -> {
+                    val arg0 = args[0].type
+                    val arg1 = args[1].type
+
+                    val res = highestShapeType(arg0, arg1)
+                    updateType(outs[0], res)
                 }
             }
         }

@@ -33,6 +33,7 @@ fun <A> Pass<A>.run(block: IrBlock, arg: A) {
     kotlin.runCatching {
         internalRun(block, arg)
     }.onFailure {
+        println(block)
         println("in pass $name on block(${block.uid}) with arg $arg")
         throw it
     }

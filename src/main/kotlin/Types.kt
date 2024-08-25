@@ -37,6 +37,9 @@ fun Type.combine(other: Type): Type =
             else -> Types.double
         }
         Types.size -> Types.size
+        is ArrayType -> {
+            this.combineShape(other as ArrayType)
+        }
         else -> error("")
     }
 
@@ -85,6 +88,12 @@ open class ArrayType(
 
     fun copyVariableShape(): ArrayType =
         shape.map { -1 }.shapeToType(inner)
+
+    fun combineShape(other: ArrayType): ArrayType =
+        shape.zip(other.shape).map { (a, b) ->
+            if (a == b) a
+            else -1
+        }.shapeToType(inner)
 
     override fun toString(): String =
         "arr[$of]${length ?: "?"}" + if (vaOff) "vaoff" else ""
