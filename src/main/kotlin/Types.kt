@@ -83,7 +83,7 @@ open class ArrayType(
     fun mapInner(fn: (Type) -> Type): ArrayType =
         shape.shapeToType(fn(inner))
 
-    fun copyVarShape(): ArrayType =
+    fun copyVariableShape(): ArrayType =
         shape.map { -1 }.shapeToType(inner)
 
     override fun toString(): String =

@@ -120,7 +120,7 @@ fun IrBlock.emitMLIR(): List<String> {
         val arrTy = arr.type as ArrayType
         val dims = List(arrTy.shape.size) { i ->
             val const = newVar().copy(type = Types.size)
-            body += Inst.constant(const.asMLIR(), const.type.toMLIR(), "1")
+            body += Inst.constant(const.asMLIR(), const.type.toMLIR(), "$i")
             val v = newVar().copy(type = Types.size)
             body += Inst.memRefDim(v.asMLIR(), arrTy.toMLIR(), arr.asMLIR(), const.asMLIR())
             v
@@ -192,6 +192,7 @@ fun IrBlock.emitMLIR(): List<String> {
     }
 
     instrs.forEachIndexed { idx, instr ->
+        body += "// Instr: $instr"
         runCatching {
             when (instr.instr) {
                 is NumImmInstr -> {
@@ -405,7 +406,7 @@ fun IrBlock.emitMLIR(): List<String> {
                             *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
                         )
 
-                        val temp2 = newVar().copy(type = type.copyVarShape().copyType())
+                        val temp2 = newVar().copy(type = type.copyVariableShape().copyType())
                         subview(body, temp2, temp, listOf())
                         body += "${instr.outs[0].asMLIR()} = memref.cast ${temp2.asMLIR()} : ${temp2.type.toMLIR()} to ${type.toMLIR()}"
                     }

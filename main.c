@@ -15,7 +15,7 @@ extern I64A2 fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(void*,in
 
 int main() {
     I64A2 a;
-    a.alloc = malloc(sizeof(int64_t) * 3 * 3);
+    a.alloc = calloc(3 * 3, sizeof(int64_t));
     a.aligned = a.alloc;
     a.elemsOff = 0;
 
@@ -32,7 +32,7 @@ int main() {
     int64_t *elems = res.aligned + res.elemsOff;
     for (size_t i = 0; i < res.sizes[0]; i ++) {
         for (size_t j = 0; j < res.sizes[1]; j ++) {
-            int64_t elem = elems[i * res.sizes[1] + j];
+            int64_t elem = elems[i * res.strides[0] + j * res.strides[1]];
             printf("%lld ", elem);
         }
         printf("\n");
