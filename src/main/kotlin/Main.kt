@@ -12,6 +12,9 @@ import kotlin.random.Random
 import kotlin.random.nextULong
 import kotlin.system.exitProcess
 
+inline fun <reified R> Any?.cast(): R? =
+    this?.let { if (it is R) it else null }
+
 fun anonFnName(): String =
     "_\$anon_${Random.nextULong()}"
 
@@ -39,6 +42,7 @@ val inlineConfig = Inline.all
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
+val mlirComments = false
 
 fun main() {
     val test = loadRes("test.uasm")!!
@@ -116,8 +120,8 @@ fun main() {
 
     // lower fill happens here
     val passes2 = listOf(
-        //oneBlockOneCaller.generic(),
-        //constantTrace.generic(),
+        oneBlockOneCaller.generic(),
+        constantTrace.generic(),
         funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
@@ -129,14 +133,15 @@ fun main() {
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         remComments.generic(),
-        //argRem.generic(),
+        argRem.generic(),
         switchDependentCodeMovement.generic(),
-        //oneBlockOneCaller.generic(),
+        oneBlockOneCaller.generic(),
         //constantTrace.generic(),
         //funcInline.generic(),
-        //switchIndependentTrailingCodeMovement.generic(),
-        //remUnused.generic(),
-        //emptyArrayOpsRemove.generic(),
+        switchIndependentTrailingCodeMovement.generic(),
+        loopUnswitch.generic(),
+        remUnused.generic(),
+        emptyArrayOpsRemove.generic(),
         dce.generic(),
         remUnused.generic(),
     )

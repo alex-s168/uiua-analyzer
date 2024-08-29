@@ -29,6 +29,14 @@ class Analysis(val block: IrBlock) {
     val removed = mutableListOf<IrInstr>()
     val added = mutableListOf<IrInstr>()
 
+    fun isEmpty(instr: IrInstr) =
+        isPrim(instr, Prim.Comp.SINK)
+
+    fun isLast(instr: IrInstr) =
+        block.instrs
+            .filterIndexed { index, _ -> index > block.instrs.indexOf(instr) }
+            .all(::isEmpty)
+
     fun variables() =
         block.instrs.flatMap { it.outs } + block.args
 
@@ -128,15 +136,15 @@ class Analysis(val block: IrBlock) {
                     a.deepOrigin(instr.args[idx + 1])?.let { return it }
                 }
 
-                if (isPrim(instr, Prim.SWITCH)) {
+                else if (isPrim(instr, Prim.SWITCH)) {
                     a.deepOrigin(instr.args[idx + 3])?.let { return it }
                 }
 
-                if (isPrim(instr, Prim.Comp.REPEAT)) {
+                else if (isPrim(instr, Prim.Comp.REPEAT)) {
                     a.deepOrigin(instr.args[idx + 2])?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
-                if (isPrim(instr, Prim.FILL)) {
+                else if (isPrim(instr, Prim.FILL)) {
                     a.deepOrigin(instr.args[idx + 2])?.let { return it }
                 }
             }

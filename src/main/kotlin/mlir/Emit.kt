@@ -34,7 +34,9 @@ fun IrBlock.emitMLIR(): List<String> {
     fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
         if (fn.shouldInline()) {
             val toInline = fn.inlinableCopy(args, dests, fill)
-            val res = mutableListOf("// Inlined ${fn.name} (${args.contents}) -> (${dests.contents})")
+            val res = mutableListOf<String>()
+            if (mlirComments)
+                res += "// Inlined ${fn.name} (${args.contents}) -> (${dests.contents})"
             res.addAll(toInline.emitMLIR())
             return res
         }
@@ -106,7 +108,8 @@ fun IrBlock.emitMLIR(): List<String> {
 
     fun memRefCopy(dest: IrVar, src: IrVar) {
         if ((src.type as ArrayType).shape.size == 1) {
-            body += "// memRefCopy ${src.asMLIR()} to ${dest.asMLIR()}"
+            if (mlirComments)
+                body += "// memRefCopy ${src.asMLIR()} to ${dest.asMLIR()}"
 
             val count = newVar().copy(type = Types.size).asMLIR()
             val zero = newVar().copy(type = Types.size).asMLIR()
@@ -134,7 +137,8 @@ fun IrBlock.emitMLIR(): List<String> {
     }
 
     instrs.forEachIndexed { idx, instr ->
-        body += "// Instr: $instr"
+        if (mlirComments)
+            body += "// Instr: $instr"
         runCatching {
             when (instr.instr) {
                 is NumImmInstr -> {
