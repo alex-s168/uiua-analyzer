@@ -37,7 +37,23 @@ data class Assembly(
                     val instr = instrIn.trim()
                     if (instr.isEmpty()) return@forEach
 
-                    val parsed = if (instr.startsWith('[')) {
+                    val parsed = if (instr.startsWith("[{")) {
+                        val (l, loc) = instr
+                            .drop(1)
+                            .dropLast(1)
+                            .split(',')
+
+                        val (kind, value) = l.drop(1).dropLast(1).split(':')
+
+                        when (kind.drop(1).dropLast(1)) {
+                            "REDUCE_DEPTH" -> {
+                                val depth = value.toInt()
+                                PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(loc.toInt()), depth)
+                            }
+
+                            else -> error("unsupported $kind")
+                        }
+                    } else if (instr.startsWith('[')) {
                         val all = JSON.parse(instr)!!.arr
                         val shape = all[0].arr
                         val data = all[1]
@@ -49,7 +65,7 @@ data class Assembly(
                                 data.arr[0].num
                             )
                         } else {
-                            val type = shape.map { it.num.toInt() }.shapeToType(elemType)
+                            val type = shape.map { it.num.toInt() }.shapeToArrType(elemType)
                             ArrImmInstr(
                                 type,
                                 if (data.isStr()) Either.ofA(data.str.chars().toList())
@@ -57,21 +73,21 @@ data class Assembly(
                             )
                         }
                     }
-                    else if (instr.startsWith("comment")) {
-                        CommentInstr(instr.substringAfter("comment").trim())
+                    else if (instr.startsWith("# ")) {
+                        CommentInstr(instr.substringAfter("# ").trim())
                     }
-                    else if (instr.startsWith("push_func")) {
-                        val arr = JSON.parse(instr.substringAfter("push_func").trim())!!.arr
+                    else if (instr.startsWith("push_func ")) {
+                        val arr = JSON.parse(instr.substringAfter("push_func ").trim())!!.arr
                         PushFnInstr.parse(arr)
                     }
-                    else if (instr.startsWith("copy_to_temp")) {
+                    else if (instr.startsWith("copy_to_temp ")) {
                         val (stack, count) = instr
                             .substringAfter("copy_to_temp [")
                             .substringBeforeLast(']')
                             .split(',')
                         CopyTempStackInstr(stack, count.toInt())
                     }
-                    else if (instr.startsWith("pop_temp")) {
+                    else if (instr.startsWith("pop_temp ")) {
                         val (stack, count) = instr
                             .substringAfter("pop_temp [")
                             .substringBeforeLast(']')
@@ -105,9 +121,7 @@ data class Assembly(
                 }
 
             val spans = sections["SPANS"]!!
-                .map {
-                    Span.parse(JSON.parse(it)!!.arr)
-                }
+                .map(Span::parseNew)
 
             val functions = sections["BINDINGS"]!!
                 .asSequence()

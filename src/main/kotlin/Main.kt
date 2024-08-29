@@ -47,10 +47,17 @@ fun main() {
     val blocks = assembly.functions.toIr()
     val old = blocks.keys.toList()
     val expanded = blocks["fn"]!!.expandFor(listOf(
-        // Types.array(Types.array(Types.int)),
+        Types.array(Types.array(Types.int)),
     ), blocks::putBlock)
     old.forEach(blocks::remove)
     blocks[expanded]!!.private = false
+
+    File(".in.uac").writer().use { w ->
+        blocks.values.forEach {
+            w.append(it.toString())
+            w.append("\n\n")
+        }
+    }
 
     fun Pass<Unit>.generic(): Pass<(IrBlock) -> Unit> =
         Pass(name) { b, _ -> internalRun(b, Unit) }
@@ -59,6 +66,7 @@ fun main() {
         this
 
     val passes = listOf(
+        lowerReduceDepth.generic(),
         lowerDup.generic(),
         lowerOver.generic(),
         lowerFlip.generic(),
@@ -104,6 +112,8 @@ fun main() {
         inlineCUse.generic(),
         unrollLoop.generic(),
     )
+    // TODO: fix passes
+
     // lower fill happens here
     val passes2 = listOf(
         oneBlockOneCaller.generic(),
@@ -119,14 +129,14 @@ fun main() {
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         remComments.generic(),
-        argRem.generic(),
+        //argRem.generic(),
         switchDependentCodeMovement.generic(),
-        oneBlockOneCaller.generic(),
-        constantTrace.generic(),
-        funcInline.generic(),
-        switchIndependentTrailingCodeMovement.generic(),
-        remUnused.generic(),
-        emptyArrayOpsRemove.generic(),
+        //oneBlockOneCaller.generic(),
+        //constantTrace.generic(),
+        //funcInline.generic(),
+        //switchIndependentTrailingCodeMovement.generic(),
+        //remUnused.generic(),
+        //emptyArrayOpsRemove.generic(),
         dce.generic(),
         remUnused.generic(),
     )
@@ -156,11 +166,11 @@ fun main() {
             dse(expanded, blocks)
             apply(passes3)
             dse(expanded, blocks)
+        }
 
-            blocks.values.forEach {
-                file.println(it)
-                file.println()
-            }
+        blocks.values.forEach {
+            file.println(it)
+            file.println()
         }
 
         res.onFailure {

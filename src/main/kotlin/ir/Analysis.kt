@@ -137,7 +137,7 @@ class Analysis(val block: IrBlock) {
                 }
 
                 if (isPrim(instr, Prim.FILL)) {
-                    a.deepOrigin(instr.args[idx + 3])?.let { return it }
+                    a.deepOrigin(instr.args[idx + 2])?.let { return it }
                 }
             }
         }

@@ -15,40 +15,6 @@ private val knowFns = mutableMapOf<IrVar, IrBlock>()
 fun IrBlock.emitMLIR(): List<String> {
     val body = mutableListOf<String>()
 
-    fun castIfNec(body: MutableList<String>, variable: IrVar, want: Type): IrVar =
-        if (want is ArrayType && variable.type !is ArrayType)
-            castIfNec(body, variable, want.inner)
-        else
-            if (variable.type == want) variable
-            else {
-                val new = newVar().copy(type = want)
-                body.addAll(castInstr(
-                    ::newVar,
-                    from = variable.type,
-                    to = want,
-                    dest = new.asMLIR(),
-                    src = variable.asMLIR()
-                ))
-                new
-            }
-
-    fun castLaterIfNec(body: MutableList<String>, variable: IrVar, want: Type, block: (IrVar) -> Unit) {
-        if (want is ArrayType && variable.type !is ArrayType)
-            return castLaterIfNec(body, variable, want.inner, block)
-        val dest = if (variable.type == want) variable
-            else newVar().copy(type = want)
-        block(dest)
-        if (variable.type != want) {
-            body.addAll(castInstr(
-                ::newVar,
-                from = want,
-                to = variable.type,
-                dest = variable.asMLIR(),
-                src = dest.asMLIR()
-            ))
-        }
-    }
-
     fun IrInstr.binary(
         body: MutableList<String>,
         op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String,
@@ -59,8 +25,8 @@ fun IrBlock.emitMLIR(): List<String> {
         body += op(
             outs[0].asMLIR(),
             outTy.toMLIR(),
-            castIfNec(body, rargs[0], outTy).asMLIR(),
-            castIfNec(body, rargs[1], outTy).asMLIR(),
+            castIfNec(::newVar, body, rargs[0], outTy).asMLIR(),
+            castIfNec(::newVar, body, rargs[1], outTy).asMLIR(),
             outTy == Types.double
         )
     }
@@ -90,12 +56,16 @@ fun IrBlock.emitMLIR(): List<String> {
         })
     }
 
-    fun callWithOptFill(dests: List<IrVar>, fn: IrVar, args: List<IrVar>, fill: IrVar? = null): List<String> {
+    fun callWithOptFill(dests: List<IrVar>, fn: IrVar, argsIn: List<IrVar>, fill: IrVar? = null): List<String> {
+        val ty = fn.type as FnType
+
+        val args = argsIn.zip(ty.args)
+            .map { (it, want) -> castIfNec(::newVar, body, it, want) }
+
         (funDeclFor(fn)?.second ?: knowFns[fn])?.let { block ->
             return callWithOptFill(dests, block, args, fill)
         }
 
-        val ty = fn.type as FnType
         return listOf(if (ty.fillType != null) {
             Inst.funcCallIndirect(
                 dests.map { it.asMLIR() },
@@ -116,41 +86,13 @@ fun IrBlock.emitMLIR(): List<String> {
     fun argArr(argArray: IrVar): List<IrVar> =
         instrDeclFor(argArray)!!.args
 
-    fun subview(body: MutableList<String>, dest: IrVar, arr: IrVar, indecies: List<IrVar>) {
-        val arrTy = arr.type as ArrayType
-        val dims = List(arrTy.shape.size) { i ->
-            val const = newVar().copy(type = Types.size)
-            body += Inst.constant(const.asMLIR(), const.type.toMLIR(), "$i")
-            val v = newVar().copy(type = Types.size)
-            body += Inst.memRefDim(v.asMLIR(), arrTy.toMLIR(), arr.asMLIR(), const.asMLIR())
-            v
-        }
-        /*
-        val offsets = indecies.map { it.asMLIR() } + List(arrTy.shape.size) { "0" }
-        val size = arrTy.shape.mapIndexed { i, s -> if (i < indecies.size) 1 else s }.shapeToMLIR()
-        val strides = arrTy.shape.map { "1" }
-         */
-        val offsets = indecies.map { castIfNec(body, it, Types.size).asMLIR() } + List(arrTy.shape.size - indecies.size) { 0 }
-        val size = indecies.map { 1 }.shapeToMLIR() + List(arrTy.shape.size - indecies.size) { dims[it + indecies.size].asMLIR() }
-        val strides = dims.map { it.asMLIR() }.drop(1).plus("1")
-
-        body += "${dest.asMLIR()} = memref.subview ${arr.asMLIR()}[${offsets.joinToString()}][${size.joinToString()}][${strides.joinToString()}] : \n  ${arr.type.toMLIR()} to ${dest.type.toMLIR()}"
-    }
-
-    fun subview(body: MutableList<String>, arr: IrVar, indecies: List<IrVar>): IrVar {
-        val arrTy = arr.type as ArrayType
-        val dest = newVar().copy(type = arrTy.shape.drop(indecies.size).shapeToType(arrTy.inner).copy(vaOff = true))
-        subview(body, dest, arr, indecies)
-        return dest
-    }
-
     fun cmp(instr: IrInstr, s: String, u: String) {
         val out = instr.outs[0]
         val cmpTy = instr.args[0].type // TODO: find common between both
-        val a = castIfNec(body, instr.args[1], cmpTy).asMLIR()
-        val b = castIfNec(body, instr.args[0], cmpTy).asMLIR()
+        val a = castIfNec(::newVar, body, instr.args[1], cmpTy).asMLIR()
+        val b = castIfNec(::newVar, body, instr.args[0], cmpTy).asMLIR()
 
-        castLaterIfNec(body, out, Types.bool) { dest ->
+        castLaterIfNec(::newVar, body, out, Types.bool) { dest ->
             body += when (cmpTy) {
                 Types.double -> "${dest.asMLIR()} = arith.cmpf $s, $a, $b : f64"
                 Types.int -> "${dest.asMLIR()} = arith.cmpi $s, $a, $b : i64"
@@ -215,7 +157,8 @@ fun IrBlock.emitMLIR(): List<String> {
                 }
 
                 is PushFnRefInstr -> {
-                    knowFns[instr.outs[0]] = ref[instr.instr.fn]!!
+                    knowFns[instr.outs[0]] = ref[instr.instr.fn]
+                        ?: error("sym ${instr.instr.fn} not found")
                     val fn = instr.instr.fn.legalizeMLIR()
                     body += Inst.funcConstant(
                         dest = instr.outs[0].asMLIR(),
@@ -242,8 +185,8 @@ fun IrBlock.emitMLIR(): List<String> {
                     Prim.MAX -> {
                         val out = instr.outs[0]
                         val outTy = out.type
-                        val a = castIfNec(body, instr.args[0], outTy).asMLIR()
-                        val b = castIfNec(body, instr.args[1], outTy).asMLIR()
+                        val a = castIfNec(::newVar, body, instr.args[0], outTy).asMLIR()
+                        val b = castIfNec(::newVar, body, instr.args[1], outTy).asMLIR()
 
                         body += when (outTy) {
                             Types.double -> "${out.asMLIR()} = arith.maxnumf $a, $b : f64"
@@ -264,7 +207,7 @@ fun IrBlock.emitMLIR(): List<String> {
                             dests = listOf(instr.outs[0].asMLIR()),
                             fn = "_\$_rt_primes",
                             fnType = rtPrimes.toMLIR(),
-                            castIfNec(body, instr.args[0], Types.int).asMLIR()
+                            castIfNec(::newVar, body, instr.args[0], Types.int).asMLIR()
                         )
                     }
 
@@ -273,42 +216,9 @@ fun IrBlock.emitMLIR(): List<String> {
                             (instrDeclFor(it)!!.instr as NumImmInstr).value.toULong()
                         }
                         val targets = argArr(instr.args[1]).toMutableList()
-                        val on = castIfNec(body, instr.args[2], Types.size)
+                        val on = castIfNec(::newVar, body, instr.args[2], Types.size)
                         val args = instr.args.drop(3)
 
-                        /*
-                        val terminating = conds.zip(targets).filter { (_, it) ->
-                            funDeclFor(it)?.second?.terminating() == true
-                        }
-                        terminating.forEach { (c, t) ->
-                            conds.remove(c)
-                            targets.remove(t)
-
-                            val const = newVar().copy(type = Types.size)
-                            body += "${const.asMLIR()} = arith.constant $c : index"
-
-                            val cond = newVar().copy(type = Types.bool)
-                            val inst = IrInstr(
-                                mutableListOf(cond),
-                                PrimitiveInstr(""),
-                                mutableListOf(const, on)
-                            )
-                            cmp(inst, "eq", "eq")
-
-                            val inner = mutableListOf<String>()
-                            val dests = instr.outs.map { newVar().copy(type = it.type) }
-
-                            inner += "// terminating call -> ${dests.contents}"
-                            inner += callWithOptFill(
-                                dests,
-                                t,
-                                args,
-                                fillArg
-                            )
-
-                            body += "scf.if ${cond.asMLIR()} {\n  ${inner.joinToString("\n  ")}\n}"
-                        }
-*/
                         when (conds.size) {
                             0 -> {}
                             1 -> {
@@ -396,7 +306,7 @@ fun IrBlock.emitMLIR(): List<String> {
                         val type = instr.outs[0].type as ArrayType
                         val shape = type.shape
                         val shapeDecl = instrDeclFor(instr.args[0])!!
-                        val mShape = shapeDecl.args.map { castIfNec(body, it, Types.size).asMLIR() }
+                        val mShape = shapeDecl.args.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }
 
                         val temp = newVar().copy(type = NewlyAllocArrayType.from(type))
 
@@ -407,7 +317,7 @@ fun IrBlock.emitMLIR(): List<String> {
                         )
 
                         val temp2 = newVar().copy(type = type.copyVariableShape().copyType())
-                        subview(body, temp2, temp, listOf())
+                        subview(::newVar, body, temp2, temp, listOf())
                         body += "${instr.outs[0].asMLIR()} = memref.cast ${temp2.asMLIR()} : ${temp2.type.toMLIR()} to ${type.toMLIR()}"
                     }
 
@@ -418,15 +328,15 @@ fun IrBlock.emitMLIR(): List<String> {
                         val value = instr.args[2]
 
                         if (value.type is ArrayType) {
-                            val view = subview(body, arr, indecies)
+                            val view = subview(::newVar, body, arr, indecies)
                                 .let { it.copy(type = (it.type as ArrayType).copy(vaOff = true)) }
                             memRefCopy(view, value)
                         } else {
                             body += Inst.memRefStore(
                                 arr.type.toMLIR(),
-                                castIfNec(body, value, arrTy.inner).asMLIR(),
+                                castIfNec(::newVar, body, value, arrTy.inner).asMLIR(),
                                 arr.asMLIR(),
-                                *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+                                *indecies.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }.toTypedArray()
                             )
                         }
                     }
@@ -441,13 +351,13 @@ fun IrBlock.emitMLIR(): List<String> {
 
                         if (instr.outs[0].type is ArrayType) {
                             // TODO: create subview primitive and use arr copy + arr load at higher level
-                            subview(body, instr.outs[0], arr, indecies)
+                            subview(::newVar, body, instr.outs[0], arr, indecies)
                         } else {
                             body += Inst.memRefLoad(
                                 instr.outs[0].asMLIR(),
                                 arr.type.toMLIR(),
                                 arr.asMLIR(),
-                                *indecies.map { castIfNec(body, it, Types.size).asMLIR() }.toTypedArray()
+                                *indecies.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }.toTypedArray()
                             )
                         }
                     }
@@ -460,9 +370,9 @@ fun IrBlock.emitMLIR(): List<String> {
                     }
 
                     Prim.Comp.REPEAT -> {
-                        val start = castIfNec(body, instr.args[0], Types.size).asMLIR()
+                        val start = castIfNec(::newVar, body, instr.args[0], Types.size).asMLIR()
 
-                        val ends = castIfNec(body, instr.args[1], Types.size).asMLIR()
+                        val ends = castIfNec(::newVar, body, instr.args[1], Types.size).asMLIR()
                         val fn = instr.args[2]
                         val fnTy = fn.type as FnType
 
@@ -475,7 +385,9 @@ fun IrBlock.emitMLIR(): List<String> {
                         inner += callWithOptFill(
                             listOf(),
                             fn,
-                            additional.also { it.add(0, castIfNec(inner, counter, fnTy.args[0])) },
+                            additional.also {
+                                it.add(0, castIfNec(::newVar, inner, counter, fnTy.args[0]))
+                            },
                             fillArg
                         )
 
@@ -492,8 +404,8 @@ fun IrBlock.emitMLIR(): List<String> {
                     }
 
                     Prim.Comp.DIM -> {
-                        castLaterIfNec(body, instr.outs[0], Types.size) { dest ->
-                            val dim = castIfNec(body, instr.args[1], Types.size)
+                        castLaterIfNec(::newVar, body, instr.outs[0], Types.size) { dest ->
+                            val dim = castIfNec(::newVar, body, instr.args[1], Types.size)
                             body += Inst.memRefDim(
                                 dest = dest.asMLIR(),
                                 memRefType = instr.args[0].type.toMLIR(),
@@ -568,7 +480,7 @@ fun IrBlock.emitMLIR(): List<String> {
 
                     Prim.Comp.RESHAPE_VIEW -> {
                         val sha = argArr(instr.args[0])
-                            .map { castIfNec(body, it, Types.size) }
+                            .map { castIfNec(::newVar, body, it, Types.size) }
 
                         val arr = instr.args[1]
                         val arrTy = arr.type as ArrayType

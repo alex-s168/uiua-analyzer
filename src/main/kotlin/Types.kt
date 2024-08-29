@@ -69,7 +69,7 @@ open class ArrayType(
     }
 
     fun mapShape(fn: (List<Int>) -> List<Int>) =
-        shape.let(fn).shapeToType(inner).copy(vaOff = vaOff)
+        shape.let(fn).shapeToArrType(inner).copy(vaOff = vaOff)
 
     fun mapShapeElems(fn: (Int) -> Int) =
         mapShape { it.map(fn) }
@@ -84,16 +84,16 @@ open class ArrayType(
     }
 
     fun mapInner(fn: (Type) -> Type): ArrayType =
-        shape.shapeToType(fn(inner))
+        shape.shapeToArrType(fn(inner))
 
     fun copyVariableShape(): ArrayType =
-        shape.map { -1 }.shapeToType(inner)
+        shape.map { -1 }.shapeToArrType(inner)
 
     fun combineShape(other: ArrayType): ArrayType =
         shape.zip(other.shape).map { (a, b) ->
             if (a == b) a
             else -1
-        }.shapeToType(inner)
+        }.shapeToArrType(inner)
 
     override fun toString(): String =
         "arr[$of]${length ?: "?"}" + if (vaOff) "vaoff" else ""
@@ -119,7 +119,11 @@ fun List<Int>.shapeCompact(): List<Int> =
 fun List<Int>.shapeEq(other: List<Int>): Boolean =
     this.shapeCompact().contents == other.shapeCompact().contents
 
-fun List<Int>.shapeToType(elem: Type): ArrayType {
+fun List<Int>.shapeToType(elem: Type): Type =
+    if (isEmpty()) elem
+    else shapeToArrType(elem)
+
+fun List<Int>.shapeToArrType(elem: Type): ArrayType {
     val left = toMutableList()
     var arr = Types.array(elem, left.removeLast().let { if (it < 0) null else it })
     while (left.isNotEmpty())
@@ -150,6 +154,10 @@ class AutoByteType: Type("autobyte", listOf()) {
 
 fun Type.makeVaOffIfArray() =
     if (this is ArrayType) this.copy(vaOff = true)
+    else this
+
+fun Type.ofIfArray() =
+    if (this is ArrayType) this.of
     else this
 
 // TODO: USE EVERYWHERE!!!!!!!

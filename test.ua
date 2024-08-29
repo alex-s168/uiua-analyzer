@@ -1,1 +1,1 @@
-÷⟜(⇡↯3) 200
+fn = ( rows(reduce(+)) underpick(mul 2) 0  mul3 )

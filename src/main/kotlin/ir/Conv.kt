@@ -67,7 +67,9 @@ fun Function.toIr(
     name: String
 ): IrBlock {
     val ast = astify(children)
-    require(ast.args == signature.inputs)
+    require(ast.args == signature.inputs) {
+        "mismatched signature  ast args: ${ast.args} ; signature args: ${signature.inputs}"
+    }
 
     val ir = ast.toIr(getFn, putFn, name)
     return ir

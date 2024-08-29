@@ -9,7 +9,7 @@ private fun findBlocks(block: IrBlock, blocks: MutableMap<String, IrBlock>, dest
 
     block.instrs.forEach {
         if (it.instr is PushFnRefInstr) {
-            findBlocks(blocks[it.instr.fn]!!, blocks, dest)
+            findBlocks(blocks[it.instr.fn] ?: return, blocks, dest)
         }
     }
 }

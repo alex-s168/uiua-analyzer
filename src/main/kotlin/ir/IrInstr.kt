@@ -44,7 +44,7 @@ data class IrInstr(
         }
 
         val innerStr = when (instr) {
-            is PrimitiveInstr -> instr.id
+            is PrimitiveInstr -> "${instr.id}${instr.param?.let { "($it)" } ?: ""}"
             is ArrImmInstr -> "arr-make ${instr.values.flatten().contents}"
             is NumImmInstr -> "imm ${instr.value}"
             is PushFnInstr -> "fn-make ${instr.fn}"
@@ -309,23 +309,26 @@ data class IrInstr(
                     }
                 }
 
-                Prim.REDUCE -> {
+                Prim.REDUCE, Prim.Front.REDUCE_DEPTH -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
                     val inp = args[1].type as ArrayType
 
-                    val first = fnblock.expandFor(listOf(inp.of, inp.of), putFn, fillType)
+                    val depth = if (instr.id == Prim.Front.REDUCE_DEPTH) instr.param!! else 0
+                    val inpOf = inp.into(depth + 1)
+
+                    val first = fnblock.expandFor(listOf(inpOf, inpOf), putFn, fillType)
                     val firstb = parent.ref[first]!!
                     val accTy = firstb.rets[0].type
 
                     args[0] = fnRef(first)
 
-                    val all = fnblock.expandFor(listOf(accTy, inp.of), putFn, fillType)
+                    val all = fnblock.expandFor(listOf(accTy, inpOf), putFn, fillType)
                     val allb = parent.ref[all]!!
                     require(allb.rets[0].type == accTy)
 
                     args.add(fnRef(all))
 
-                    updateType(outs[0], accTy)
+                    updateType(outs[0], List(depth){-1}.shapeToType(accTy))
                 }
 
                 Prim.EACH -> {
@@ -449,7 +452,7 @@ data class IrInstr(
                             "length of shape has to be known at comptime!"
                         }
 
-                        val resTy = List(sha.type.length) { -1 }.shapeToType(innerTy)
+                        val resTy = List(sha.type.length) { -1 }.shapeToArrType(innerTy)
                         updateType(outs[0], resTy)
                     }
                     else { // copy the value as rows of new array
@@ -467,7 +470,7 @@ data class IrInstr(
                         "length of shape has to be known at comptime!"
                     }
 
-                    val resTy = List(shaTy.length) { -1 }.shapeToType(Types.int)
+                    val resTy = List(shaTy.length) { -1 }.shapeToArrType(Types.int)
 
                     updateType(outs[0], resTy)
                 }
@@ -480,6 +483,10 @@ data class IrInstr(
                     updateType(outs[0], res)
                 }
             }
+        }
+
+        require(outs.none { it.type == Types.tbd }) {
+            "type not inferred in op: $this"
         }
     }
 

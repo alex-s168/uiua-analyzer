@@ -37,6 +37,10 @@ object Prim {
         val PANIC = prim("cPANIC")
     }
 
+    object Front {
+        val REDUCE_DEPTH = prim("fREDUCE_DEPTH")
+    }
+
     val ADD = prim("ADD")
     val SUB = prim("SUB")
     val MUL = prim("MUL")

@@ -34,6 +34,16 @@ data class Span(
                 Loc.parse(arr[1].arr),
                 Loc.parse(arr[2].arr)
             )
+
+        fun parseNew(str: String): Span {
+            val (_, file, rem) = str.translateEscapes().split('"', limit = 3)
+            val remr = rem.split(' ')
+            return Span(
+                file,
+                Loc.parse(JSON.parse(remr[1])!!.arr),
+                Loc.parse(JSON.parse(remr[2])!!.arr)
+            )
+        }
     }
 }
 
@@ -93,10 +103,11 @@ abstract class Instr
 
 data class PrimitiveInstr(
     var id: String,
-    val loc: SpanRef? = null
+    val loc: SpanRef? = null,
+    val param: Int? = null
 ): Instr() {
     override fun toString(): String =
-        "PrimitiveInstr($id)"
+        "PrimitiveInstr($id:$param)"
 }
 
 abstract class ImmInstr: Instr()
@@ -128,7 +139,7 @@ data class PushFnInstr(
                 listOf(),
                 signature,
                 loc,
-                arr[4].bool
+                if (arr[4].num == 0.0) false else true
             ))
         }
     }

@@ -18,7 +18,7 @@ val lowerPick = withPassArg<(IrBlock) -> Unit>("lower pick") { putBlock ->
         val idc = listOf(at).wrapInArgArray(newVar, put = put)
 
         if (boundsChecking)
-            boundsCheck(a.block, arr, listOf(idc), newVar, putBlock, put)
+            boundsCheck(a.block, arr, listOf(at), newVar, putBlock, put)
 
         put(IrInstr(
             mutableListOf(outs[0]),
