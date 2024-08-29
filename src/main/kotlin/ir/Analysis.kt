@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir
 
+import blitz.Either
 import blitz.collections.contents
 import me.alex_s168.uiua.*
 
@@ -180,6 +181,9 @@ class Analysis(val block: IrBlock) {
                 .map(block.instrs::get)
         }
 
+    fun constNum(v: IrVar) =
+        (origin(v)?.instr as? NumImmInstr)?.value
+
     fun unused(v: IrVar) =
         usages(v).isEmpty()
 
@@ -326,17 +330,29 @@ class Analysis(val block: IrBlock) {
         return all
     }
 
+    fun constShape(arr: IrVar): List<Either<Int, Pair<IrBlock, IrVar>>>? {
+        val (b, shape) = deepOrigin(arr)?.let { (b, v) ->
+            if (Analysis(b).isPrim(v, Prim.Comp.ARR_ALLOC))
+                b to v
+            else null
+        }?.let { (b, a) -> b.instrDeclFor(a.args[0])
+            ?.args
+            ?.let { b to it }
+        } ?: return null
+
+        return shape.map {
+            Analysis(b).deepOrigin(it)
+                ?.let { (_, i) -> if (i.instr is NumImmInstr) Either.ofA(i.instr.value.toInt()) else null }
+                ?: Either.ofB(b to it)
+        }
+    }
+
     companion object {
         val argArrayUsing = mapOf(
             Prim.Comp.ARR_ALLOC to 0,
             Prim.Comp.ARR_STORE to 1,
             Prim.Comp.ARR_LOAD to 1,
             Prim.RESHAPE to 0,
-        )
-
-        val boundChecked = mapOf( // second pair: array idx, idx idx
-            Prim.Comp.ARR_LOAD to (0 to 1),
-            Prim.Comp.ARR_STORE to (0 to 1),
         )
 
         val pervasive = arrayOf(

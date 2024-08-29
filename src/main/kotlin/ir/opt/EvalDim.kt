@@ -1,29 +1,40 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.ArrayType
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.Prim
-import me.alex_s168.uiua.PrimitiveInstr
+import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.optAwayPass
-import me.alex_s168.uiua.ir.transform.unfailure
+import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.transform.comment
+import me.alex_s168.uiua.ir.transform.passValue
 
-val evalDim = optAwayPass(
-    "eval comptime dim",
-    { it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.DIM },
-    { a -> unfailure {
-        val at = args[0].type as ArrayType
-        val i = a.origin(args[1])!!.instr as NumImmInstr
-        at.shape[i.value.toInt()] != -1
-    } }
-) { put, newVar, a ->
-    val at = args[0].type as ArrayType
-    val i = a.origin(args[1])!!.instr as NumImmInstr
-    val si = at.shape[i.value.toInt()]
+val evalDim = Pass<Unit>("evaluate dim") { block, _ ->
+    val a = Analysis(block)
 
-    put(IrInstr(
-        mutableListOf(outs[0]),
-        NumImmInstr(si.toDouble()),
-        mutableListOf()
-    ))
+    block.instrs.forEachIndexed { index, instr ->
+        if (a.isPrim(instr, Prim.Comp.DIM)) {
+            val arr = instr.args[0]
+
+            val dim = a.constNum(instr.args[1])
+                ?.toInt()
+                ?: return@forEachIndexed
+
+            val shapec = a.constShape(arr)
+                ?: return@forEachIndexed
+
+            val res = shapec[dim]
+            res.mapA {
+                block.instrs[index] = IrInstr(
+                    instr.outs,
+                    NumImmInstr(it.toDouble()),
+                    mutableListOf()
+                )
+            }.mapB { bv ->
+                passValue(bv, block)?.let {
+                    a.rename(instr.outs[0], it)
+                    block.instrs[index] = comment("rem")
+                }
+            }
+        }
+    }
 }

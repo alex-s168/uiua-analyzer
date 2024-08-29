@@ -21,12 +21,24 @@ fun loadRes(file: String): String? =
 object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
-    fun below(max: Int) =
-        { block: IrBlock -> block.instrs.size < max }
+    fun lte(max: Int) =
+        { block: IrBlock -> block.instrs.size <= max }
+}
+
+object UnrollLoop {
+    val all = { _: IrBlock, _: Int -> true }
+    fun inlineCfg(i: (IrBlock) -> Boolean) =
+        { block: IrBlock, _: Int -> i(block) }
+    fun lteInlineCfg(maxLoopIters: Int, i: (IrBlock) -> Boolean) =
+        { block: IrBlock, c: Int -> c <= maxLoopIters && i(block) }
+    fun sumLte(max: Int) =
+        { block: IrBlock, c: Int -> block.instrs.size * c <= max }
 }
 
 val inlineConfig = Inline.all
 val unfilledLoadBoundsCheck = false
+val fullUnrollLoop = UnrollLoop.sumLte(64)
+val boundsChecking = true // pick and unpick bounds checking
 
 fun main() {
     val test = loadRes("test.uasm")!!
@@ -90,6 +102,7 @@ fun main() {
 
         fixArgArrays.generic(),
         inlineCUse.generic(),
+        unrollLoop.generic(),
     )
     // lower fill happens here
     val passes2 = listOf(

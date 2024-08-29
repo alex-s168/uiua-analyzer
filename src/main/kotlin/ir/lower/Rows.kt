@@ -85,7 +85,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
 
     val full = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
         // !!! to allocate the array, we first have to run the function once to get the dimension of the inner arrays
-
+        // (only if result is array)
         //   execute iter 0
         //   allocate array
         //   copy result from iter 0 into array
@@ -106,38 +106,53 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
 
         val (zero, one) = constants(::newVar, 0.0, 1.0, type = Types.size) { instrs += it }
 
-        val loadedInputs0 = inputs.map {
-            if (it.type !is ArrayType || it.type.length == 1) {
-                it
-            } else {
-                oneDimFillLoad(fillArg, it, putBlock, ref, ::newVar, zero) { instrs += it }
-            }
-        }
+        val (startAt, shapes, toStoreIter0) = if (outTypes.any { it.of is ArrayType }) {
+            // do iter 0 outside of loop
 
-        val iter0 = outTypes.map { newVar().copy(type = it.of) }
-        instrs += IrInstr(
-            iter0.toMutableList(),
-            PrimitiveInstr(Prim.CALL),
-            mutableListOf(fn).also { it += loadedInputs0 }
-        )
-
-        val shapes = iter0.map { arr ->
-            val shape = mutableListOf(maxInputsLen)
-            if (arr.type is ArrayType) {
-                arr.type.shape.forEachIndexed { index, _ ->
-                    val (x) = constants(::newVar, index.toDouble(), type = Types.size) { instrs += it }
-
-                    val v = newVar().copy(type = Types.size)
-                    instrs += IrInstr(
-                        mutableListOf(v),
-                        PrimitiveInstr(Prim.Comp.DIM),
-                        mutableListOf(arr, x)
-                    )
-                    shape += v
+            val loadedInputs0 = inputs.map {
+                if (it.type !is ArrayType || it.type.length == 1) {
+                    it
+                } else {
+                    oneDimFillLoad(fillArg, it, putBlock, ref, ::newVar, zero) { instrs += it }
                 }
             }
-            shape.wrapInArgArray(::newVar) { instrs += it }
-        }
+
+            val iter0 = outTypes.map { newVar().copy(type = it.of) }
+            instrs += IrInstr(
+                iter0.toMutableList(),
+                PrimitiveInstr(Prim.CALL),
+                mutableListOf(fn).also { it += loadedInputs0 }
+            )
+
+            Triple(
+                one,
+                iter0.map { arr ->
+                    val shape = mutableListOf(maxInputsLen)
+                    if (arr.type is ArrayType) {
+                        arr.type.shape.forEachIndexed { index, _ ->
+                            val (x) = constants(::newVar, index.toDouble(), type = Types.size) { instrs += it }
+
+                            val v = newVar().copy(type = Types.size)
+                            instrs += IrInstr(
+                                mutableListOf(v),
+                                PrimitiveInstr(Prim.Comp.DIM),
+                                mutableListOf(arr, x)
+                            )
+                            shape += v
+                        }
+                    }
+                    shape.wrapInArgArray(::newVar) { instrs += it }
+                },
+                iter0
+            )
+        } else Triple(
+            zero,
+            List(outTypes.size) {
+                val shape = mutableListOf(maxInputsLen)
+                shape.wrapInArgArray(::newVar) { instrs += it }
+            },
+            null
+        )
 
         outputs.zip(shapes).forEach { (arr, sha) ->
             instrs += IrInstr(
@@ -149,7 +164,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
 
         val indc0 = listOf(zero).wrapInArgArray(::newVar) { instrs += it }
 
-        iter0.zip(outputs).forEach { (src, dest) ->
+        toStoreIter0?.zip(outputs)?.forEach { (src, dest) ->
             instrs += IrInstr(
                 mutableListOf(),
                 PrimitiveInstr(Prim.Comp.ARR_STORE),
@@ -205,7 +220,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
         instrs += IrInstr(
             mutableListOf(),
             PrimitiveInstr(Prim.Comp.REPEAT),
-            mutableListOf(one, maxInputsLen, iterFnLoopFn, fn).also {
+            mutableListOf(startAt, maxInputsLen, iterFnLoopFn, fn).also {
                 it += inputs
                 it += outputs
             }

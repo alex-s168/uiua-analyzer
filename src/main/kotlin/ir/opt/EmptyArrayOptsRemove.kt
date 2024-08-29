@@ -70,19 +70,11 @@ val emptyArrayOpsRemove = Pass<(IrBlock) -> Unit>("infer array sizes") { block, 
 
     block.instrs.toList().forEach {
         if (a.isPrim(it, Prim.Comp.ARR_ALLOC)) {
-            val shape = block.instrDeclFor(it.args[0])
-                ?.args
+            val arr = it.outs[0]
+            val shapec = a.constShape(arr)
                 ?: return@forEach
 
-            val shapec = shape.map {
-                a.deepOrigin(it)
-                    ?.let { (_, i) -> if (i.instr is NumImmInstr) Either.ofA(i.instr.value) else null }
-                    ?: Either.ofB(it)
-            }
-
-            val arr = it.outs[0]
-
-            if (shapec.none { it.isA && it.getA() == 0.0 })
+            if (shapec.none { it.isA && it.getA() == 0 })
                 return@forEach
 
             emptyArray(block, arr, putBlock)
