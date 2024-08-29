@@ -12,6 +12,8 @@
 - more opertunities for high-level optimizations
 - uiuac will be able to detect parallelizable loops that take a lot of time to execute and make them execute in multiple threads
 - not limited to CPU: in the future, uiuac will be able to execute code on GPUs and maybe even TT AI accelerators (which have interesting advantages over GPU)
+- absolutely no overhead for calls to native functions (FFI)
+- ability to use code written Uiua as native functions which can be used in almost every programming language (C, Rust, ...)
 
 The main goal of uiuac is to maximize both scalar and vector execution speed to a point where it is comparable to optimized code written in low-level programming languahes
 
