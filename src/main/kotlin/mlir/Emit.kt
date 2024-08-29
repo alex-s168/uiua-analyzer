@@ -316,9 +316,7 @@ fun IrBlock.emitMLIR(): List<String> {
                             *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
                         )
 
-                        val temp2 = newVar().copy(type = type.copyVariableShape().copyType())
-                        subview(::newVar, body, temp2, temp, listOf())
-                        body += "${instr.outs[0].asMLIR()} = memref.cast ${temp2.asMLIR()} : ${temp2.type.toMLIR()} to ${type.toMLIR()}"
+                        body += "${instr.outs[0].asMLIR()} = memref.cast ${temp.asMLIR()} : ${temp.type.toMLIR()} to ${type.toMLIR()}"
                     }
 
                     Prim.Comp.ARR_STORE -> {

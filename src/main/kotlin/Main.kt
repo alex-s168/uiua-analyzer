@@ -116,8 +116,8 @@ fun main() {
 
     // lower fill happens here
     val passes2 = listOf(
-        oneBlockOneCaller.generic(),
-        constantTrace.generic(),
+        //oneBlockOneCaller.generic(),
+        //constantTrace.generic(),
         funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),

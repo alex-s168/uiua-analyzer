@@ -160,10 +160,9 @@ fun Type.ofIfArray() =
     if (this is ArrayType) this.of
     else this
 
-// TODO: USE EVERYWHERE!!!!!!!
+// TODO: don't use
 fun Type.copyType() =
-    if (this is ArrayType && this.vaOff) this.copy(vaOff = false)
-    else this
+    this
 
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
@@ -186,7 +185,7 @@ object Types {
     ) = FnType(fillType, args, rets)
 
     /* array */
-    fun array(of: Type, length: Int? = null, vaOff: Boolean = of is ArrayType) = ArrayType(of, length, vaOff)
+    fun array(of: Type, length: Int? = null, vaOff: Boolean = true) = ArrayType(of, length, vaOff)
 
     /* native */
     fun pointer(to: Type) = PtrType(to)
