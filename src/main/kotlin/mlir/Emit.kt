@@ -444,6 +444,12 @@ fun IrBlock.emitMLIR(): List<String> {
                         }
                     }
 
+                    Prim.Comp.UNDEF -> {
+                        instr.outs.forEach {
+                            body += "${it.asMLIR()} = ub.poison : ${it.type.toMLIR()}"
+                        }
+                    }
+
                     Prim.Comp.SINK -> {
                         // do nothing
                     }

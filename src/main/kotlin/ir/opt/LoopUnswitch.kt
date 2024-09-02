@@ -11,21 +11,23 @@ val loopUnswitch = Pass<Unit>("loop unswitch") { block, _ ->
         if (!a.isPrim(instr, Prim.Comp.REPEAT))
             return@forEach
 
-        val fn = a.function(instr.args[0])
+        val fn = a.function(instr.args[2])
+            ?: return@forEach
+        val fnA = Analysis(fn)
+
+        val switches = fn.instrs.filter { fnA.isPrim(it, Prim.SWITCH) }
+
+        if (switches.isEmpty())
+            return@forEach
+
+        println("almost trailing switch in blk: ${fn.name}")
+
+        val trailing = switches.firstOrNull(fnA::isLast)
             ?: return@forEach
 
-        val switches = fn.instrs.filter { a.isPrim(it, Prim.SWITCH) }
-
-        println("almosst almost")
-
-        if (switches.isEmpty() || switches.size > 1)
-            return@forEach
-
-        println("almost trailing switch")
-
-        if (!Analysis(fn).isLast(switches[0]))
-            return@forEach
-
-        println("trailing switch in ${block.name}")
+        if (trailing.args[2] in fn.args) { // independent from repeat block = in repeat block args
+            println("unswitch in ${block.name}")
+            // TODO
+        }
     }
 }

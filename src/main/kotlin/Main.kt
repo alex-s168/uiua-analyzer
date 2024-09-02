@@ -21,6 +21,22 @@ fun anonFnName(): String =
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
 
+fun <T> Iterable<Iterable<T>>.intersections(dest: MutableList<T> = mutableListOf()): MutableList<T> =
+    reduce { acc, li -> acc.intersect(li) }
+        .forEach { dest += it }
+        .let { dest }
+
+fun <T> Iterable<T>.removeAtIndexes(idc: Iterable<Int>, dest: MutableList<T> = mutableListOf()): MutableList<T> =
+    filterIndexedTo(dest) { index, _ -> index !in idc }
+
+fun <T> List<T>.gather(idc: Iterable<Int>): MutableList<T> {
+    val dest = mutableListOf<T>()
+    idc.forEach {
+        dest += get(it)
+    }
+    return dest
+}
+
 object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
@@ -42,7 +58,8 @@ val inlineConfig = Inline.all
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
-val mlirComments = false
+val mlirComments = true
+val dontCareOpsBeforePanic = true
 
 fun main() {
     val test = loadRes("test.uasm")!!
@@ -116,13 +133,12 @@ fun main() {
         inlineCUse.generic(),
         unrollLoop.generic(),
     )
-    // TODO: fix passes
 
     // lower fill happens here
     val passes2 = listOf(
         oneBlockOneCaller.generic(),
         constantTrace.generic(),
-        funcInline.generic(),
+        //funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         dce.generic(),
@@ -136,14 +152,41 @@ fun main() {
         argRem.generic(),
         switchDependentCodeMovement.generic(),
         oneBlockOneCaller.generic(),
-        //constantTrace.generic(),
-        //funcInline.generic(),
+        constantTrace.generic(),
+        funcInline.generic(),
+        funcInline.generic(),
+        funcInline.generic(),
+        funcInline.generic(),
         switchIndependentTrailingCodeMovement.generic(),
+    )
+    val passes4 = listOf(
+        licm.generic(),
         loopUnswitch.generic(),
         remUnused.generic(),
+        oneBlockOneCaller.generic(),
         emptyArrayOpsRemove.generic(),
         dce.generic(),
         remUnused.generic(),
+    )
+    val passes5 = listOf(
+        funcInline.generic(),
+        dce.generic(),
+        remUnused.generic(),
+        deadRetsRem.generic(),
+        deadRetsRem.generic(),
+        deadRetsRem.generic(),
+        remUnused.generic(),
+        dce.generic(),
+        //identicalSwitchRem.generic(), // TODO: fix
+    )
+
+    val passes6 = listOf(
+        argRem.generic(),
+        remUnused.generic(),
+        dce.generic(),
+        argRem.generic(),
+        remUnused.generic(),
+        dce.generic(),
     )
 
     val compile = File(".out.uac").printWriter().use { file ->
@@ -170,6 +213,9 @@ fun main() {
             apply(passes2)
             dse(expanded, blocks)
             apply(passes3)
+            apply(passes4)
+            apply(passes5)
+            apply(passes6)
             dse(expanded, blocks)
         }
 

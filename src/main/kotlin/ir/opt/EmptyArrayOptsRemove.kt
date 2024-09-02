@@ -1,17 +1,15 @@
 package me.alex_s168.uiua.ir.opt
 
-import blitz.Either
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.ir.*
 
 private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) {
     val a = Analysis(block)
 
     a.usages(arr).forEach {
-        it ?: return@forEach
+        it ?: return@forEach // TODO: emptyArray down (inside->out)
 
         if (a.isPrim(it, Prim.Comp.ARR_COPY)) {
             block.instrs.remove(it)
@@ -45,21 +43,26 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
                 mutableListOf()
             )
         }
-        else if (a.isPrim(it, Prim.Comp.REPEAT)) {
-            val fnref = block.instrDeclFor(it.args[2])
-            block.funDeclFor(it.args[2])?.let { (_, fn) ->
-                val argIdx = it.args.indexOf(arr) - 2
+        else {
+            a.getDeepCalling(it).forEach { fnRef ->
+                var argIdx = it.args.indexOf(arr)
+                if (argIdx == -1) return@forEach // TODO: wtf
+                argIdx -= when ((it.instr as PrimitiveInstr).id) {
+                    Prim.Comp.REPEAT -> 2
+                    Prim.CALL -> 1
+                    Prim.SWITCH -> 3
+                    else -> return@forEach
+                }
 
-                val fn = if (Analysis(fn).callerInstrs().size > 1) {
-                    fn.deepCopy()
-                        .also(putBlock)
-                        .also {
-                            (fnref!!.instr as PushFnRefInstr).fn = it.name
-                        }
-                } else fn
+                a.function(fnRef.get())?.let { fn ->
+                    val fnA = Analysis(fn)
+                    if (fnA.callerInstrs().size > 1)
+                        error("you need to run oneblockonecaller before emptyArrayOpsRemove")
 
-                val arg = fn.args[argIdx]
-                emptyArray(fn, arg, putBlock)
+                    val arg = fn.args[argIdx]
+                    println("tracing empty array from ${block.name} -> ${fn.name}")
+                    emptyArray(fn, arg, putBlock)
+                }
             }
         }
     }
@@ -77,6 +80,7 @@ val emptyArrayOpsRemove = Pass<(IrBlock) -> Unit>("infer array sizes") { block, 
             if (shapec.none { it.isA && it.getA() == 0 })
                 return@forEach
 
+            println("empty array: $arr")
             emptyArray(block, arr, putBlock)
         }
     }

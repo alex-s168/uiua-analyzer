@@ -35,6 +35,7 @@ object Prim {
 
         /** outputs can be anything as program won't continue after this */
         val PANIC = prim("cPANIC")
+        val UNDEF = prim("cUNDEF")
     }
 
     object Front {

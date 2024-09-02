@@ -53,10 +53,17 @@ class Analysis(val block: IrBlock) {
             }
         }
 
-    fun terminating() =
-        block.terminating()
+    fun terminating(): Boolean =
+        block.instrs.any { terminating(it) }
 
-    // TODO: stop using this and use getDeepCalling instead
+    fun terminating(instr: IrInstr) =
+        isPrim(instr, Prim.Comp.PANIC) ||
+        (getDefinetlyCalling(instr)?.all {
+            function(it.get())?.let {
+                Analysis(it).terminating()
+            } ?: false
+        } ?: false)
+
     @Deprecated(
         message = "stupid",
         replaceWith = ReplaceWith("getDeepCalling"),
@@ -72,6 +79,24 @@ class Analysis(val block: IrBlock) {
                 Prim.Comp.REPEAT -> 2
                 Prim.SWITCH -> 1
                 Prim.FILL -> 1
+                else -> null
+            }
+            else -> null
+        }
+
+    fun getDefinetlyCalling(instr: IrInstr): List<VarRef>? =
+        when (instr.instr) {
+            is PrimitiveInstr -> when (instr.instr.id) {
+                Prim.CALL -> listOf(VarRef.ofListElem(instr.args, 0))
+
+                Prim.SWITCH -> origin(instr.args[1])!!.args
+                    .let { li -> List(li.size) { i ->
+                        VarRef.ofListElem(li, i) } }
+
+                Prim.FILL -> instr.args
+                    .let { li -> (0..<1).map {
+                        VarRef.ofListElem(li, it) } }
+
                 else -> null
             }
             else -> null
@@ -123,35 +148,57 @@ class Analysis(val block: IrBlock) {
         return res
     }
 
-    fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? {
-        origin(v)?.let { return this.block to it }
+    fun deepOriginV2(v: IrVar): Either<Pair<IrBlock, IrInstr>, Double>? {
+        origin(v)?.let {
+            if (it.instr is NumImmInstr)
+                return Either.ofB(it.instr.value)
+            return Either.ofA(this.block to it)
+        }
 
         if (v in block.args) {
             val idx = block.args.indexOf(v)
 
-            callerInstrs().forEach { (block, instr) ->
-                val a = Analysis(block)
+            callerInstrs().forEach { (callBlock, instr) ->
+                val a = Analysis(callBlock)
 
                 if (isPrim(instr, Prim.CALL)) {
-                    a.deepOrigin(instr.args[idx + 1])?.let { return it }
+                    a.deepOriginV2(instr.args[idx + 1])?.let { return it }
                 }
 
                 else if (isPrim(instr, Prim.SWITCH)) {
-                    a.deepOrigin(instr.args[idx + 3])?.let { return it }
+                    val ar = instr.args[idx + 3]
+
+                    if (ar == instr.args[2]) { // identical to on param
+                        val switchIdx = a.origin(instr.args[1])
+                            ?.args
+                            ?.map(a::function)
+                            ?.indexOf(block)
+                            ?: -1
+
+                        if (switchIdx != -1) {
+                            val from = a.origin(instr.args[0])!!.args[switchIdx]
+                            a.deepOriginV2(from)?.let { return it }
+                        }
+                    }
+
+                    a.deepOriginV2(ar)?.let { return it }
                 }
 
-                else if (isPrim(instr, Prim.Comp.REPEAT)) {
-                    a.deepOrigin(instr.args[idx + 2])?.let { return it } // +3 -1  (-1 bc takes counter)
+                else if (isPrim(instr, Prim.Comp.REPEAT) && idx != 0) { // can't trace counter
+                    a.deepOriginV2(instr.args[idx + 2])?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
                 else if (isPrim(instr, Prim.FILL)) {
-                    a.deepOrigin(instr.args[idx + 2])?.let { return it }
+                    a.deepOriginV2(instr.args[idx + 2])?.let { return it }
                 }
             }
         }
 
         return null
     }
+
+    fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? =
+        deepOriginV2(v)?.getAOrNull()
 
     fun trace(v: IrVar, fn: (block: IrBlock, instr: IrInstr, v: IrVar) -> Unit) {
         usages(v).forEach {
@@ -198,13 +245,13 @@ class Analysis(val block: IrBlock) {
     fun rename(from: IrVar, to: IrVar) =
         block.updateVar(from, to)
 
-    inline fun transform(
+    inline fun <R> transform(
         onIn: List<IrInstr>,
-        crossinline each: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar) -> Unit
-    ) {
+        crossinline each: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar) -> R
+    ): List<R> {
         val pre = block.instrs.toMutableList()
         val on = if (onIn === block.instrs) onIn.toList() else onIn
-        on.forEach {
+        val res = on.map {
             var idx = block.instrs.indexOf(it)
             block.instrs.removeAt(idx)
 
@@ -216,10 +263,11 @@ class Analysis(val block: IrBlock) {
                 block.instrs.addAll(pre)
                 println("(restored pre transform state; indecies in further error messages might be off)")
                 throw err
-            }
+            }.getOrThrow()
         }
         added.addAll(block.instrs - pre)
         removed.addAll(pre - block.instrs)
+        return res
     }
 
     fun finish(dbgName: String) {
@@ -338,6 +386,24 @@ class Analysis(val block: IrBlock) {
         return all
     }
 
+    private fun recDependenciesImpl(block: List<IrInstr>, vars: MutableSet<IrVar>, instrs: MutableSet<IrInstr>) {
+        allDependencies(block).forEach {
+            vars += it
+            origin(it)?.let {
+                if (it !in instrs) {
+                    recDependenciesImpl(listOf(it), vars, instrs)
+                }
+            }
+        }
+    }
+
+    fun recDependencies(block: List<IrInstr>): Pair<Set<IrVar>, Set<IrInstr>> {
+        val a = mutableSetOf<IrVar>()
+        val b = mutableSetOf<IrInstr>()
+        recDependenciesImpl(block, a, b)
+        return a to b
+    }
+
     fun constShape(arr: IrVar): List<Either<Int, Pair<IrBlock, IrVar>>>? {
         val (b, shape) = deepOrigin(arr)?.let { (b, v) ->
             if (Analysis(b).isPrim(v, Prim.Comp.ARR_ALLOC))
@@ -349,11 +415,31 @@ class Analysis(val block: IrBlock) {
         } ?: return null
 
         return shape.map {
-            Analysis(b).deepOrigin(it)
-                ?.let { (_, i) -> if (i.instr is NumImmInstr) Either.ofA(i.instr.value.toInt()) else null }
+            Analysis(b).deepOriginV2(it)
+                ?.getBOrNull()?.toInt()?.let { Either.ofA(it) }
                 ?: Either.ofB(b to it)
         }
     }
+
+    fun isConstant(instr: IrInstr) =
+        when (instr.instr) {
+            is PushFnRefInstr,
+            is NumImmInstr,
+            is ArrImmInstr -> true
+
+            else -> false
+        }
+
+    fun independentOfArrayData(instr: IrInstr) =
+        when (instr.instr) {
+            is PrimitiveInstr -> instr.instr.id in independentOfArrayData
+
+            is PushFnRefInstr,
+            is NumImmInstr,
+            is ArrImmInstr -> true
+
+            else -> false
+        }
 
     companion object {
         val argArrayUsing = mapOf(
@@ -372,6 +458,45 @@ class Analysis(val block: IrBlock) {
             Prim.EQ,
             Prim.POW
         )
+
+        val independentOfArrayData = arrayOf(
+            Prim.Comp.DIM,
+            Prim.ADD,
+            Prim.SUB,
+            Prim.MUL,
+            Prim.DIV,
+            Prim.POW,
+            Prim.MAX,
+            Prim.LT,
+            Prim.EQ,
+        )
+
+        fun blocksEqual(block1: IrBlock, block2: IrBlock): Boolean {
+            if (block1.args.size != block2.args.size)
+                return false
+
+            val variables = block1.args
+                .mapIndexed { index, irVar -> IrVar(id = index.toULong(), type = irVar.type) }
+
+            val ib1 = block1.instrs.map{it}
+            block1.args.zip(variables).forEach { (old, new) ->
+                ib1.forEach { it.updateVar(old, new) }
+            }
+
+            val ib2 = block2.instrs.map{it}
+            block2.args.zip(variables).forEach { (old, new) ->
+                ib2.forEach { it.updateVar(old, new) }
+            }
+
+            if (ib1.size != ib2.size)
+                return false
+
+            return ib1.zip(ib2).all { (i1, i2) ->
+                i1.args.contents == i2.args.contents &&
+                i1.outs.contents == i2.outs.contents &&
+                i1.instr == i2.instr
+            }
+        }
     }
 }
 

@@ -43,6 +43,9 @@ data class IrBlock(
         rets.updateVar(old, new)
         instrs.forEach {
             it.updateVar(old, new)
+            if (it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.ARG_ARR && it.args.any { it == new }) {
+                updateVar(it.outs[0], it.outs[0].copy(type = Types.array(it.args[0].type, it.args.size)))
+            }
         }
         if (fillArg == old)
             fillArg = new
@@ -57,9 +60,6 @@ data class IrBlock(
             ref[a.fn]?.let { a.fn to it }
         }
     }
-
-    fun terminating(): Boolean =
-        instrs.any { it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.PANIC }
 
     fun varUsed(variable: IrVar): Boolean =
         if (variable in rets) true
