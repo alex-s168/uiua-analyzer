@@ -5,12 +5,7 @@ import blitz.getBAOrNull
 import blitz.getBBOrNull
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.Function
-import me.alex_s168.uiua.ast.ASTRoot
-import me.alex_s168.uiua.ast.AstNode
-import me.alex_s168.uiua.ast.astify
-import me.alex_s168.uiua.ast.printAst
-import kotlin.random.Random
-import kotlin.random.nextULong
+import me.alex_s168.uiua.ast.*
 
 fun List<AstNode>.toIr(tbCorr: MutableList<Pair<AstNode, IrVar>>, putAnonFn: (Function) -> String, blockArgs: List<IrVar>, instrs: MutableList<IrInstr>, newVar: Provider<IrVar>): List<IrVar> {
     val vars = List(size) { newVar() }
@@ -72,6 +67,25 @@ fun Function.toIr(
     }
 
     val ir = ast.toIr(getFn, putFn, name)
+
+    if (additionalDebugInstrs) {
+        ir.instrs = ir.instrs.flatMapTo(mutableListOf()) { inst ->
+            val idx = if (inst.instr is PrimitiveInstr) inst.instr.loc?.index
+            else null
+
+            idx?.let {
+                listOf(
+                    IrInstr(
+                        mutableListOf(),
+                        SourceLocInstr(it),
+                        mutableListOf()
+                    ),
+                    inst
+                )
+            } ?: listOf(inst)
+        }
+    }
+
     return ir
 }
 

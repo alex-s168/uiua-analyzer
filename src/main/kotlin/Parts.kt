@@ -49,11 +49,8 @@ data class Span(
 
 @JvmInline
 value class SpanRef(
-    val index: Int
+    val index: List<Int>
 ) {
-    fun resolve(asm: Assembly): Span =
-        asm.spans[index]
-
     override fun toString(): String =
         "SpanRef"
 }
@@ -103,7 +100,7 @@ abstract class Instr
 
 data class PrimitiveInstr(
     var id: String,
-    val loc: SpanRef? = null,
+    var loc: SpanRef? = null,
     val param: Int? = null
 ): Instr() {
     override fun toString(): String =
@@ -165,4 +162,8 @@ data class CommentInstr(
 
 data class FlagInstr(
     val flag: String
+): Instr()
+
+data class SourceLocInstr(
+    val uasmSpanIdc: List<Int>,
 ): Instr()

@@ -28,7 +28,7 @@ object UARuntime {
 
     val panic = Func(
         "_\$_rt_panic",
-        Types.func(listOf(Types.int, Types.int), listOf())
+        Types.func(listOf(Types.int, Types.int, Types.int, Types.int), listOf())
     )
 
     val time = Func(

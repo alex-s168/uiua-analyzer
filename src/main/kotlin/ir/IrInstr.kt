@@ -44,13 +44,14 @@ data class IrInstr(
         }
 
         val innerStr = when (instr) {
-            is PrimitiveInstr -> "${instr.id}${instr.param?.let { "($it)" } ?: ""}"
+            is PrimitiveInstr -> "${instr.id}${instr.param?.let { "($it)" } ?: ""}${ (if (uacPrintSpans) instr.loc?.index?.contents?.let { "@$it" } else null) ?: "" }"
             is ArrImmInstr -> "arr-make ${instr.values.flatten().contents}"
             is NumImmInstr -> "imm ${instr.value}"
             is PushFnInstr -> "fn-make ${instr.fn}"
             is CommentInstr -> "# ${instr.comment}"
             is FlagInstr -> "flag ${instr.flag}"
             is PushFnRefInstr -> "fn ${instr.fn}"
+            is SourceLocInstr -> "debug ${instr.uasmSpanIdc.contents}"
             else -> instr::class.simpleName
         }
         res.append(innerStr)
@@ -487,6 +488,10 @@ data class IrInstr(
                     val res = highestShapeType(arg0, arg1)
                     updateType(outs[0], res)
                 }
+            }
+
+            is SourceLocInstr -> {
+                require(outs.size == 0)
             }
         }
 

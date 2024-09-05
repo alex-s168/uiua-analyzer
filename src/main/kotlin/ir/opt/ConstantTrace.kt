@@ -51,7 +51,6 @@ val constantTrace = Pass<Unit>("const trace") { block, _ ->
         var instr = instr
         instr.args.forEachIndexed { argIdx, arg ->
             if (arg in block.args) {
-                println("constrace in block ${block.name} instr: $instr")
                 constTrace(a, arg, instr, arg.type, argIdx)?.let {
                     instr = it
                 }

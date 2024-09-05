@@ -30,6 +30,20 @@ data class ASTRoot(
     val flagsAndComments: MutableList<Instr> = mutableListOf(),
 )
 
+fun AstNode.flatten(): List<AstNode> {
+    return if (value.isA) {
+        value.getA().children.flatMap { it.flatten() } + this
+    } else {
+        val b = value.getB()
+        if (b.isA) {
+            listOf(this)
+        }
+        else {
+            b.getB().of.flatten() + this
+        }
+    }
+}
+
 fun List<AstNode>.printAst(indent: Int = 0) {
     forEach { node ->
         node.flagsAndComments.forEach {

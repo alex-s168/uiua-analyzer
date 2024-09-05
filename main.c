@@ -79,6 +79,107 @@ GenArrType(1, size_t)
 GenExtendScalar(size_t, size)
 GenExtendRepeat(size_t, size)
 
+typedef struct {
+    size_t line;
+    size_t col;
+    size_t bytePos;
+    size_t charPos;
+} __attribute__((packed)) UasmLoc;
+
+typedef struct {
+    size_t  sourceFileId;
+    UasmLoc begin;
+    UasmLoc end;
+} __attribute__((packed)) UasmSpan;
+
+typedef struct {
+    size_t fileNameByteLen; // with nt
+    size_t sourceByteLen;   // with nt
+} __attribute__((packed)) UasmSource;
+
+typedef struct {
+    size_t absOffsetOfSpans;
+    size_t sourcesLen;
+} __attribute__((packed)) UasmHeader;
+
+extern char * debugInformation;
+
+#define GetUasmHeaderp ((UasmHeader*) (void*) debugInformation)
+
+static const char * GetUasmSourceFileName(UasmSource* source) {
+    char* bptr = ((char*) (void*) source) + sizeof(UasmSource);
+    return bptr;
+}
+
+static const char * GetUasmSourceContents(UasmSource* source) {
+    char* bptr = ((char*) (void*) source) + sizeof(UasmSource);
+    return bptr + source->fileNameByteLen;
+}
+
+static UasmSource* GetUasmSource(size_t id) {
+    UasmHeader* header = GetUasmHeaderp();
+    if (id >= header->sourcesLen)
+        return NULL;
+
+    char* ptr = ((char*) (void*) header) + sizeof(UasmHeader);
+    for (size_t i = 0; i < id; i ++) {
+        UasmSource* src = (UasmSource*) (void*) ptr;
+        ptr += sizeof(UasmSource);
+        ptr += src->fileNameByteLen;
+        ptr += src->sourceByteLen;
+    }
+
+    UasmSource* src = (UasmSource*) (void*) ptr;
+
+    return src;
+}
+
+static UasmSpan* GetUasmSpan(size_t id) {
+    UasmHeader* header = GetUasmHeaderp();
+    UasmSpan* spansBegin = ((char*) (void*) header) + header.absOffsetOfSpans;
+    return spansBegin[id];
+}
+
+static void PrintSpan(size_t id) {
+    UasmSpan* span = GetUasmSpan(id);
+    UasmSource* src = GetUasmSource(span->sourceFileId);
+    const char * fileName = GetUasmSourceFileName(src);
+    const char * source = GetUasmSourceContents(src);
+
+    fprintf(stderr, "In file %s (line: %zu, column: %zu):\n", fileName, span->begin.line, span->begin.col);
+    // TODO: offset to begin line and print till end line, marking only chars in span
+}
+
+__attribute__ ((noreturn))
+extern void _$_rt_panic(int64_t block, int64_t inst, int64_t dbgBefore, int64_t dbgAfter) {
+    if (dbgBefore == -1)
+        dbgBefore = dbgAfter;
+
+    int64_t guessed = -1;
+    bool inaccurate = false;
+    if (dbgBefore == -1) {
+        fprintf(stderr, "Runtime panic in compiled code without source location");
+    }
+    else if (dbgBefore == dbgAfter) {
+        fprintf(stderr, "Runtime panic in compiled code in code span %llu", dbgBefore);
+        guessed = dbgBefore;
+    }
+    else {
+        fprintf(stderr, "Runtime panic in compiled code between code span %llu and code span %llz", dbgBefore, dbgAfter);
+        guessed = dbgBefore;
+        inaccurate = true;
+    }
+
+    fprintf(stderr, "! uiuac IR location: [%llu, %llu]\n", block, inst);
+
+    if (inaccurate) {
+        fprintf(stderr, "(warning: might be inaccurate!)\n");
+    }
+    PrintSpan(guessed);
+
+    exit(1);
+    for(;;);
+}
 
 GenArrType(2, int64_t)
 

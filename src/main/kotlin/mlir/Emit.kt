@@ -12,7 +12,7 @@ fun IrVar.asMLIR(): MLIRVar =
 
 private val knowFns = mutableMapOf<IrVar, IrBlock>()
 
-fun IrBlock.emitMLIR(): List<String> {
+fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<String> {
     val body = mutableListOf<String>()
 
     fun IrInstr.binary(
@@ -37,7 +37,7 @@ fun IrBlock.emitMLIR(): List<String> {
             val res = mutableListOf<String>()
             if (mlirComments)
                 res += "// Inlined ${fn.name} (${args.contents}) -> (${dests.contents})"
-            res.addAll(toInline.emitMLIR())
+            res.addAll(toInline.emitMLIR(dbgInfoConsumer))
             return res
         }
 
@@ -169,6 +169,10 @@ fun IrBlock.emitMLIR(): List<String> {
                         fn = "@$fn",
                         fnType = instr.outs[0].type.toMLIR()
                     )
+                }
+
+                is SourceLocInstr -> {
+                    body += dbgInfoConsumer(instr.instr)
                 }
 
                 is PrimitiveInstr -> when (instr.instr.id) {
@@ -450,11 +454,33 @@ fun IrBlock.emitMLIR(): List<String> {
                         val idInst = newVar().asMLIR()
                         body += Inst.constant(idInst, "i64", instrs.indexOf(instr).toString())
 
+                        val (before, after) = if (instr.instr.loc == null) {
+                            listOf(instrs.before(idx), instrs.after(idx))
+                                .map {
+                                    it
+                                    .reversed()
+                                    .firstOrNull { it.instr is PrimitiveInstr && it.instr.loc != null }
+                                    ?.let { (it.instr as PrimitiveInstr).loc!!.index }
+                                    ?.first()
+                                    ?.toString()
+                                    ?: "-1"
+                                }
+                        } else {
+                            instr.instr.loc!!.index
+                                .let { listOf(it.min().toString(), it.max().toString()) }
+                        }
+
+                        val vbefore = newVar().asMLIR()
+                        body += Inst.constant(vbefore, "i64", before)
+
+                        val vafter = newVar().asMLIR()
+                        body += Inst.constant(vafter, "i64", after)
+
                         body += Inst.funcCall(
                             dests = listOf(),
                             UARuntime.panic.name,
                             UARuntime.panic.type.toMLIR(),
-                            idBlock, idInst
+                            idBlock, idInst, vbefore, vafter
                         )
 
                         instr.outs.forEach {

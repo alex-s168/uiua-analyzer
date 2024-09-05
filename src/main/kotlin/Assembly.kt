@@ -48,7 +48,7 @@ data class Assembly(
                         when (kind.drop(1).dropLast(1)) {
                             "REDUCE_DEPTH" -> {
                                 val depth = value.toInt()
-                                PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(loc.toInt()), depth)
+                                PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
                             }
 
                             else -> error("unsupported $kind")
@@ -100,7 +100,7 @@ data class Assembly(
                     else {
                         kotlin.runCatching {
                             val (id, loc) = instr.split(' ')
-                            PrimitiveInstr(id, SpanRef(loc.toInt()))
+                            PrimitiveInstr(id, SpanRef(listOf(loc.toInt())))
                         }.getOrElse {
                             NumImmInstr(instr.toDouble())
                         }

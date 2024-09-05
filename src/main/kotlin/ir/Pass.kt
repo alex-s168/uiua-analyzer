@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir
 
 import me.alex_s168.uiua.PrimitiveInstr
+import me.alex_s168.uiua.SpanRef
 import me.alex_s168.uiua.ir.transform.comment
 
 
@@ -14,6 +15,15 @@ inline fun IrBlock.lowerPass(
         put(comment("+++ $this"))
         block(this, put, newVar, a)
         put(comment("--- $this"))
+    }
+    val locs = a.removed.mapNotNull {
+        if (it.instr is PrimitiveInstr) it.instr.loc?.index
+        else null
+    }.flatten()
+    a.added.forEach {
+        if (it.instr is PrimitiveInstr && it.instr.loc == null) {
+            it.instr.loc = SpanRef(locs)
+        }
     }
     a.finish(name)
 }

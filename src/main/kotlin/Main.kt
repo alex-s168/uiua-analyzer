@@ -37,6 +37,12 @@ fun <T> List<T>.gather(idc: Iterable<Int>): MutableList<T> {
     return dest
 }
 
+fun <T> List<T>.before(idx: Int): List<T> =
+    take(idx)
+
+fun <T> List<T>.after(idx: Int): List<T> =
+    drop(idx + 1)
+
 object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
@@ -60,6 +66,8 @@ val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
 val mlirComments = true
 val dontCareOpsBeforePanic = true
+val additionalDebugInstrs = false // don't really work
+val uacPrintSpans = true
 
 fun main() {
     val test = loadRes("test.uasm")!!
@@ -237,8 +245,13 @@ fun main() {
     out.append(loadRes("runtime.mlir")!!)
     out.append("\n\n")
 
-    compile.forEach {
-        out.append(it.emitMLIRFinalize(it.emitMLIR()))
+    compile.forEach { block ->
+        out.append(block.emitMLIRFinalize(block.emitMLIR { loc ->
+            listOf(assembly.spans
+                .gather(loc.uasmSpanIdc)
+                .joinToString()
+                .let { "// source: $it" })
+        }))
         out.append("\n\n")
     }
 
@@ -255,19 +268,8 @@ fun main() {
     val llvmLower = true
     val enableBufferDealloc = false
 
-    // TODO: remove fill emit logic
+    // TODO: remove fill emit logic in emit mlir
 
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, canonicalize, loop-invariant-code-motion, control-flow-sink, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-parallel, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, canonicalize, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, convert-to-llvm, canonicalize, reconcile-unrealized-casts)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, scf-forall-to-for, canonicalize, control-flow-sink)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, scf-for-loop-specialization, scf-forall-to-parallel, canonicalize, control-flow-sink, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, convert-to-llvm, reconcile-unrealized-casts)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, control-flow-sink, inline, canonicalize, loop-invariant-code-motion, scf-for-loop-specialization, scf-forall-to-parallel, canonicalize, control-flow-sink)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), inline, sccp, sroa, inline, sccp, control-flow-sink, one-shot-bufferize, ownership-based-buffer-deallocation, inline, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, sccp, sroa, inline, convert-tensor-to-linalg, convert-linalg-to-affine-loops, func.func(affine-parallelize, affine-loop-fusion, affine-loop-invariant-code-motion, affine-loop-tile, affine-super-vectorize, affine-loop-unroll, affine-scalrep), lower-affine, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, convert-to-llvm, reconcile-unrealized-casts)"
-    // --pass-pipeline=builtin.module(func(cse, canonicalize), inline, sccp, sroa, one-shot-bufferize, convert-bufferization-to-memref, convert-tensor-to-linalg, convert-linalg-to-affine-loops, func.func(affine-parallelize), affine-loop-fusion, func.func(affine-loop-invariant-code-motion, affine-loop-tile, affine-super-vectorize, affine-loop-unroll, affine-scalrep), lower-affine, async-parallel-for, convert-scf-to-cf, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma,$llvmLowerStr reconcile-unrealized-casts)
-
-    // -pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), buffer-deallocation-simplification, func.func(buffer-loop-hoisting), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, canonicalize, loop-invariant-code-motion, control-flow-sink, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, ownership-based-buffer-deallocation, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), buffer-deallocation-simplification, func.func(buffer-loop-hoisting), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
-    // --pass-pipeline="builtin.module(func(cse, canonicalize), sccp, sroa, inline, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ownership-based-buffer-deallocation, buffer-deallocation-simplification, func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
     val bufferDealloc = if (enableBufferDealloc) "ownership-based-buffer-deallocation, buffer-deallocation-simplification, " else ""
     val mlirPipeline = if (llvmLower) "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
     else "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize)"
