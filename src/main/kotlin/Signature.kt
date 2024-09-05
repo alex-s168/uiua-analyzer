@@ -74,6 +74,7 @@ internal fun signature(
         Prim.UN_SHAPE -> Signature(1, 1)
         Prim.NOW -> Signature(0, 1)
         Prim.JOIN -> Signature(2, 1)
+        Prim.DESHAPE -> Signature(1, 1)
 
         else -> error("Unknown primitive instruction ${instr.id}!")
     }

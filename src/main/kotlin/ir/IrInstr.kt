@@ -200,6 +200,11 @@ data class IrInstr(
                     updateType(outs[0], Types.size)
                 }
 
+                Prim.DESHAPE -> {
+                    val arrTy = args[0].type as ArrayType
+                    updateType(outs[0], Types.array(arrTy.inner))
+                }
+
                 Prim.CALL -> {
                     val (_, fn) = parent.funDeclFor(args[0])!!
                     val callArgs = args.drop(1)

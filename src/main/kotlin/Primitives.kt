@@ -33,8 +33,12 @@ object Prim {
 
         val RESHAPE_VIEW = prim("cRESHAPE_VIEW") // [sha], [arr]
 
+        val RT_EXTEND_SCALAR = prim("cRT_EXTEND_SCALAR") // [base], [targetLen], [fillWith]
+        val RT_EXTEND_REPEAT = prim("cRT_EXTEND_REPEAT") // [base], [targetLen], [extendWithRep]
+
         /** outputs can be anything as program won't continue after this */
         val PANIC = prim("cPANIC")
+
         val UNDEF = prim("cUNDEF")
     }
 
@@ -81,6 +85,7 @@ object Prim {
     val WHERE = prim("WHERE")
     val NOW = prim("NOW")
     val JOIN = prim("JOIN")
+    val DESHAPE = prim("DESHAPE")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

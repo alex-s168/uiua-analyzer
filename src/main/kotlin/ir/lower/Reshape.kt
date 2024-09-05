@@ -1,11 +1,12 @@
 package me.alex_s168.uiua.ir.lower
 
-import blitz.collections.contents
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.transform.constants
+import me.alex_s168.uiua.ir.transform.reduce
+import me.alex_s168.uiua.ir.transform.switch
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 import me.alex_s168.uiua.ir.withPassArg
 
@@ -71,19 +72,120 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             ))
         }
         else {
-            val newShape = a.origin(args[0])!!.args.toList()
+            val newShape = args[0]
+            // val newShapeV = a.origin(args[0])!!.args.toList()
             val oldValue = args[1]
 
-            // if have too many elems
+            val matNewShape = newVar().copy(type = newShape.type)
+            put(IrInstr(
+                mutableListOf(matNewShape),
+                PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
+                mutableListOf(newShape)
+            ))
+
+            val des = newVar().copy(type = Types.array((oldValue.type as ArrayType).inner))
+            put(IrInstr(
+                mutableListOf(des),
+                PrimitiveInstr(Prim.DESHAPE),
+                mutableListOf(oldValue)
+            ))
+
+            val newShapeMul = reduce(matNewShape, put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
+                instrs += IrInstr(
+                    mutableListOf(res),
+                    PrimitiveInstr(Prim.MUL),
+                    mutableListOf(a, b)
+                )
+            }
+
+            val desLen = newVar().copy(type = Types.size)
+            put(IrInstr(
+                mutableListOf(desLen),
+                PrimitiveInstr(Prim.LEN),
+                mutableListOf(des)
+            ))
+
+            // if desLen > newShapeMul
             //  truncate
             //
-            // if have too few elems:
+            // if desLen < newShapeMul
             //  if have fill value:
             //   use fill value to extend
             //  else:
             //   cycle trough old values
 
-            TODO("not implemented yet")
+            val bool = newVar().copy(type = Types.bool)
+            put(IrInstr(
+                mutableListOf(bool),
+                PrimitiveInstr(Prim.LT),
+                mutableListOf(desLen, newShapeMul)
+            ))
+
+            // also gets executed if equal sizes
+            val blkTrunc = IrBlock(anonFnName(), a.block.ref).apply {
+                fillArg = a.block.fillArg?.let { newVar().copy(type = it.type) }
+                val newShapeMul = newVar().copy(type = newShapeMul.type).also(args::add)
+                val desLen = newVar().copy(type = desLen.type).also(args::add)
+                val des = newVar().copy(type = des.type).also(args::add)
+
+                val correctSizeArr = newVar().copy(type = des.type).also(rets::add)
+
+                // allocating here because in blkExtend a new array is allocated too
+                instrs += IrInstr(
+                    mutableListOf(correctSizeArr),
+                    PrimitiveInstr(Prim.Comp.ARR_CLONE),
+                    mutableListOf(des)
+                )
+
+                putBlock(this)
+            }
+
+            val blkExtend = IrBlock(anonFnName(), a.block.ref).apply {
+                fillArg = a.block.fillArg?.let { newVar().copy(type = it.type) }
+                val newShapeMul = newVar().copy(type = newShapeMul.type).also(args::add)
+                val desLen = newVar().copy(type = desLen.type).also(args::add)
+                val des = newVar().copy(type = des.type).also(args::add)
+
+                val correctSizeArr = newVar().copy(type = des.type).also(rets::add)
+
+                if (fillArg != null) {
+                    instrs += IrInstr(
+                        mutableListOf(correctSizeArr),
+                        PrimitiveInstr(Prim.Comp.RT_EXTEND_SCALAR), // TODO: move reshape<scalar> into own primitive and use that + some arr copies
+                        mutableListOf(des, newShapeMul, fillArg!!)
+                    )
+                }
+                else {
+                    instrs += IrInstr(
+                        mutableListOf(correctSizeArr),
+                        PrimitiveInstr(Prim.Comp.RT_EXTEND_REPEAT),
+                        mutableListOf(des, newShapeMul, des)
+                    )
+                }
+
+                putBlock(this)
+            }
+
+            // des is a copy of the input array already, no need for extra copy
+
+            val correctSizeArr = newVar().copy(type = des.type)
+
+            val (zero, one) = constants(newVar, 0.0, 1.0, type = Types.bool, put = put)
+            switch(
+                dest = listOf(correctSizeArr),
+                newVar = newVar,
+                on = bool,
+                inputs = listOf(newShapeMul, desLen, des),
+                zero to blkTrunc,
+                one to blkExtend,
+                put = put,
+            )
+
+            put(IrInstr(
+                mutableListOf(outs[0]),
+                PrimitiveInstr(Prim.Comp.RESHAPE_VIEW),
+                mutableListOf(newShape, correctSizeArr)
+            ))
         }
     }
 }

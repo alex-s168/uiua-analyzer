@@ -95,6 +95,7 @@ fun main() {
         remUnused.generic(),
         lowerPervasive.generic(),
         lowerUnShape.generic(),
+        lowerReshape.generic(),
         lowerEach.generic(),
         lowerTable.generic(),
         lowerRows.generic(),
@@ -113,7 +114,7 @@ fun main() {
         lowerBoxStore.generic(),
         lowerBoxCreate.generic(),
         lowerBoxDestroy.generic(),
-        lowerReshape.generic(),
+        lowerDeshape.generic(),
 
         fixArgArrays.generic(),
         inlineCUse.generic(),

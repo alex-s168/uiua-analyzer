@@ -425,6 +425,24 @@ fun IrBlock.emitMLIR(): List<String> {
                         )
                     }
 
+                    Prim.Comp.RT_EXTEND_SCALAR -> {
+                        val fn = UARuntime.extendScalar(args.map { it.type })
+                        body += Inst.funcCall(
+                            dests = instr.outs.map { it.asMLIR() },
+                            fn.name,
+                            fn.type.toMLIR(),
+                        )
+                    }
+
+                    Prim.Comp.RT_EXTEND_REPEAT -> {
+                        val fn = UARuntime.extendRepeat(args.map { it.type })
+                        body += Inst.funcCall(
+                            dests = instr.outs.map { it.asMLIR() },
+                            fn.name,
+                            fn.type.toMLIR(),
+                        )
+                    }
+
                     Prim.Comp.PANIC -> {
                         val idBlock = newVar().asMLIR()
                         body += Inst.constant(idBlock, "i64", uid.toString())
