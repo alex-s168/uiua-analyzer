@@ -1,0 +1,12 @@
+[package]
+name = "rustrt"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rustrt"
+crate-type = ["staticlib"]
+
+[dependencies]
+ecow = "0.2.2"
+uiua = "0.12.3"
