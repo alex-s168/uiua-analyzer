@@ -1,6 +1,8 @@
 # Uiua Compiler
 [Uiua](https://uiua.org) native compiler using MLIR and LLVM
 
+uiuac development gets discussed on the [Uiua Discord server](https://discord.gg/FKJPwHxM), in [this thread](https://discord.com/channels/1156339038748413952/1247846178645872661).
+
 ## Advantages
 - no interpreter overhead (variables, op execution, error & type checking)
 - less memory and memory allocations required (because smaller element types in arrays can be used and array allocations are optimized away in most cases)
