@@ -71,6 +71,8 @@ val dontCareOpsBeforePanic = true
 val additionalDebugInstrs = false // don't really work
 val uacPrintSpans = true
 
+// TODO: don't use scf.parallel if it can't safely be executed in parallel
+
 fun main() {
     val test = loadRes("test.uasm")!!
     val assembly = Assembly.parse(test)
@@ -276,7 +278,7 @@ fun main() {
     val llvmLower = true
     val enableBufferDealloc = false
 
-    // TODO: remove fill emit logic in emit mlir
+    // TODO: remove fill emit logic
 
     val bufferDealloc = if (enableBufferDealloc) "ownership-based-buffer-deallocation, buffer-deallocation-simplification, " else ""
     val mlirPipeline = if (llvmLower) "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"

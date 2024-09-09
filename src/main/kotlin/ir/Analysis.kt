@@ -37,6 +37,9 @@ class Analysis(val block: IrBlock) {
             .filterIndexed { index, _ -> index > block.instrs.indexOf(instr) }
             .all(::isEmpty)
 
+    fun onlyCalledBy(src: IrBlock, instr: IrInstr) =
+        callerInstrs().contents == arrayOf(src to instr).contents
+
     fun variables() =
         block.instrs.flatMap { it.outs } + block.args
 

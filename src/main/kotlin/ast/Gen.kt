@@ -65,5 +65,5 @@ fun astify(input: List<Instr>): ASTRoot {
 
     require(tempStack.values.all { it.isEmpty() })
 
-    return ASTRoot(argCount, stack, flagsAndComments)
+    return ASTRoot(argCount, stack, flagsAndComments, null)
 }

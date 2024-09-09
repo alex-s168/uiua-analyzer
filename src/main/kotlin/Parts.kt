@@ -86,7 +86,7 @@ data class InstSpan(
 }
 
 data class Function(
-    val value: Either<String, Span>,
+    var value: Either<String, Span>,
     var children: List<Instr>,
     val signature: Signature,
     val loc: InstSpan,

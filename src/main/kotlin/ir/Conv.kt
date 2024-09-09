@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir
 
+import blitz.Either
 import blitz.Provider
 import blitz.getBAOrNull
 import blitz.getBBOrNull
@@ -63,6 +64,7 @@ fun Function.toIr(
     astDest: MutableList<ASTRoot>
 ): IrBlock {
     val ast = astify(children)
+    ast.functionName = name
     astDest += ast
     require(ast.args == signature.inputs) {
         "mismatched signature  ast args: ${ast.args} ; signature args: ${signature.inputs}"
@@ -113,6 +115,7 @@ fun ASTRoot.toIr(
     val tbCorr = mutableListOf<Pair<AstNode, IrVar>>()
     block.rets.addAll(0, children.toIr(tbCorr, {
         anonFnName().also { name ->
+            it.value = Either.ofA(name)
             putFn(it.toIr(getFn, putFn, name, astDest))
         }
     }, block.args, block.instrs, block::newVar))

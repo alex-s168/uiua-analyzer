@@ -6,16 +6,16 @@ import blitz.mapBA
 import blitz.mapBB
 import me.alex_s168.uiua.*
 
-data class AstInstrNode(
+class AstInstrNode(
     val instr: Instr,
     val children: MutableList<AstNode>
 )
 
-data class AstArgNode(
+class AstArgNode(
     val id: Int
 )
 
-data class AstResExtendNode(
+class AstResExtendNode(
     val of: AstNode
 )
 
@@ -28,6 +28,7 @@ class ASTRoot(
     val args: Int,
     val children: MutableList<AstNode>,
     val flagsAndComments: MutableList<Instr> = mutableListOf(),
+    var functionName: String?,
 )
 
 fun AstNode.flatten(): List<AstNode> {
