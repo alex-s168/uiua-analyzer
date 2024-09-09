@@ -25,6 +25,10 @@ fun List<ASTRoot>.genGraph(): String {
         parent(from)?.value?.getA()?.children
             ?: find { from in it.children }?.children
 
+    fun trunc(it: String) =
+        if (it.length > 5) it.take(3) + "..."
+        else it
+
     flattened.forEachIndexed { idx, it ->
         val root = get(idx)
         out += " subgraph \"cluster_${root.functionName!!}\" {"
@@ -45,9 +49,11 @@ fun List<ASTRoot>.genGraph(): String {
                     when (it.instr) {
                         is PrimitiveInstr -> "${it.instr.id}${ it.instr.param?.let { ":$it" } ?: "" }"
 
-                        is NumImmInstr -> it.instr.value.toString()
+                        is NumImmInstr -> it.instr.value.toString().let(::trunc)
 
-                        is ArrImmInstr -> it.instr.values.flatten().contents.toString()
+                        is ArrImmInstr -> it.instr.values.flatten()
+                            .map { trunc(it.toString()) }
+                            .contents.toString()
 
                         else -> it.instr.toString()
                     }
@@ -63,7 +69,7 @@ fun List<ASTRoot>.genGraph(): String {
                 println(v.value.getA().instr.toString())
             }
             val rem = max(0, numExtraRets - (childrenSize?.let { max(0,it -1) } ?: 0))
-            val extraArgs = (List(numExtraArgs) { "<f${it + 1}> x" } + List(rem) { "<f${it + numExtraArgs}> ." })
+            val extraArgs = (List(numExtraArgs) { "<f${it + 1}> x" } + List(rem) { "<f${it + numExtraArgs + 1}> ." })
                 .joinToString("| ")
                 .let { if (it.isNotEmpty()) "| $it" else "" }
 
@@ -90,23 +96,25 @@ fun List<ASTRoot>.genGraph(): String {
                 fnName?.let { name ->
                     val calling = find { it.functionName == name }!!
                     val first = node2id[calling.children.first()]!!
-                    out += " $first:f0 -> \"$fromKey\":f0 [ltail = \"cluster_$name\"]"
+                    val argIdx = parentChildren(to)?.indexOf(to) ?: 0
+                    out += " $first:f0 -> \"$fromKey\":$argIdx [ltail = \"cluster_$name\"]"
                 }
 
                 return
             }
 
-            val argIdx = parentChildren(to)?.indexOf(to) ?: 0
-
             if (to.value.getBBOrNull() != null) {
-                val extending = to.value.getBBOrNull()!!.of
-
-                val toKey = node2id[extending]!!
-                out += " \"$toKey\":f1 -> \"$fromKey\":f$argIdx"
+                val extend = to.value.getBBOrNull()!!.of
+                val fromParent = parent(to)!!
+                val parentKey = node2id[fromParent]!!
+                val extendKey = node2id[extend]!!
+                val argIdx = parentChildren(to)!!.indexOf(to)
+                out += " \"$extendKey\":f1 -> \"$parentKey\":f$argIdx"
 
                 return
             }
 
+            val argIdx = parentChildren(to)?.indexOf(to) ?: 0
             val toKey = node2id[to]!!
             out += " \"$toKey\":f0 -> \"$fromKey\":f$argIdx"
         }
@@ -115,9 +123,6 @@ fun List<ASTRoot>.genGraph(): String {
             val a = from.value.getA()
 
             a.children.forEach { outputTo(it) }
-        }
-        else {
-            from.value.getBBOrNull()?.of?.let { outputTo(it) }
         }
     }
 
