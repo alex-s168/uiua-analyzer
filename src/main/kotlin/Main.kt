@@ -1,5 +1,7 @@
 package me.alex_s168.uiua
 
+import me.alex_s168.uiua.ast.ASTRoot
+import me.alex_s168.uiua.ast.genGraph
 import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.analysis.lifetimes
 import me.alex_s168.uiua.ir.lower.*
@@ -73,7 +75,13 @@ fun main() {
     val test = loadRes("test.uasm")!!
     val assembly = Assembly.parse(test)
 
-    val blocks = assembly.functions.toIr()
+    val astNodes = mutableListOf<ASTRoot>()
+    val blocks = assembly.functions.toIr(astNodes)
+
+    File(".ast.dot").writer().use { w ->
+        w.append(astNodes.genGraph())
+    }
+
     val old = blocks.keys.toList()
     val expanded = blocks["fn"]!!.expandFor(listOf(
         Types.array(Types.array(Types.int)),

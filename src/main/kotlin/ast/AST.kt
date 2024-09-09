@@ -19,12 +19,12 @@ data class AstResExtendNode(
     val of: AstNode
 )
 
-data class AstNode(
+class AstNode(
     val value: Either<AstInstrNode, Either<AstArgNode, AstResExtendNode>>,
     val flagsAndComments: MutableList<Instr> = mutableListOf(),
 )
 
-data class ASTRoot(
+class ASTRoot(
     val args: Int,
     val children: MutableList<AstNode>,
     val flagsAndComments: MutableList<Instr> = mutableListOf(),

@@ -59,14 +59,16 @@ fun List<AstNode>.toIr(tbCorr: MutableList<Pair<AstNode, IrVar>>, putAnonFn: (Fu
 fun Function.toIr(
     getFn: Map<String, IrBlock>,
     putFn: (IrBlock) -> Unit,
-    name: String
+    name: String,
+    astDest: MutableList<ASTRoot>
 ): IrBlock {
     val ast = astify(children)
+    astDest += ast
     require(ast.args == signature.inputs) {
         "mismatched signature  ast args: ${ast.args} ; signature args: ${signature.inputs}"
     }
 
-    val ir = ast.toIr(getFn, putFn, name)
+    val ir = ast.toIr(getFn, putFn, name, astDest)
 
     if (additionalDebugInstrs) {
         ir.instrs = ir.instrs.flatMapTo(mutableListOf()) { inst ->
@@ -92,7 +94,8 @@ fun Function.toIr(
 fun ASTRoot.toIr(
     getFn: Map<String, IrBlock>,
     putFn: (IrBlock) -> Unit,
-    name: String
+    name: String,
+    astDest: MutableList<ASTRoot>
 ): IrBlock {
     val block = IrBlock(name, getFn)
 
@@ -110,7 +113,7 @@ fun ASTRoot.toIr(
     val tbCorr = mutableListOf<Pair<AstNode, IrVar>>()
     block.rets.addAll(0, children.toIr(tbCorr, {
         anonFnName().also { name ->
-            putFn(it.toIr(getFn, putFn, name))
+            putFn(it.toIr(getFn, putFn, name, astDest))
         }
     }, block.args, block.instrs, block::newVar))
 
@@ -122,11 +125,11 @@ fun ASTRoot.toIr(
     return block
 }
 
-fun Map<String, Function>.toIr(): MutableMap<String, IrBlock> {
+fun Map<String, Function>.toIr(astDest: MutableList<ASTRoot>): MutableMap<String, IrBlock> {
     val new = mutableMapOf<String, IrBlock>()
 
     forEach { (k, v) ->
-        new.putBlock(v.toIr(new, new::putBlock, k))
+        new.putBlock(v.toIr(new, new::putBlock, k, astDest))
     }
 
     return new
