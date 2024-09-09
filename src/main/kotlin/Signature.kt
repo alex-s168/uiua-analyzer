@@ -28,6 +28,9 @@ internal fun signature(
         Prim.DIV -> Signature(2, 1)
         Prim.POW -> Signature(2, 1)
         Prim.EQ -> Signature(2, 1)
+        Prim.MOD -> Signature(2, 1)
+        Prim.ABS -> Signature(1, 1)
+        Prim.SIN -> Signature(1, 1)
 
         Prim.LEN -> Signature(1, 1)
 
@@ -75,6 +78,10 @@ internal fun signature(
         Prim.NOW -> Signature(0, 1)
         Prim.JOIN -> Signature(2, 1)
         Prim.DESHAPE -> Signature(1, 1)
+        Prim.KEEP -> Signature(2, 1)
+        Prim.RAND -> Signature(0, 1)
+        Prim.REPLACE_RAND -> Signature(1, 1)
+        Prim.COMPLEX -> Signature(2, 1)
 
         else -> error("Unknown primitive instruction ${instr.id}!")
     }

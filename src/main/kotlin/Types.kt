@@ -187,6 +187,9 @@ object Types {
     /* array */
     fun array(of: Type, length: Int? = null, vaOff: Boolean = true) = ArrayType(of, length, vaOff)
 
+    fun ndarray(rank: Int, inner: Type) =
+        List(rank){-1}.shapeToArrType(inner)
+
     /* native */
     fun pointer(to: Type) = PtrType(to)
     /** Can not be deref-ed; only usable in pointers */

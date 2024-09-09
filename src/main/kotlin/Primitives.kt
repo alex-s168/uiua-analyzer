@@ -54,6 +54,13 @@ object Prim {
     val MAX = prim("MAX")
     val LT = prim("LT")
     val EQ = prim("EQ")
+    val MOD = prim("MOD")
+    val ABS = prim("ABS")
+    val SIN = prim("SIN")
+
+    val RAND = prim("RAND")
+    val REPLACE_RAND = prim("REPLACE_RAND") // pop and then rand
+    val COMPLEX = prim("COMPLEX")
 
     // TODO: investigate if these are the real names
     val LEN = prim("LEN")
@@ -86,6 +93,7 @@ object Prim {
     val NOW = prim("NOW")
     val JOIN = prim("JOIN")
     val DESHAPE = prim("DESHAPE")
+    val KEEP = prim("KEEP")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

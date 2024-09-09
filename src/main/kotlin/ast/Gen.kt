@@ -32,6 +32,15 @@ fun astify(input: List<Instr>): ASTRoot {
                 getTempStack(op.stack).addAll(value)
             }
 
+            is PushTempStackInstr -> {
+                val value = stack.removeLastInto(op.count, mutableListOf())
+                repeat(op.count - value.size) {
+                    value += AstNode(Either.ofB(Either.ofA(AstArgNode(argId))))
+                }
+                argCount = argId + op.count - value.size
+                getTempStack(op.stack).addAll(value)
+            }
+
             is PopTempStackInstr -> {
                 val value = getTempStack(op.stack).removeLastInto(op.count)
                 stack.addAll(value)

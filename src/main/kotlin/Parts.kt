@@ -151,6 +151,11 @@ data class CopyTempStackInstr(
     val count: Int,
 ): Instr()
 
+data class PushTempStackInstr(
+    val stack: String,
+    val count: Int,
+): Instr()
+
 data class PopTempStackInstr(
     val stack: String,
     val count: Int,

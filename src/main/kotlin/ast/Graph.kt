@@ -1,11 +1,10 @@
 package me.alex_s168.uiua.ast
 
 import blitz.*
-import me.alex_s168.uiua.NumImmInstr
-import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.PushFnInstr
-import me.alex_s168.uiua.PushFnRefInstr
+import blitz.collections.contents
+import me.alex_s168.uiua.*
 import kotlin.math.max
+import kotlin.math.min
 
 fun List<ASTRoot>.genGraph(): String {
     val out = mutableListOf<String>()
@@ -13,10 +12,18 @@ fun List<ASTRoot>.genGraph(): String {
     out += "digraph g {"
 
     val flattened = map { it.children.flatMap { it.flatten() } }
+    val flatFlattened = flattened.flatten().toSet()
 
     var nextId = 0
     val node2id = flattened.flatten()
         .associateWith { "node${nextId ++}" }
+
+    fun parent(from: AstNode) =
+        node2id.keys.find { it.value.isA && it.value.isA && from in it.value.getA().children }
+
+    fun parentChildren(from: AstNode) =
+        parent(from)?.value?.getA()?.children
+            ?: find { from in it.children }?.children
 
     flattened.forEachIndexed { idx, it ->
         val root = get(idx)
@@ -30,6 +37,9 @@ fun List<ASTRoot>.genGraph(): String {
             if (v.value.isA && v.value.getA().instr.let { it is PushFnInstr || it is PushFnRefInstr })
                 return@forEach
 
+            if (v.value.isB && v.value.getB().isB)
+                return@forEach
+
             val label = v.value
                 .mapA {
                     when (it.instr) {
@@ -37,16 +47,23 @@ fun List<ASTRoot>.genGraph(): String {
 
                         is NumImmInstr -> it.instr.value.toString()
 
+                        is ArrImmInstr -> it.instr.values.flatten().contents.toString()
+
                         else -> it.instr.toString()
                     }
                 }
                 .mapBA { "arg(${it.id})" }
-                .mapBB { "..." }
                 .mapB { it.flatten() }
                 .flatten()
 
-            val numExtraArgs = v.value.getAOrNull()?.children?.size?.let { it1 -> max(0, it1 - 1) } ?: 0
-            val extraArgs = List(numExtraArgs) { "<f${it + 1}> x" }
+            val childrenSize = v.value.getAOrNull()?.children?.size
+            val numExtraArgs = childrenSize?.let { it1 -> max(0, it1 - 1) } ?: 0
+            val numExtraRets = flatFlattened.count { it.value.getBBOrNull()?.let { it.of == v } ?: false } ?: 0
+            if (numExtraRets > 0) {
+                println(v.value.getA().instr.toString())
+            }
+            val rem = max(0, numExtraRets - (childrenSize?.let { max(0,it -1) } ?: 0))
+            val extraArgs = (List(numExtraArgs) { "<f${it + 1}> x" } + List(rem) { "<f${it + numExtraArgs}> ." })
                 .joinToString("| ")
                 .let { if (it.isNotEmpty()) "| $it" else "" }
 
@@ -58,9 +75,6 @@ fun List<ASTRoot>.genGraph(): String {
 
         out += " }"
     }
-
-    fun parent(from: AstNode) =
-        node2id.keys.find { it.value.isA && it.value.isA && from in it.value.getA().children }
 
     node2id.forEach { (from, fromKey) ->
         fun outputTo(to: AstNode) {
@@ -82,8 +96,18 @@ fun List<ASTRoot>.genGraph(): String {
                 return
             }
 
+            val argIdx = parentChildren(to)?.indexOf(to) ?: 0
+
+            if (to.value.getBBOrNull() != null) {
+                val extending = to.value.getBBOrNull()!!.of
+
+                val toKey = node2id[extending]!!
+                out += " \"$toKey\":f1 -> \"$fromKey\":f$argIdx"
+
+                return
+            }
+
             val toKey = node2id[to]!!
-            val argIdx = parent(to)?.value?.getA()?.children?.indexOf(to) ?: 0
             out += " \"$toKey\":f0 -> \"$fromKey\":f$argIdx"
         }
 

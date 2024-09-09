@@ -55,23 +55,27 @@ data class Assembly(
                         }
                     } else if (instr.startsWith('[')) {
                         val all = JSON.parse(instr)!!.arr
-                        val shape = all[0].arr
-                        val data = all[1]
 
-                        val elemType = if (data.isStr()) Types.byte else Types.double
-
-                        if (shape.isEmpty()) {
-                            NumImmInstr(
-                                data.arr[0].num
-                            )
-                        } else {
-                            val type = shape.map { it.num.toInt() }.shapeToArrType(elemType)
-                            ArrImmInstr(
-                                type,
-                                if (data.isStr()) Either.ofA(data.str.chars().toList())
-                                else Either.ofB(data.arr.map { it.num })
-                            )
+                        var rank = 1
+                        var iter = all
+                        while (iter.firstOrNull()?.isArr() == true) {
+                            iter = iter.firstOrNull()!!.arr
+                            rank ++
                         }
+
+                        val data = instr.drop(1).dropLast(1)
+                            .replace(",[", "")
+                            .replace("[", "")
+                            .replace("]", "")
+                            .split(',')
+                            .map { it.toDouble() }
+
+                        val elemType = Types.double
+                        val type = Types.ndarray(rank, elemType)
+                        ArrImmInstr(
+                            type,
+                            Either.ofB(data)
+                        )
                     }
                     else if (instr.startsWith("# ")) {
                         CommentInstr(instr.substringAfter("# ").trim())
@@ -86,6 +90,13 @@ data class Assembly(
                             .substringBeforeLast(']')
                             .split(',')
                         CopyTempStackInstr(stack, count.toInt())
+                    }
+                    else if (instr.startsWith("push_temp ")) {
+                        val (stack, count) = instr
+                            .substringAfter("push_temp [")
+                            .substringBeforeLast(']')
+                            .split(',')
+                        PushTempStackInstr(stack, count.toInt())
                     }
                     else if (instr.startsWith("pop_temp ")) {
                         val (stack, count) = instr
