@@ -430,20 +430,36 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     }
 
                     Prim.Comp.RT_EXTEND_SCALAR -> {
-                        val fn = UARuntime.extendScalar(args.map { it.type })
+                        val vspan = instr.instr.loc
+                            ?.toString()
+                            ?: "-1"
+
+                        val span = newVar().asMLIR()
+                        body += Inst.constant(span, "i64", vspan)
+
+                        val fn = UARuntime.extendScalar(instr.args.map { it.type })
                         body += Inst.funcCall(
                             dests = instr.outs.map { it.asMLIR() },
                             fn.name,
                             fn.type.toMLIR(),
+                            * (listOf(span) + instr.args.map { it.asMLIR() }).toTypedArray()
                         )
                     }
 
                     Prim.Comp.RT_EXTEND_REPEAT -> {
-                        val fn = UARuntime.extendRepeat(args.map { it.type })
+                        val vspan = instr.instr.loc
+                            ?.toString()
+                            ?: "-1"
+
+                        val span = newVar().asMLIR()
+                        body += Inst.constant(span, "i64", vspan)
+
+                        val fn = UARuntime.extendRepeat(instr.args.map { it.type })
                         body += Inst.funcCall(
                             dests = instr.outs.map { it.asMLIR() },
                             fn.name,
                             fn.type.toMLIR(),
+                            * (listOf(span) + instr.args.map { it.asMLIR() }).toTypedArray()
                         )
                     }
 
@@ -454,33 +470,19 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val idInst = newVar().asMLIR()
                         body += Inst.constant(idInst, "i64", instrs.indexOf(instr).toString())
 
-                        val (before, after) = if (instr.instr.loc == null) {
-                            listOf(instrs.before(idx), instrs.after(idx))
-                                .map {
-                                    it
-                                    .reversed()
-                                    .firstOrNull { it.instr is PrimitiveInstr && it.instr.loc != null }
-                                    ?.let { (it.instr as PrimitiveInstr).loc!!.index }
-                                    ?.first()
-                                    ?.toString()
-                                    ?: "-1"
-                                }
-                        } else {
-                            instr.instr.loc!!.index
-                                .let { listOf(it.min().toString(), it.max().toString()) }
-                        }
+                        val vspan = instr.instr.loc
+                            ?.index
+                            ?.toString()
+                            ?: "-1"
 
-                        val vbefore = newVar().asMLIR()
-                        body += Inst.constant(vbefore, "i64", before)
-
-                        val vafter = newVar().asMLIR()
-                        body += Inst.constant(vafter, "i64", after)
+                        val span = newVar().asMLIR()
+                        body += Inst.constant(span, "i64", vspan)
 
                         body += Inst.funcCall(
                             dests = listOf(),
                             UARuntime.panic.name,
                             UARuntime.panic.type.toMLIR(),
-                            idBlock, idInst, vbefore, vafter
+                            vspan, idBlock, idInst
                         )
 
                         instr.outs.forEach {

@@ -12,14 +12,14 @@
 static void checkAllocImpl (void* alloc) {
     if (alloc == NULL) {
         fprintf(stderr, "not enough memory for array!\n");
-        exit(1);
+        uac_panic();
     }
 }
 
 static void checkRankImpl (size_t actual, size_t want) {
     if (actual != want) {
         fprintf(stderr, "Incompatible ranks! %zu vs %zu (want %zu)\n", actual, want, want);
-        exit(1);
+        uac_panic();
     }
 }
 
@@ -28,9 +28,11 @@ static void checkCastImpl (uac_TypeId actual, uac_TypeId want) {
         fprintf(stderr, "Can't cast %s to %s!\n",
                         uac_TypeId_name(actual),
                         uac_TypeId_name(want));
-        exit(1);
+        uac_panic();
     }
 }
+
+extern OptInstSpan uac_currentSpan;
 
 #ifdef CHECK_ALLOC
 # define checkAlloc(a) checkAllocImpl(a);

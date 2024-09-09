@@ -1,7 +1,6 @@
 package me.alex_s168.uiua.mlir
 
 import me.alex_s168.uiua.*
-import me.alex_s168.uiua.ir.IrVar
 
 class NewlyAllocArrayType(
     of: Type,
@@ -47,6 +46,8 @@ object Ty {
     val index = "index"
 
     val ptr = "!llvm.ptr"
+
+    val dyn = LLVMStruct(listOf(int(8), ptr))
 }
 
 fun ptrlit(literal: String) =
@@ -64,10 +65,25 @@ fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
         Types.byte -> Ty.int(8)
         Types.bool -> Ty.int(1)
         Types.double -> Ty.flt(64)
-        Types.dynamic -> TODO()
+        Types.dynamic -> Ty.dyn.type
         is PtrType -> Ty.ptr
         Types.opaque -> error("should not happen")
         is FnType -> "(${(fillType?.let { listOf(it) + args } ?: args).joinToString { it.toMLIR(wantTensor) }}) -> (${rets.joinToString { it.toMLIR(wantTensor) }})"
         Types.size -> Ty.index
         else -> error("$this")
+    }
+
+fun Type.cName(): String =
+    when (this) {
+        Types.double -> "double"
+        Types.autobyte,
+        Types.byte -> "uint8_t"
+        Types.size -> "size_t"
+        Types.bool -> "bool"
+        Types.dynamic -> "uac_Dyn"
+        Types.int -> "int64_t"
+
+        is ArrayType -> "Arru_${inner.cName()}"
+
+        else -> error("invalid")
     }

@@ -1,7 +1,9 @@
 #include "internal.h"
 
 #define GenExtendScalar(ofTy, nameExt) \
-extern Arr1_##ofTy _$_rt_extendScalar_##nameExt (Arr1_##ofTy base, size_t targetLen, ofTy fillWith) { \
+extern Arr1_##ofTy _$_rt_extendScalar_##nameExt (OptInstSpan inst, Arr1_##ofTy base, size_t targetLen, ofTy fillWith) { \
+    uac_currentSpan = inst; \
+    \
     Arr1_##ofTy res; \
     res.alloc = calloc(targetLen, sizeof(ofTy)); \
     checkAlloc(res.alloc) \
@@ -22,11 +24,15 @@ extern Arr1_##ofTy _$_rt_extendScalar_##nameExt (Arr1_##ofTy base, size_t target
         res.aligned[j] = fillWith; \
     } \
     \
+    uac_currentSpan = -1; \
+    \
     return res; \
 }
 
 #define GenExtendRepeat(ofTy, nameExt) \
-extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (Arr1_##ofTy base, size_t targetLen, Arr1_##ofTy fillWith) { \
+extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (OptInstSpan inst, Arr1_##ofTy base, size_t targetLen, Arr1_##ofTy fillWith) { \
+    uac_currentSpan = inst; \
+    \
     Arr1_##ofTy res; \
     res.alloc = calloc(targetLen, sizeof(ofTy)); \
     checkAlloc(res.alloc) \
@@ -49,6 +55,8 @@ extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (Arr1_##ofTy base, size_t target
         res.aligned[j] = fillWithPtr[x % fillWithLen]; \
         x ++; \
     } \
+    \
+    uac_currentSpan = -1; \
     \
     return res; \
 }

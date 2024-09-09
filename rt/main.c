@@ -1,6 +1,23 @@
 #include <stdint.h>
 #include "internal.h"
 
+
+extern OptInstSpan uac_currentSpan = -1;
+
+void uac_panic() {
+    if (uac_currentSpan == -1) {
+        fprintf(stderr, "Runtime panic in compiled code without source location!\n");
+
+        uac_printSpan(uac_currentSpan);
+    }
+    else {
+        fprintf(stderr, "Runtime panic in compiled code in code span %llu!\n", uac_currentSpan);
+    }
+
+    exit(1);
+    for(;;);
+}
+
 void arrDeallocImpl(void* ptr) {
     if (ptr) { free(ptr); }
 }
@@ -105,43 +122,18 @@ void uac_Dyn_drop(uac_Dyn dyn) {
     if (dyn.opaque) free(dyn.opaque);
 }
 
-// TODO: only one span input ; require span input for all runtime functions (they might error)
-
 __attribute__ ((noreturn))
-extern void _$_rt_panic(int64_t block, int64_t inst, int64_t dbgBefore, int64_t dbgAfter) {
-    if (dbgBefore == -1)
-        dbgBefore = dbgAfter;
+extern void _$_rt_panic(OptInstSpan span, int64_t block, int64_t inst) {
+    uac_currentSpan = span;
 
-    int64_t guessed = -1;
-    bool inaccurate = false;
-    if (dbgBefore == -1) {
-        fprintf(stderr, "Runtime panic in compiled code without source location");
-    }
-    else if (dbgBefore == dbgAfter) {
-        fprintf(stderr, "Runtime panic in compiled code in code span %llu", dbgBefore);
-        guessed = dbgBefore;
-    }
-    else {
-        fprintf(stderr, "Runtime panic in compiled code between code span %llu and code span %llu", dbgBefore, dbgAfter);
-        guessed = dbgBefore;
-        inaccurate = true;
-    }
-
-    fprintf(stderr, "! uiuac IR location: [%llu, %llu]\n", block, inst);
-
-    if (inaccurate) {
-        fprintf(stderr, "(warning: might be inaccurate!)\n");
-    }
-    uac_printSpan(guessed);
-
-    exit(1);
-    for(;;);
+    fprintf(stderr, "uiuac IR location: [%llu, %llu]\n", block, inst);
+    uac_panic();
 }
 
 __attribute__ ((noreturn))
 static void errNoInterpreter() {
     fprintf(stderr, "Uiua interpretation requested by compiled code but was not available!\n");
-    exit(1);
+    uac_panic();
 }
 
 #ifdef HAVE_INTERPRETER
@@ -151,7 +143,7 @@ extern void uac_interpretImpl(const char* uasm_path,
                               LightCArr /* <uac_Dyn> */ args,
                               LightCArr /* <uac_Dyn> */ rets); 
 
-extern void _$_rt_interpret(size_t beginInstrId, size_t endInstrId,
+extern void _$_rt_interpret(OptInstSpan inst, size_t beginInstrId, size_t endInstrId,
                             const Arr1_uac_Dyn inputs, Arr1_uac_Dyn outputs) {
 
     if (uac_uasmFilePath == NULL) {
@@ -166,7 +158,7 @@ extern void _$_rt_interpret(size_t beginInstrId, size_t endInstrId,
 
 #else 
 
-extern void _$_rt_interpret(size_t beginInstrId, size_t endInstrId,
+extern void _$_rt_interpret(OptInstSpan inst, size_t beginInstrId, size_t endInstrId,
                             const Arr1_uac_Dyn inputs, Arr1_uac_Dyn outputs) {
     errNoInterpreter();
 }

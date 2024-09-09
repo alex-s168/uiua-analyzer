@@ -26,6 +26,10 @@
         size_t *strides; \
     } Arru_##of;
 
+// inst span id ; can be -1 to indicate not present
+typedef int64_t OptInstSpan;
+#define OptInstSpan_NONE ((OptInstSpan) -1)
+
 #include "rt_hidden.h"
 
 #define Data(arr) (arr.aligned+arr.elemsOff)
@@ -91,16 +95,17 @@ Arr##trank##_##of cloneToRanked_##trank##of (Arru_##of input); \
 of* cloneToCArr_##trank##of(size_t* numElOut, Arr##trank##_##of arr);
 
 #   define HGenExtendScalar(ofTy, nameExt) \
-extern Arr1_##ofTy _$_rt_extendScalar_##nameExt (Arr1_##ofTy base, size_t targetLen, ofTy fillWith);
+extern Arr1_##ofTy _$_rt_extendScalar_##nameExt (OptInstSpan inst, Arr1_##ofTy base, size_t targetLen, ofTy fillWith);
 
 #   define HGenExtendRepeat(ofTy, nameExt) \
-extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (Arr1_##ofTy base, size_t targetLen, Arr1_##ofTy fillWith);
+extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (OptInstSpan inst, Arr1_##ofTy base, size_t targetLen, Arr1_##ofTy fillWith);
 
 #   define HGenPrintDim(of, uacName) \
 void printUArrDim_##of(Arru_##of arr, FILE* stream, size_t* writtenOut);
 
 #   define HGenPrint(of, uacName) \
-void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut);
+void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut); \
+void printVal_##of(of value, FILE* stream, size_t* writtenOut);
 
 
 // don't forget to uac_Dyn_drop() after not needed anymore ; doesn't free inner arrays
@@ -155,8 +160,8 @@ void uac_String_println(uac_String str, FILE* stream);
 void uac_printSpan(size_t id);
 
 __attribute__ ((noreturn))
-extern void _$_rt_panic(int64_t block, int64_t inst, // uac block and inst id ; can be -1 to indicate not present
-                        int64_t dbgBefore, int64_t dbgAfter); // dbg before this inst and after this inst span ids ; can be -1 to indicate not present
+extern void _$_rt_panic(OptInstSpan at,
+                        int64_t block, int64_t inst); // uac block and inst id ; can be -1 to indicate not present
 
 typedef enum : uint8_t {
     UAC_NOTYPE = 0,
@@ -175,6 +180,7 @@ typedef enum : uint8_t {
 const char* uac_TypeId_name(uac_TypeId);
 
 // don't forget to uac_Dyn_drop() after not needed anymore ; doesn't free inner arrays
+// { i8, ptr }
 struct uac_Dyn {
     uac_TypeId ty;
     void* opaque; // if sizeof(type) <= sizeof(void*) then bitcast and get your value ; otherwise deref
@@ -200,8 +206,59 @@ HGenDynCast(uac_Dyn)
 #undef HGenDyncast
 #undef HGenDynCastI
 
+__attribute__ ((noreturn))
+void uac_panic();
+
+#define DynamicDispatch(dyn, fnPrefix, outCast, ...) \
+switch ((dyn).ty) {
+    case UAC_NOTYPE:
+    default:
+        fprintf(stderr, "Invalid dyn[] type!\n");
+        uac_panic();
+
+    case UAC_BYTE:
+        uint8_t outCast = uac_Dyn_as_uint8_t(dyn);
+        return fnPrefix##_uint8_t(__VA_ARGS__);
+
+    case UAC_INT:
+        int64_t outCast = uac_Dyn_as_int64_t(dyn);
+        return fnPrefix##_uint64_t(__VA_ARGS__);
+
+    case UAC_FLT:
+        double outCast = uac_Dyn_as_double(dyn);
+        return fnPrefix##_double(__VA_ARGS__);
+
+    case UAC_SIZE:
+        size_t outCast = uac_Dyn_as_size_t(dyn);
+        return fnPrefix##_size_t(__VA_ARGS__);
+
+    case UAC_DYN:
+        uac_Dyn outCast = uac_Dyn_as_uac_Dyn(dyn);
+        return fnPrefix##_uac_Dyn(__VA_ARGS__);
+
+    case UAC_ARR_BYTE:
+        Arru_uint8_t outCast = uac_Dyn_as_Arru_uint8_t(dyn);
+        return fnPrefix##_Arru_uint8_t(__VA_ARGS__);
+
+    case UAC_ARR_INT:
+        Arru_int64_t outCast = uac_Dyn_as_Arru_int64_t(dyn);
+        return fnPrefix##_Arru_uint64_t(__VA_ARGS__);
+
+    case UAC_ARR_FLT:
+        Arru_double outCast = uac_Dyn_as_Arru_double(dyn);
+        return fnPrefix##_Arru_double(__VA_ARGS__);
+
+    case UAC_ARR_SIZE:
+        Arru_size_t outCast = uac_Dyn_as_Arru_size_t(dyn);
+        return fnPrefix##_Arru_size_t(__VA_ARGS__);
+
+    case UAC_ARR_DYN:
+        Arru_uac_Dyn outCast = uac_Dyn_as_Arru_uac_Dyn(dyn);
+        return fnPrefix##_Arru_uac_Dyn(__VA_ARGS__);
+}
+
 extern const char * uac_uasmFilePath; // nullable
 
 // interpret a range of instructions from the source UASM file ; only going to work if runtime configured correctly and uac_uasmFilePath is set
-extern void _$_rt_interpret(size_t beginInstrId, size_t endInstrId,
+extern void _$_rt_interpret(OptInstSpan int, size_t beginInstrId, size_t endInstrId,
                             const Arr1_uac_Dyn inputs, Arr1_uac_Dyn outputs);

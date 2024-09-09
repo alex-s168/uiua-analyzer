@@ -21,12 +21,12 @@ void printUArrDim_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
 }
 
 #ifdef PRINT_DIM_ONLY
-# define GenPrint(of, uacName, customCode, printEl) \
+# define GenPrint(of, uacName, customCode) \
 void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
     printUArrDim_##of(arr, stream, writtenOut); \
 }
 #else 
-# define GenPrint(of, uacName, customCode, printEl) \
+# define GenPrint(of, uacName, customCode) \
 void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
     if (arr.rank > 2) { \
         printUArrDim_##of(arr, stream, writtenOut); \
@@ -45,10 +45,9 @@ void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
                 fprintf(stream, ", "); \
             } \
             of el = elems[arr.strides[0] * i]; \
-            char buf[128]; \
-            printEl; \
-            fputs(buf, stream); \
-            written + strlen(buf); \
+            size_t t; \
+            printVal_##of(el, stream, &t); \
+            written += t; \
         } \
         written += 1; \
         fprintf(stream, "]\n"); \
@@ -75,6 +74,13 @@ void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
 }
 #endif
 
+#define GenPrintScalar(of, printEl) \
+void printVal_##of(of el, FILE* stream, size_t* writtenOut) { \
+    char buf[128]; \
+    printEl; \
+    fputs(buf, stream); \
+    if (writtenOut) *writtenOut = strlen(buf); \
+}
 
 GenPrintDim(uint8_t, "byte")
 GenPrint   (uint8_t, "byte", {
@@ -106,16 +112,38 @@ GenPrint   (uint8_t, "byte", {
             fputs("┘\n", stream);
         }
     }
-}, { sprintf(buf, "%b", el); })
+})
+GenPrintScalar(uint8_t, { sprintf(buf, "%b", el); })
 
 GenPrintDim(int64_t, "int")
-GenPrint   (int64_t, "int",  {}, { sprintf(buf, "%lld", el); })
+GenPrint   (int64_t, "int",  {})
+GenPrintScalar(int64_t, { sprintf(buf, "%lld", el); })
 
 GenPrintDim(double, "flt")
-GenPrint   (double, "flt",  {}, { sprintf(buf, "%f", el); })
+GenPrint   (double, "flt",  {})
+GenPrintScalar(double, { sprintf(buf, "%f", el); })
 
 GenPrintDim(size_t, "size")
-GenPrint   (size_t, "size", {}, { sprintf(buf, "%zu", el); })
+GenPrint   (size_t, "size", {})
+GenPrintScalar(size_t, { sprintf(buf, "%zu", el); })
+
+
+GenPrintDim(uac_Dyn, "dyn")
+GenPrint   (uac_Dyn, "dyn", {})
+void printVal_uac_Dyn(uac_Dyn dyn, FILE* stream, size_t* writtenOut) {
+    size_t written = 5;
+
+    fputs("dyn[", stream);
+
+    size_t t;
+    DynamicDispatch(dyn, printVal, cast,
+                    cast, stream, &t)
+    written += t;
+
+    fputc(']', stream);
+
+    if (writtenOut) *writtenOut = written;
+}
 
 
 bool uarrIsString(Arru_uint8_t arr) {
