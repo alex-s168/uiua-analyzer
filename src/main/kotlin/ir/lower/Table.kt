@@ -35,7 +35,7 @@ val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prim.TABLE) { put, newVar, a, 
                 instrs += IrInstr(
                     outs.toMutableList(),
                     PrimitiveInstr(Prim.ROWS),
-                    (ar + fn).toMutableList()
+                    (listOf(fn) + ar).toMutableList()
                 )
             }.also(putBlock)
         }

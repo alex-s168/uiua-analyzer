@@ -237,6 +237,8 @@ data class IrInstr(
                     updateType(outs[0], args[0].type)
                 }
 
+                Prim.RAND,
+                Prim.REPLACE_RAND,
                 Prim.SIN,
                 Prim.NOW -> {
                     updateType(outs[0], Types.double)
@@ -494,6 +496,16 @@ data class IrInstr(
                     val res = highestShapeType(arg0, arg1)
                     updateType(outs[0], res)
                 }
+
+                Prim.KEEP -> {
+                    updateType(outs[0], args[1].type)
+                }
+
+                Prim.COMPLEX -> {
+                    updateType(outs[0], Types.complex)
+                }
+
+                else -> error("infer type for ${instr.id} not implemented")
             }
 
             is SourceLocInstr -> {

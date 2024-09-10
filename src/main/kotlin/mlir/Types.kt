@@ -70,6 +70,7 @@ fun Type.toMLIR(wantTensor: Boolean = false): MLIRType =
         Types.opaque -> error("should not happen")
         is FnType -> "(${(fillType?.let { listOf(it) + args } ?: args).joinToString { it.toMLIR(wantTensor) }}) -> (${rets.joinToString { it.toMLIR(wantTensor) }})"
         Types.size -> Ty.index
+        Types.complex -> "complex<${Ty.flt(64)}>"
         else -> error("$this")
     }
 
@@ -82,6 +83,7 @@ fun Type.cName(): String =
         Types.bool -> "bool"
         Types.dynamic -> "uac_Dyn"
         Types.int -> "int64_t"
+        Types.complex -> "uac_Complex"
 
         is ArrayType -> "Arru_${inner.cName()}"
 

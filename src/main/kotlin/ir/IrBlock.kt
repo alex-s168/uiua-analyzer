@@ -151,6 +151,7 @@ data class IrBlock(
 
             newName
         }.getOrElse {
+            println(this)
             error("While trying to expand function \"$name\" as func${fillType?.let { "[$it]" } ?: ""}[${inTypes.contents}][?]:\n${it.stackTraceToString()}")
         }
     }
