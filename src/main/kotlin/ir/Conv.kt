@@ -8,14 +8,14 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.Function
 import me.alex_s168.uiua.ast.*
 
-fun List<AstNode>.toIr(tbCorr: MutableList<Pair<AstNode, IrVar>>, putAnonFn: (Function) -> String, blockArgs: List<IrVar>, instrs: MutableList<IrInstr>, newVar: Provider<IrVar>): List<IrVar> {
+fun List<AstNode>.toIr(tbCorr: MutableList<Triple<AstNode, Int, IrVar>>, putAnonFn: (Function) -> String, blockArgs: List<IrVar>, instrs: MutableList<IrInstr>, newVar: Provider<IrVar>): List<IrVar> {
     val vars = List(size) { newVar() }
 
     forEachIndexed { index, node ->
         val variable = vars[index]
 
         node.value.getBBOrNull()?.let {
-            tbCorr.add(it.of to variable)
+            tbCorr.add(Triple(it.of, it.resIdx, variable))
         } ?: node.value.getBAOrNull()?.let {
             instrs.add(
                 IrInstr(
@@ -112,7 +112,7 @@ fun ASTRoot.toIr(
         block.args.add(variable)
     }
 
-    val tbCorr = mutableListOf<Pair<AstNode, IrVar>>()
+    val tbCorr = mutableListOf<Triple<AstNode, Int, IrVar>>()
     block.rets.addAll(0, children.toIr(tbCorr, {
         anonFnName().also { name ->
             it.value = Either.ofA(name)
@@ -120,9 +120,18 @@ fun ASTRoot.toIr(
         }
     }, block.args, block.instrs, block::newVar))
 
-    tbCorr.forEach { (no, variable) ->
+    tbCorr.forEach { (no, outIdx, variable) ->
         val of = block.instrs.find { it.ast == no }!!
-        of.outs.add(variable)
+
+        repeat(outIdx + 1 - of.outs.size) {
+            of.outs.add(block.newVar())
+        }
+
+        block.instrs += IrInstr(
+            mutableListOf(variable),
+            PrimitiveInstr(Prim.Comp.USE),
+            mutableListOf(of.outs[outIdx]),
+        )
     }
 
     return block

@@ -2,6 +2,7 @@ package me.alex_s168.uiua
 
 import me.alex_s168.uiua.ast.ASTRoot
 import me.alex_s168.uiua.ast.genGraph
+import me.alex_s168.uiua.ast.printAst
 import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.analysis.lifetimes
 import me.alex_s168.uiua.ir.lower.*
@@ -79,6 +80,11 @@ fun main() {
 
     val astNodes = mutableListOf<ASTRoot>()
     val blocks = assembly.functions.toIr(astNodes)
+
+    /*astNodes.forEach {
+        println(it.functionName)
+        it.children.printAst(indent = 2)
+    }*/
 
     File(".ast.dot").writer().use { w ->
         w.append(astNodes.genGraph())

@@ -16,7 +16,8 @@ class AstArgNode(
 )
 
 class AstResExtendNode(
-    val of: AstNode
+    val of: AstNode,
+    val resIdx: Int,
 )
 
 class AstNode(

@@ -2,14 +2,11 @@ package me.alex_s168.uiua.ast
 
 import blitz.Either
 import blitz.collections.addFront
-import blitz.collections.removeLast
 import blitz.collections.removeLastInto
 import me.alex_s168.uiua.*
 import kotlin.math.max
 
 fun astify(input: List<Instr>): ASTRoot {
-    println(input)
-
     val tempStack = mutableMapOf<String, MutableList<AstNode>>()
     fun getTempStack(stack: String) =
         tempStack.getOrPut(stack) { mutableListOf() }
@@ -59,7 +56,7 @@ fun astify(input: List<Instr>): ASTRoot {
                     val node = AstNode(Either.ofA(AstInstrNode(op, args)))
 
                     repeat(sig.outputs - 1) {
-                        stack.add(AstNode(Either.ofB(Either.ofB(AstResExtendNode(node)))))
+                        stack.add(AstNode(Either.ofB(Either.ofB(AstResExtendNode(node, it + 1)))))
                     }
 
                     stack.add(node)

@@ -65,9 +65,6 @@ fun List<ASTRoot>.genGraph(): String {
             val childrenSize = v.value.getAOrNull()?.children?.size
             val numExtraArgs = childrenSize?.let { it1 -> max(0, it1 - 1) } ?: 0
             val numExtraRets = flatFlattened.count { it.value.getBBOrNull()?.let { it.of == v } ?: false } ?: 0
-            if (numExtraRets > 0) {
-                println(v.value.getA().instr.toString())
-            }
             val rem = max(0, numExtraRets - (childrenSize?.let { max(0,it -1) } ?: 0))
             val extraArgs = (List(numExtraArgs) { "<f${it + 1}> x" } + List(rem) { "<f${it + numExtraArgs + 1}> ." })
                 .joinToString("| ")
@@ -82,10 +79,10 @@ fun List<ASTRoot>.genGraph(): String {
         out += " }"
     }
 
-    node2id.forEach { (from, fromKey) ->
-        fun outputTo(to: AstNode) {
-            if (to.value.getAOrNull()?.instr?.let { it is PushFnInstr || it is PushFnRefInstr } == true) {
-                val a = to.value.getA().instr
+    node2id.forEach { (to, toKey) ->
+        fun inputFrom(argIdx: Int, from: AstNode) {
+            if (from.value.getAOrNull()?.instr?.let { it is PushFnInstr || it is PushFnRefInstr } == true) {
+                val a = from.value.getA().instr
 
                 val fnName =  if (a is PushFnInstr) {
                     a.fn.value.getA()
@@ -96,33 +93,35 @@ fun List<ASTRoot>.genGraph(): String {
                 fnName?.let { name ->
                     val calling = find { it.functionName == name }!!
                     val first = node2id[calling.children.first()]!!
-                    val argIdx = parentChildren(to)?.indexOf(to) ?: 0
-                    out += " $first:f0 -> \"$fromKey\":$argIdx [ltail = \"cluster_$name\"]"
+                    out += " $first:f0 -> \"$toKey\":$argIdx [ltail = \"cluster_$name\"; color = \"blue\"]"
                 }
 
                 return
             }
 
-            if (to.value.getBBOrNull() != null) {
-                val extend = to.value.getBBOrNull()!!.of
-                val fromParent = parent(to)!!
-                val parentKey = node2id[fromParent]!!
+            if (from.value.getBBOrNull() != null) {
+                val (extend, outIdx) = from.value.getBBOrNull()!!.let { it.of to it.resIdx }
                 val extendKey = node2id[extend]!!
-                val argIdx = parentChildren(to)!!.indexOf(to)
-                out += " \"$extendKey\":f1 -> \"$parentKey\":f$argIdx"
+                out += " \"$extendKey\":f${outIdx} -> \"$toKey\":f$argIdx"
 
                 return
             }
 
-            val argIdx = parentChildren(to)?.indexOf(to) ?: 0
-            val toKey = node2id[to]!!
-            out += " \"$toKey\":f0 -> \"$fromKey\":f$argIdx"
+            val color = from.value
+                .mapA { "black" }
+                .mapBA { "red" }
+                .mapBB { "" }
+                .mapB { it.flatten() }
+                .flatten()
+
+            val fromKey = node2id[from]!!
+            out += " \"$fromKey\":f0 -> \"$toKey\":f$argIdx [color = \"$color\"]"
         }
 
-        if (from.value.isA) {
-            val a = from.value.getA()
+        if (to.value.isA) {
+            val a = to.value.getA()
 
-            a.children.forEach { outputTo(it) }
+            a.children.forEachIndexed { i, it -> inputFrom(i, it) }
         }
     }
 
