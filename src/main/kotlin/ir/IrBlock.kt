@@ -115,7 +115,9 @@ data class IrBlock(
         putFn: (IrBlock) -> Unit,
         fillType: Type? = null
     ): String {
-        require(inTypes.size == args.size)
+        require(inTypes.size == args.size) {
+            "${inTypes.size} vs ${args.size}"
+        }
 
         return runCatching {
             val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"

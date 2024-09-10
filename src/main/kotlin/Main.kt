@@ -92,7 +92,7 @@ fun main() {
 
     val old = blocks.keys.toList()
     val expanded = blocks["fn"]!!.expandFor(listOf(
-        Types.array(Types.array(Types.int)),
+        //Types.array(Types.array(Types.int)),
     ), blocks::putBlock)
     old.forEach(blocks::remove)
     blocks[expanded]!!.private = false

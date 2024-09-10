@@ -121,17 +121,17 @@ fun ASTRoot.toIr(
     }, block.args, block.instrs, block::newVar))
 
     tbCorr.forEach { (no, outIdx, variable) ->
-        val of = block.instrs.find { it.ast == no }!!
+        block.instrs.filter { it.ast == no }.forEach { of ->
+            repeat(outIdx + 1 - of.outs.size) {
+                of.outs.add(block.newVar())
+            }
 
-        repeat(outIdx + 1 - of.outs.size) {
-            of.outs.add(block.newVar())
+            block.instrs += IrInstr(
+                mutableListOf(variable),
+                PrimitiveInstr(Prim.Comp.USE),
+                mutableListOf(of.outs[outIdx]),
+            )
         }
-
-        block.instrs += IrInstr(
-            mutableListOf(variable),
-            PrimitiveInstr(Prim.Comp.USE),
-            mutableListOf(of.outs[outIdx]),
-        )
     }
 
     return block

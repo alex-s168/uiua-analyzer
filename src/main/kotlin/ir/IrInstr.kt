@@ -233,6 +233,11 @@ data class IrInstr(
                     updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
+                Prim.ABS -> {
+                    updateType(outs[0], args[0].type)
+                }
+
+                Prim.SIN,
                 Prim.NOW -> {
                     updateType(outs[0], Types.double)
                 }
@@ -241,7 +246,8 @@ data class IrInstr(
                 Prim.LT,
                 Prim.ADD,
                 Prim.SUB,
-                Prim.MUL -> {
+                Prim.MUL,
+                Prim.MOD -> {
                     val ty: Type = (args.firstOrNull { it.type is ArrayType }?.let { arr ->
                         arr.type.copyType() // TODO: problem with arr[int] + arr[double]
                     } ?: args.map { it.type.copyType() }.reduce { a, b ->
