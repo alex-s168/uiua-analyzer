@@ -40,6 +40,11 @@ object Prim {
         val PANIC = prim("cPANIC")
 
         val UNDEF = prim("cUNDEF")
+
+        val DYN_TYPEID = prim("cDYN_TYPEID") // [prim]
+        val DYN_UNWRAP = prim("cDYN_UNWRAP") // has typeParam
+        val DYN_WRAP = prim("cDYN_WRAP") // [value]
+        val DYN_FREE = prim("cDYN_FREE") // [dyn]
     }
 
     object Front {

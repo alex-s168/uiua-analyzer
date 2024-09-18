@@ -22,6 +22,8 @@ void arrDeallocImpl(void* ptr) {
     if (ptr) { free(ptr); }
 }
 
+// TODO: probably need to cast inner types (int, byte, flt, ..)
+
 const char* uac_TypeId_name(uac_TypeId ty) {
     switch (ty) {
         case UAC_NOTYPE:

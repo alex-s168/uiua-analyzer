@@ -1,13 +1,29 @@
 package me.alex_s168.uiua.mlir
 
-import me.alex_s168.uiua.ArrayType
-import me.alex_s168.uiua.PtrType
-import me.alex_s168.uiua.Type
-import me.alex_s168.uiua.Types
+import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrVar
 
-fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: IrVar, src: IrVar): List<String> =
-    when (to) {
+fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: IrVar, src: IrVar): List<String> {
+    if (to != Types.dynamic && from == Types.dynamic) {
+        val fn = UARuntime.dyn.castTo(to)
+        return listOf(Inst.funcCall(
+            dests = listOf(dest.asMLIR()),
+            fn = fn.name,
+            fnType = fn.type.toMLIR(),
+            src.asMLIR()
+        ))
+    }
+
+    return when (to) {
+        Types.dynamic -> {
+            val fn = UARuntime.dyn.createFrom(from)
+            listOf(Inst.funcCall(
+                listOf(dest.asMLIR()),
+                fn.name,
+                fn.type.toMLIR(),
+                src.asMLIR(),
+            ))
+        }
         is ArrayType -> {
             require(from is ArrayType)
             val out = mutableListOf<String>()
@@ -88,6 +104,7 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: IrVar, src: IrVar
         }
         else -> error("Cast from $from to $to not implemented")
     }
+}
 
 fun castIfNec(newVar: () -> IrVar, body: MutableList<String>, variable: IrVar, want: Type): IrVar =
     if (want is ArrayType && variable.type !is ArrayType)

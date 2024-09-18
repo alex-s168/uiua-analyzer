@@ -211,11 +211,49 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                             rets = listOf(Types.array(Types.int))
                         )
 
+                        // TODO: move to UARuntime
                         body += Inst.funcCall(
                             dests = listOf(instr.outs[0].asMLIR()),
                             fn = "_\$_rt_primes",
                             fnType = rtPrimes.toMLIR(),
                             castIfNec(::newVar, body, instr.args[0], Types.int).asMLIR()
+                        )
+                    }
+
+                    Prim.Comp.DYN_TYPEID -> {
+                        castLaterIfNec(::newVar, body, instr.outs[0], Types.byte) {
+                            body += Ty.dyn.getVal(it.asMLIR(), instr.args[0].asMLIR(), 0)
+                        }
+                    }
+
+                    Prim.Comp.DYN_UNWRAP -> {
+                        val wantType = instr.instr.typeParam!!
+                        val fn = UARuntime.dyn.castTo(wantType)
+                        body += Inst.funcCall(
+                            dests = listOf(instr.outs[0].asMLIR()),
+                            fn = fn.name,
+                            fnType = fn.type.toMLIR(),
+                            instr.args[0].asMLIR()
+                        )
+                    }
+
+                    Prim.Comp.DYN_WRAP -> {
+                        val fn = UARuntime.dyn.createFrom(instr.args[0].type)
+                        body += Inst.funcCall(
+                            listOf(instr.outs[0].asMLIR()),
+                            fn.name,
+                            fn.type.toMLIR(),
+                            instr.args[0].asMLIR(),
+                        )
+                    }
+
+                    Prim.Comp.DYN_FREE -> {
+                        val fn = UARuntime.dyn.drop
+                        body += Inst.funcCall(
+                            dests = listOf(),
+                            fn = fn.name,
+                            fnType = fn.type.toMLIR(),
+                            instr.args[0].asMLIR(),
                         )
                     }
 

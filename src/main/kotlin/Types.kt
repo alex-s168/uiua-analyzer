@@ -164,6 +164,20 @@ fun Type.ofIfArray() =
 fun Type.copyType() =
     this
 
+object DynTypeId {
+    const val NOTYPE = 0
+    const val BYTE = 1
+    const val INT = 2
+    const val FLOAT = 3
+    const val SIZE = 4
+    const val DYN = 5 // dyn in dyn
+    const val ARR_BYTE = 6
+    const val ARR_INT = 7
+    const val ARR_FLT = 8
+    const val ARR_SIZE = 9
+    const val ARR_DYN = 10 // identical to array of boxes
+}
+
 object Types {
     val tbd = object : Type("tbd", listOf()) {}
 

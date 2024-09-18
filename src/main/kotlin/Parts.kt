@@ -101,7 +101,9 @@ abstract class Instr
 data class PrimitiveInstr(
     var id: String,
     var loc: SpanRef? = null,
-    val param: Int? = null
+
+    val param: Int? = null,
+    val typeParam: Type? = null,
 ): Instr() {
     override fun toString(): String =
         "PrimitiveInstr($id:$param)"
