@@ -62,6 +62,12 @@ object Prim {
     val MOD = prim("MOD")
     val ABS = prim("ABS")
     val SIN = prim("SIN")
+    val NEG = prim("NEG")
+    val SQRT = prim("SQRT")
+    val ASIN = prim("ASIN")
+    val FLOOR = prim("FLOOR")
+    val CEIL = prim("CEIL")
+    val ROUND = prim("ROUND")
 
     val RAND = prim("RAND")
     val REPLACE_RAND = prim("REPLACE_RAND") // pop and then rand
@@ -70,7 +76,7 @@ object Prim {
     // TODO: investigate if these are the real names
     val LEN = prim("LEN")
     val SWITCH = prim("SWITCH") // [conds: arg list], [dests: arg lists], on: int, [args]...     the last case is always default case
-    val CALL = prim("CALL")
+    val CALL = prim("call")
 
     val PRIMES = prim("PRIMES")
     val RANGE = prim("RANGE")
@@ -93,12 +99,14 @@ object Prim {
     val UNDO_PICK = prim("UNDO_PICK")
     val TABLE = prim("TABLE")
     val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
+    val RERANK = prim("RERANK") // [rank: int], [array]
     val UN_SHAPE = prim("UN_SHAPE")
     val WHERE = prim("WHERE")
     val NOW = prim("NOW")
     val JOIN = prim("JOIN")
     val DESHAPE = prim("DESHAPE")
     val KEEP = prim("KEEP")
+    val IDENTITY = prim("IDENTITY")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

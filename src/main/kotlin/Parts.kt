@@ -88,8 +88,8 @@ data class InstSpan(
 data class Function(
     var value: Either<String, Span>,
     var children: List<Instr>,
-    val signature: Signature,
-    val loc: InstSpan,
+    val signature: Signature?,
+    val loc: InstSpan?,
     val rec: Boolean,
 ) {
     override fun toString(): String =

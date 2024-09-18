@@ -2,7 +2,6 @@ package me.alex_s168.uiua
 
 import me.alex_s168.uiua.ast.ASTRoot
 import me.alex_s168.uiua.ast.genGraph
-import me.alex_s168.uiua.ast.printAst
 import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.analysis.lifetimes
 import me.alex_s168.uiua.ir.lower.*
@@ -81,21 +80,17 @@ fun main() {
     val astNodes = mutableListOf<ASTRoot>()
     val blocks = assembly.functions.toIr(astNodes)
 
-    /*astNodes.forEach {
-        println(it.functionName)
-        it.children.printAst(indent = 2)
-    }*/
-
     File(".ast.dot").writer().use { w ->
         w.append(astNodes.genGraph())
     }
 
     val old = blocks.keys.toList()
-    val expanded = blocks["fn"]!!.expandFor(listOf(
+    val exported = listOf(blocks["fn"]!!.expandFor(listOf(
         //Types.array(Types.array(Types.int)),
-    ), blocks::putBlock)
+    ), blocks::putBlock))
     old.forEach(blocks::remove)
-    blocks[expanded]!!.private = false
+
+    exported.forEach { blocks[it]!!.private = false }
 
     File(".in.uac").writer().use { w ->
         blocks.values.forEach {
@@ -236,12 +231,13 @@ fun main() {
             blocks.values.toList().forEach { lowerFill.run(it) }
             blocks.values.toList().forEach { Analysis(it).updateFnType() }
             apply(passes2)
-            dse(expanded, blocks)
+
+            dse(exported, blocks)
             apply(passes3)
             apply(passes4)
             apply(passes5)
             apply(passes6)
-            dse(expanded, blocks)
+            dse(exported, blocks)
         }
 
         blocks.values.forEach {

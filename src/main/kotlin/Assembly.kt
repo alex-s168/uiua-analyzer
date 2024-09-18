@@ -122,14 +122,8 @@ data class Assembly(
 
             for (instr in instrs) {
                 if (instr is PushFnInstr)
-                    instr.fn.children = instrs.subList(instr.fn.loc.start, instr.fn.loc.start + instr.fn.loc.len).toList()
+                    instr.fn.children = instrs.subList(instr.fn.loc!!.start, instr.fn.loc.start + instr.fn.loc.len).toList()
             }
-
-            val slices = sections["TOP SLICES"]!!
-                .map {
-                    val (a, b) = it.split(' ')
-                    a to b
-                }
 
             val spans = sections["SPANS"]!!
                 .map(Span::parseNew)
@@ -140,12 +134,28 @@ data class Assembly(
                 .map {
                     val j = JSON.parse(it.substringAfter("func "))!!.arr
                     val fn = PushFnInstr.parse(j).fn
-                    fn.children = instrs.subList(fn.loc.start, fn.loc.start + fn.loc.len).toList()
+                    fn.children = instrs.subList(fn.loc!!.start, fn.loc.start + fn.loc.len).toList()
                     fn
                 }
-                .associateBy {
+                .associateByTo(mutableMapOf()) {
                     it.value.getA()
                 }
+
+            val entryFn = sections["TOP SLICES"]!!
+                .flatMap {
+                    val (a, b) = it.split(' ').map(String::toInt)
+                    instrs.subList(a, a + b)
+                }
+
+            if (entryFn.isNotEmpty()) {
+                functions["_\$main"] = Function(
+                    value = Either.ofA(""),
+                    children = entryFn,
+                    signature = null,
+                    loc = null,
+                    rec = false,
+                )
+            }
 
             val files = sections["FILES"]!!
                 .associate {

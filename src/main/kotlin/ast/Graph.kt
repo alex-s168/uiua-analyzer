@@ -4,7 +4,6 @@ import blitz.*
 import blitz.collections.contents
 import me.alex_s168.uiua.*
 import kotlin.math.max
-import kotlin.math.min
 
 fun List<ASTRoot>.genGraph(): String {
     val out = mutableListOf<String>()
@@ -32,6 +31,7 @@ fun List<ASTRoot>.genGraph(): String {
     flattened.forEachIndexed { idx, it ->
         val root = get(idx)
         out += " subgraph \"cluster_${root.functionName!!}\" {"
+        out += "  label=\"${root.functionName!!}\";"
         out += "  style=filled;"
         out += "  color=lightgrey;"
 
@@ -93,7 +93,7 @@ fun List<ASTRoot>.genGraph(): String {
                 fnName?.let { name ->
                     val calling = find { it.functionName == name }!!
                     val first = node2id[calling.children.first()]!!
-                    out += " $first:f0 -> \"$toKey\":$argIdx [ltail = \"cluster_$name\"; color = \"blue\"]"
+                    out += " $first:f0 -> \"$toKey\":f$argIdx [ltail = \"cluster_$name\"; color = \"blue\"]"
                 }
 
                 return

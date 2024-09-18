@@ -18,10 +18,28 @@ fun astify(input: List<Instr>): ASTRoot {
 
     val flagsAndComments: MutableList<Instr> = mutableListOf()
 
+    fun <C: MutableList<AstNode>> copyLastInto(num: Int, dest: C): C {
+        repeat(num - stack.size) {
+            stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))
+            argCount = max(argCount, argId)
+        }
+        dest += stack.takeLast(num)
+        return dest
+    }
+
+    fun <C: MutableList<AstNode>> removeLastInto(num: Int, dest: C): C {
+        repeat(num - stack.size) {
+            stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))
+            argCount = max(argCount, argId)
+        }
+        stack.removeLastInto(num, dest)
+        return dest
+    }
+
     input.forEachIndexed { _, op ->
         when (op) {
             is CopyTempStackInstr -> {
-                val value = stack.takeLast(op.count).toMutableList()
+                val value = copyLastInto(op.count, mutableListOf())
                 repeat(op.count - value.size) {
                     value += AstNode(Either.ofB(Either.ofA(AstArgNode(argId))))
                 }
@@ -30,7 +48,7 @@ fun astify(input: List<Instr>): ASTRoot {
             }
 
             is PushTempStackInstr -> {
-                val value = stack.removeLastInto(op.count, mutableListOf())
+                val value = removeLastInto(op.count, mutableListOf())
                 repeat(op.count - value.size) {
                     value += AstNode(Either.ofB(Either.ofA(AstArgNode(argId))))
                 }
@@ -46,12 +64,7 @@ fun astify(input: List<Instr>): ASTRoot {
             else -> {
                 val sig = signature(op) { stack[stack.size - 1 - it] }
 
-                repeat(sig.inputs - stack.size) {
-                    stack.addFront(AstNode(Either.ofB(Either.ofA(AstArgNode(argId++)))))
-                    argCount = max(argCount, argId)
-                }
-
-                val args = stack.removeLastInto(sig.inputs)
+                val args = removeLastInto(sig.inputs, mutableListOf())
                 if (sig.outputs > 0) {
                     val node = AstNode(Either.ofA(AstInstrNode(op, args)))
 

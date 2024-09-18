@@ -31,7 +31,16 @@ internal fun signature(
         Prim.MOD -> Signature(2, 1)
         Prim.ABS -> Signature(1, 1)
         Prim.SIN -> Signature(1, 1)
+        Prim.NEG -> Signature(1, 1)
+        Prim.SQRT -> Signature(1, 1)
+        Prim.ASIN -> Signature(1, 1)
+        Prim.FLOOR -> Signature(1, 1)
+        Prim.CEIL -> Signature(1, 1)
+        Prim.ROUND -> Signature(1, 1)
+        Prim.RERANK -> Signature(2, 1)
 
+        Prim.SHAPE -> Signature(1, 1)
+        Prim.FIX -> Signature(1, 1)
         Prim.LEN -> Signature(1, 1)
 
         Prim.PRIMES -> Signature(1, 1)
@@ -47,24 +56,24 @@ internal fun signature(
 
         Prim.EACH -> {
             val each = onStack(0).value.getA().instr as PushFnInstr
-            each.fn.signature.mapIns { it + 1 }
+            each.fn.signature!!.mapIns { it + 1 }
         }
         Prim.REDUCE, Prim.Front.REDUCE_DEPTH -> {
             val fn = onStack(0).value.getA().instr as PushFnInstr
-            Signature(fn.fn.signature.inputs, 1)
+            Signature(fn.fn.signature!!.inputs, 1)
         }
         Prim.ROWS -> {
             val each = onStack(0).value.getA().instr as PushFnInstr
-            each.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst
+            each.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
         }
         Prim.FILL -> {
             // onStack(0) is the fill value
             val fn = onStack(1).value.getA().instr as PushFnInstr
-            fn.fn.signature.mapIns { it + 2 } // arg 0 & arg 1
+            fn.fn.signature!!.mapIns { it + 2 } // arg 0 & arg 1
         }
         Prim.TABLE -> {
             val inner = onStack(0).value.getA().instr as PushFnInstr
-            require(inner.fn.signature.inputs >= 2) {
+            require(inner.fn.signature!!.inputs >= 2) {
                 "function passed to table needs to take in 2 or more arguments"
             }
             inner.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst
@@ -82,6 +91,12 @@ internal fun signature(
         Prim.RAND -> Signature(0, 1)
         Prim.REPLACE_RAND -> Signature(1, 1)
         Prim.COMPLEX -> Signature(2, 1)
+        Prim.IDENTITY -> Signature(1, 1) // TODO: make new inst kind instead
+
+        Prim.CALL -> {
+            val fn = onStack(0).value.getA().instr as PushFnInstr
+            fn.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
+        }
 
         else -> error("Unknown primitive instruction ${instr.id}!")
     }

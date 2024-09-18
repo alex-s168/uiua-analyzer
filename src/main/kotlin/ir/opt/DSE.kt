@@ -14,10 +14,12 @@ private fun findBlocks(block: IrBlock, blocks: MutableMap<String, IrBlock>, dest
     }
 }
 
-val dse = { root: String, blocks: MutableMap<String, IrBlock> ->
-    val blk = blocks[root]!!
+val dse = { roots: List<String>, blocks: MutableMap<String, IrBlock> ->
     val relevantBlocks = mutableListOf<IrBlock>()
-    findBlocks(blk, blocks, relevantBlocks)
+
+    roots.forEach {
+        findBlocks(blocks[it]!!, blocks, relevantBlocks)
+    }
 
     blocks.toList().forEach { (k, block) ->
         if (block !in relevantBlocks) {

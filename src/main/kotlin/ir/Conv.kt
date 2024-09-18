@@ -78,8 +78,10 @@ fun Function.toIr(
     val ast = astify(children)
     ast.functionName = name
     astDest += ast
-    require(ast.args == signature.inputs) {
-        "mismatched signature  ast args: ${ast.args} ; signature args: ${signature.inputs}"
+    signature?.let {
+        require(ast.args == it.inputs) {
+            "mismatched signature  ast args: ${ast.args} ; signature args: ${signature.inputs}"
+        }
     }
 
     val ir = ast.toIr(getFn, putFn, name, astDest)

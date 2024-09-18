@@ -233,7 +233,13 @@ data class IrInstr(
                     updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
-                Prim.ABS -> {
+                Prim.FLOOR,
+                Prim.CEIL,
+                Prim.ROUND,
+                Prim.ASIN,
+                Prim.SQRT,
+                Prim.ABS,
+                Prim.NEG -> {
                     updateType(outs[0], args[0].type)
                 }
 
