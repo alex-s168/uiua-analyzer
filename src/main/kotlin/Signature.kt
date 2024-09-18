@@ -38,6 +38,8 @@ internal fun signature(
         Prim.CEIL -> Signature(1, 1)
         Prim.ROUND -> Signature(1, 1)
         Prim.RERANK -> Signature(2, 1)
+        Prim.UNDO_RERANK -> Signature(3, 1)
+        Prim.UN_COUPLE -> Signature(1, 2)
 
         Prim.SHAPE -> Signature(1, 1)
         Prim.FIX -> Signature(1, 1)

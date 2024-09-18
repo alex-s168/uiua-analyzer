@@ -100,6 +100,7 @@ object Prim {
     val TABLE = prim("TABLE")
     val RESHAPE = prim("RESHAPE") // [shape: arg list], [array]
     val RERANK = prim("RERANK") // [rank: int], [array]
+    val UNDO_RERANK = prim("UNDO_RERANK")
     val UN_SHAPE = prim("UN_SHAPE")
     val WHERE = prim("WHERE")
     val NOW = prim("NOW")
@@ -107,6 +108,7 @@ object Prim {
     val DESHAPE = prim("DESHAPE")
     val KEEP = prim("KEEP")
     val IDENTITY = prim("IDENTITY")
+    val UN_COUPLE = prim("UN_COUPLE") // [arr]
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }
