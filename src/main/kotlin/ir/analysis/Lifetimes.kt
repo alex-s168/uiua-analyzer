@@ -43,4 +43,4 @@ private fun IrBlock.updateArgLifetimes(ctx: ArgLifetimeAnalysis) {
 
 val lifetimes = analysisPass("lifetimes") { block, a ->
     block.updateArgLifetimes(ArgLifetimeAnalysis(mutableListOf()))
-}
+}.parallelWithoutDeepCopy()

@@ -6,6 +6,7 @@ import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val lowerWhere = lowerPass(
     "lower where",
@@ -22,4 +23,4 @@ val lowerWhere = lowerPass(
     ))
 
     TODO()
-}
+}.parallelWithoutDeepCopy()

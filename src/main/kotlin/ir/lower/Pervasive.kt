@@ -1,13 +1,9 @@
 package me.alex_s168.uiua.ir.lower
 
 import me.alex_s168.uiua.*
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.Analysis
-import me.alex_s168.uiua.ir.optAwayPass
+import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.depth
 import me.alex_s168.uiua.ir.transform.into
-import me.alex_s168.uiua.ir.withPassArg
 
 val lowerPervasive = withPassArg<(IrBlock) -> Unit>("lower pervasive") { putBlock ->
     optAwayPass(
@@ -28,4 +24,4 @@ val lowerPervasive = withPassArg<(IrBlock) -> Unit>("lower pervasive") { putBloc
             listOf(res)
         }[0].into(outs[0], put)
     }
-}
+}.parallelWithoutDeepCopy()

@@ -6,6 +6,7 @@ import me.alex_s168.uiua.Type
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.IrVar
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val boxConv = Pass<Unit>("box type conversion") { block, _ ->
     block.args.convBox()
@@ -15,7 +16,7 @@ val boxConv = Pass<Unit>("box type conversion") { block, _ ->
         instr.outs.convBox()
         instr.args.convBox()
     }
-}
+}.parallelWithoutDeepCopy()
 
 fun Type.convBox(): Type =
     when (this) {

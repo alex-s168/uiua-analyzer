@@ -37,83 +37,89 @@ data class Assembly(
                     val instr = instrIn.trim()
                     if (instr.isEmpty()) return@forEach
 
-                    val parsed = if (instr.startsWith("[{")) {
-                        val (l, loc) = instr
-                            .drop(1)
-                            .dropLast(1)
-                            .split(',')
+                    val parsed = instr.switch(
+                        Regex.fromLiteral("[{") startsWithCase {
+                            val (l, loc) = instr
+                                .drop(1)
+                                .dropLast(1)
+                                .split(',')
 
-                        val (kind, value) = l.drop(1).dropLast(1).split(':')
+                            val (kind, value) = l.drop(1).dropLast(1).split(':')
 
-                        when (kind.drop(1).dropLast(1)) {
-                            "REDUCE_DEPTH" -> {
-                                val depth = value.toInt()
-                                PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
+                            when (kind.drop(1).dropLast(1)) {
+                                "REDUCE_DEPTH" -> {
+                                    val depth = value.toInt()
+                                    PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
+                                }
+
+                                "TRANSPOSE_N" -> {
+                                    val to = when (value.toInt()) {
+                                        -1 -> Prim.Comp.UN_TRANSPOSE
+                                        1 -> Prim.TRANSPOSE
+                                        else -> error("unsupported transpose_n amount")
+                                    }
+                                    PrimitiveInstr(to, SpanRef(listOf(loc.toInt())))
+                                }
+
+                                else -> error("unsupported complicated instruction $kind")
+                            }
+                        },
+                        Regex.fromLiteral("[") startsWithCase {
+                            val all = JSON.parse(instr)!!.arr
+
+                            var rank = 1
+                            var iter = all
+                            while (iter.firstOrNull()?.isArr() == true) {
+                                iter = iter.firstOrNull()!!.arr
+                                rank ++
                             }
 
-                            else -> error("unsupported $kind")
+                            val data = instr.drop(1).dropLast(1)
+                                .replace(",[", "")
+                                .replace("[", "")
+                                .replace("]", "")
+                                .split(',')
+                                .map { it.toDouble() }
+
+                            val elemType = Types.double
+                            val type = Types.ndarray(rank, elemType)
+                            ArrImmInstr(
+                                type,
+                                Either.ofB(data)
+                            )
+                        },
+                        Regex.fromLiteral("# ") startsWithCase {
+                            CommentInstr(instr.substringAfter(it).trim())
+                        },
+                        Regex("(?i)push_?func +") startsWithCase {
+                            val arr = JSON.parse(instr.substringAfter(it))!!.arr
+                            PushFnInstr.parse(arr)
+                        },
+                        Regex("(?i)copy_?to_?temp *\\[(.*)\\]") startsWithCase {
+                            val (stack, count) = it.groupValues[1].split(',')
+                            CopyTempStackInstr(stack, count.toInt())
+                        },
+                        Regex("(?i)push_?temp *\\[(.*)\\]") startsWithCase {
+                            val (stack, count) = it.groupValues[1].split(',')
+                            PushTempStackInstr(stack, count.toInt())
+                        },
+                        Regex("(?i)pop_?temp *\\[(.*)\\]") startsWithCase {
+                            val (stack, count) = it.groupValues[1]
+                                .split(',')
+                            PopTempStackInstr(stack, count.toInt())
+                        },
+                        Regex("\"(.*)\"") startsWithCase {
+                            FlagInstr(it.groupValues[1])
+                        },
+                        Regex("(?i)comment *(.*)") startsWithCase {
+                            CommentInstr(it.groupValues[1])
                         }
-                    } else if (instr.startsWith('[')) {
-                        val all = JSON.parse(instr)!!.arr
-
-                        var rank = 1
-                        var iter = all
-                        while (iter.firstOrNull()?.isArr() == true) {
-                            iter = iter.firstOrNull()!!.arr
-                            rank ++
-                        }
-
-                        val data = instr.drop(1).dropLast(1)
-                            .replace(",[", "")
-                            .replace("[", "")
-                            .replace("]", "")
-                            .split(',')
-                            .map { it.toDouble() }
-
-                        val elemType = Types.double
-                        val type = Types.ndarray(rank, elemType)
-                        ArrImmInstr(
-                            type,
-                            Either.ofB(data)
-                        )
-                    }
-                    else if (instr.startsWith("# ")) {
-                        CommentInstr(instr.substringAfter("# ").trim())
-                    }
-                    else if (instr.startsWith("push_func ")) {
-                        val arr = JSON.parse(instr.substringAfter("push_func ").trim())!!.arr
-                        PushFnInstr.parse(arr)
-                    }
-                    else if (instr.startsWith("copy_to_temp ")) {
-                        val (stack, count) = instr
-                            .substringAfter("copy_to_temp [")
-                            .substringBeforeLast(']')
-                            .split(',')
-                        CopyTempStackInstr(stack, count.toInt())
-                    }
-                    else if (instr.startsWith("push_temp ")) {
-                        val (stack, count) = instr
-                            .substringAfter("push_temp [")
-                            .substringBeforeLast(']')
-                            .split(',')
-                        PushTempStackInstr(stack, count.toInt())
-                    }
-                    else if (instr.startsWith("pop_temp ")) {
-                        val (stack, count) = instr
-                            .substringAfter("pop_temp [")
-                            .substringBeforeLast(']')
-                            .split(',')
-                        PopTempStackInstr(stack, count.toInt())
-                    }
-                    else if (instr.startsWith('"')) {
-                        FlagInstr(instr.drop(1).dropLast(1))
-                    }
-                    else {
+                    ) { s ->
                         kotlin.runCatching {
-                            val (id, loc) = instr.split(' ')
-                            PrimitiveInstr(id, SpanRef(listOf(loc.toInt())))
+                            val (id, loc) = s.split(' ')
+                            PrimitiveInstr(id.uppercase(), SpanRef(listOf(loc.toInt())))
                         }.getOrElse {
-                            NumImmInstr(instr.toDouble())
+                            NumImmInstr(s.toDouble())
                         }
                     }
 

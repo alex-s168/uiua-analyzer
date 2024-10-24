@@ -31,9 +31,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
         )
     }
 
-    fun callWithOptFill(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>, fill: IrVar? = null): List<String> {
+    fun genCall(dests: List<IrVar>, fn: IrBlock, args: List<IrVar>): List<String> {
         if (fn.shouldInline()) {
-            val toInline = fn.inlinableCopy(args, dests, fill)
+            val toInline = fn.inlinableCopy(args, dests)
             val res = mutableListOf<String>()
             if (mlirComments)
                 res += "// Inlined ${fn.name} (${args.contents}) -> (${dests.contents})"
@@ -41,48 +41,30 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
             return res
         }
 
-        return listOf(if (fn.fillArg != null) {
-            Inst.funcCall(
-                dests.map { it.asMLIR() },
-                fn.name,
-                fn.type().toMLIR(),
-                *(listOf(fill!!) + args).map { it.asMLIR() }.toTypedArray()
-            )
-        } else {
-            Inst.funcCall(
-                dests.map { it.asMLIR() },
-                fn.name,
-                fn.type().toMLIR(),
-                *args.map { it.asMLIR() }.toTypedArray()
-            )
-        })
+        return listOf(Inst.funcCall(
+            dests.map { it.asMLIR() },
+            fn.name,
+            fn.type().toMLIR(),
+            *args.mapToArray { it.asMLIR() }
+        ))
     }
 
-    fun callWithOptFill(dests: List<IrVar>, fn: IrVar, argsIn: List<IrVar>, fill: IrVar? = null): List<String> {
+    fun genCall(dests: List<IrVar>, fn: IrVar, argsIn: List<IrVar>): List<String> {
         val ty = fn.type as FnType
 
         val args = argsIn.zip(ty.args)
             .map { (it, want) -> castIfNec(::newVar, body, it, want) }
 
         (funDeclFor(fn)?.second ?: knowFns[fn])?.let { block ->
-            return callWithOptFill(dests, block, args, fill)
+            return genCall(dests, block, args)
         }
 
-        return listOf(if (ty.fillType != null) {
-            Inst.funcCallIndirect(
-                dests.map { it.asMLIR() },
-                fn.asMLIR(),
-                ty.toMLIR(),
-                (listOf(fill!!) + args).map { it.asMLIR() }
-            )
-        } else {
-            Inst.funcCallIndirect(
-                dests.map { it.asMLIR() },
-                fn.asMLIR(),
-                ty.toMLIR(),
-                args.map { it.asMLIR() }.toList()
-            )
-        })
+        return listOf(Inst.funcCallIndirect(
+            dests.map { it.asMLIR() },
+            fn.asMLIR(),
+            ty.toMLIR(),
+            args.map { it.asMLIR() }
+        ))
     }
 
     fun argArr(argArray: IrVar): List<IrVar> =
@@ -180,6 +162,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     Prim.SUB -> instr.binary(body, Inst::sub, reverse = true)
                     Prim.MUL -> instr.binary(body, Inst::mul)
                     Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
+                    Prim.MOD -> instr.binary(body, Inst::mod, reverse = true)
                     Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
 
                     Prim.LT -> {
@@ -268,11 +251,10 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         when (conds.size) {
                             0 -> {}
                             1 -> {
-                                body += callWithOptFill(
+                                body += genCall(
                                     instr.outs,
                                     targets[0],
-                                    args,
-                                    fillArg
+                                    args
                                 )
                             }
                             2 -> {
@@ -294,11 +276,10 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 val then = mutableListOf<String>()
                                 val thenDests = instr.outs.map { newVar().copy(type = it.type) }
 
-                                then += callWithOptFill(
+                                then += genCall(
                                     thenDests,
                                     targets[0],
-                                    args,
-                                    fillArg
+                                    args
                                 )
 
                                 then += gyield(thenDests)
@@ -306,11 +287,10 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 val els = mutableListOf<String>()
                                 val elsDests = instr.outs.map { newVar().copy(type = it.type) }
 
-                                els += callWithOptFill(
+                                els += genCall(
                                     elsDests,
                                     targets[1],
-                                    args,
-                                    fillArg
+                                    args
                                 )
 
                                 els += gyield(elsDests)
@@ -324,11 +304,10 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                         val inner = mutableListOf<String>()
                                         val dests = instr.outs.map { newVar().copy(type = it.type) }
 
-                                        inner += callWithOptFill(
+                                        inner += genCall(
                                             dests,
                                             target,
-                                            args,
-                                            fillArg
+                                            args
                                         )
 
                                         inner += "scf.yield ${dests.joinToString { it.asMLIR() }} ${if (instr.outs.isEmpty()) "" else ":"} ${dests.joinToString { it.type.toMLIR() }}"
@@ -380,7 +359,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 arr.type.toMLIR(),
                                 castIfNec(::newVar, body, value, arrTy.inner).asMLIR(),
                                 arr.asMLIR(),
-                                *indecies.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }.toTypedArray()
+                                *indecies.mapToArray { castIfNec(::newVar, body, it, Types.size).asMLIR() }
                             )
                         }
                     }
@@ -401,7 +380,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 instr.outs[0].asMLIR(),
                                 arr.type.toMLIR(),
                                 arr.asMLIR(),
-                                *indecies.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }.toTypedArray()
+                                *indecies.mapToArray { castIfNec(::newVar, body, it, Types.size).asMLIR() }
                             )
                         }
                     }
@@ -426,13 +405,12 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
 
                         val inner = mutableListOf<String>()
 
-                        inner += callWithOptFill(
+                        inner += genCall(
                             listOf(),
                             fn,
                             additional.also {
                                 it.add(0, castIfNec(::newVar, inner, counter, fnTy.args[0]))
-                            },
-                            fillArg
+                            }
                         )
 
                         val one = newVar().copy(type = Types.size).asMLIR()
@@ -538,35 +516,14 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         // do nothing
                     }
 
-                    Prim.FILL -> {
-                        val (_, fillValFn) = funDeclFor(instr.args[0])!!
-                        val opFn = instr.args[1]
-                        val opArgs = instr.args.drop(2)
-
-                        val fillVal = newVar().copy(type = fillValFn.type().rets.first())
-                        body += callWithOptFill(
-                            listOf(fillVal),
-                            fillValFn,
-                            listOf(),
-                        )
-
-                        body += callWithOptFill(
-                            instr.outs,
-                            opFn,
-                            opArgs,
-                            fillVal
-                        )
-                    }
-
                     Prim.CALL -> {
                         val fn = instr.args[0]
                         val args = instr.args.drop(1)
 
-                        body += callWithOptFill(
+                        body += genCall(
                             instr.outs,
                             fn,
-                            args,
-                            fillArg
+                            args
                         )
                     }
 
@@ -598,17 +555,11 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
     return body
 }
 
-fun IrBlock.emitMLIRFinalize(body: List<String>): String {
-    val mArgs = args.mapTo(mutableListOf()) { it.asMLIR() to it.type.toMLIR() }
-    fillArg?.let {
-        mArgs.add(0, it.asMLIR() to it.type.toMLIR())
-    }
-
-    return function(
+fun IrBlock.emitMLIRFinalize(body: List<String>): String =
+    function(
         name,
         private,
-        mArgs,
+        args.mapTo(mutableListOf()) { it.asMLIR() to it.type.toMLIR() },
         rets.map { it.asMLIR() to it.type.toMLIR() },
         body
     )
-}

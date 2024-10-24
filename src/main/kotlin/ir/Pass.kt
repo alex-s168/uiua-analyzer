@@ -34,10 +34,43 @@ fun IrBlock.lowerPrimPass(
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = lowerPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, block)
 
+sealed interface AnyPass {
+    val name: String
+}
+
+data class GlobalPass<A>(
+    override val name: String,
+    val internalRun: (Map<String, IrBlock>, A) -> Unit
+): AnyPass
+
+fun <A> GlobalPass<A>.run(map: Map<String, IrBlock>, arg: A) {
+    kotlin.runCatching {
+        internalRun(map, arg)
+    }.onFailure {
+        map.values.forEach {
+            println(it)
+            println()
+        }
+        println("in global pass $name with arg $arg")
+        throw it
+    }
+}
+
 data class Pass<A>(
-    val name: String,
+    override val name: String,
+    /** each block -> own thread */
+    val parallel: Boolean = true,
+    /** deep copy each block when parallel */
+    val parallelDeepCopyBlocks: Boolean = true,
     val internalRun: (IrBlock, A) -> Unit,
-)
+): AnyPass
+
+fun <A> Pass<A>.withoutParallel() =
+    Pass(name, false, false, internalRun)
+
+fun <A> Pass<A>.parallelWithoutDeepCopy() =
+    Pass(name, true, false, internalRun)
+
 
 fun <A> Pass<A>.run(block: IrBlock, arg: A) {
     kotlin.runCatching {

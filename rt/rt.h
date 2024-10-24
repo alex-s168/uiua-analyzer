@@ -128,10 +128,6 @@ HGenEverything(double,  flt)
 HGenEverything(size_t,  size)
 HGenEverything(uac_Dyn, dyn)
 
-// TODO: remove
-HGenArrType(2, int64_t)
-HGenRankedUtils(2, int64_t)
-
 #undef HGenEverything
 #undef HGenUnrankedUtils
 #undef HGenRankedUtils

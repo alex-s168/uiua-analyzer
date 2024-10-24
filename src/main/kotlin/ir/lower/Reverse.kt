@@ -6,6 +6,7 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.constants
 import me.alex_s168.uiua.ir.transform.into
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
 val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar, a, putBlock ->
@@ -98,4 +99,4 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
     ))
 
     out.into(outs[0], put = put)
-}
+}.parallelWithoutDeepCopy()

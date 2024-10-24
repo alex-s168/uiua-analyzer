@@ -45,6 +45,8 @@ object Prim {
         val DYN_UNWRAP = prim("cDYN_UNWRAP") // has typeParam
         val DYN_WRAP = prim("cDYN_WRAP") // [value]
         val DYN_FREE = prim("cDYN_FREE") // [dyn]
+
+        val UN_TRANSPOSE = prim("cUN_TRANSPOSE")
     }
 
     object Front {
@@ -73,10 +75,9 @@ object Prim {
     val REPLACE_RAND = prim("REPLACE_RAND") // pop and then rand
     val COMPLEX = prim("COMPLEX")
 
-    // TODO: investigate if these are the real names
     val LEN = prim("LEN")
     val SWITCH = prim("SWITCH") // [conds: arg list], [dests: arg lists], on: int, [args]...     the last case is always default case
-    val CALL = prim("call")
+    val CALL = prim("CALL")
 
     val PRIMES = prim("PRIMES")
     val RANGE = prim("RANGE")
@@ -109,6 +110,7 @@ object Prim {
     val KEEP = prim("KEEP")
     val IDENTITY = prim("IDENTITY")
     val UN_COUPLE = prim("UN_COUPLE") // [arr]
+    val TRANSPOSE = prim("TRANSPOSE")
 
     val FILL = prim("FILL") // [fill provider], [fn], [args]...
 }

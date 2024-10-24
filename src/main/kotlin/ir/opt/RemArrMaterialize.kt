@@ -4,6 +4,7 @@ import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.allPrim
 import me.alex_s168.uiua.ir.optAwayPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 var remArrMat = optAwayPass(
     "opt away array materialize",
@@ -14,4 +15,4 @@ var remArrMat = optAwayPass(
     { put, newVar, a ->
         a.rename(outs[0], args[0])
     }
-)
+).parallelWithoutDeepCopy()

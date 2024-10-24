@@ -3,6 +3,7 @@ package me.alex_s168.uiua.ir.opt
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
+import me.alex_s168.uiua.debugVerify
 import me.alex_s168.uiua.ir.*
 
 private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) {
@@ -56,8 +57,10 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
 
                 a.function(fnRef.get())?.let { fn ->
                     val fnA = Analysis(fn)
-                    if (fnA.callerInstrs().size > 1)
-                        error("you need to run oneblockonecaller before emptyArrayOpsRemove")
+                    if (debugVerify) {
+                        if (fnA.callerInstrs().size > 1)
+                            error("you need to run oneblockonecaller before emptyArrayOpsRemove")
+                    }
 
                     val arg = fn.args[argIdx]
                     println("tracing empty array from ${block.name} -> ${fn.name}")
@@ -84,4 +87,4 @@ val emptyArrayOpsRemove = Pass<(IrBlock) -> Unit>("infer array sizes") { block, 
             emptyArray(block, arr, putBlock)
         }
     }
-}
+}.withoutParallel()

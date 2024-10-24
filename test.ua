@@ -10,22 +10,23 @@ D ← ×⊃R(∿+η ÷3-τA) # p q ← R cos((A-2π)/3)
 # assumes 3 real roots - take the middle one
 Cubic ← +D ⊃(P|Q|S)
 
-a ← 10
-b ← ¯30
-Segments ← 20
+a         ← 10
+b         ← ¯30
+Segments  ← 20
 Framerate ← 24
-Size ← 100_100
+Size      ← 100_100
 
 Cb ← ×¯2+a b                  # -2(a+b)
 Cc ← ++××2⊃(+b|+a|¯ⁿ2◌|×¯3ⁿ2) # y x ← 2(a+y)(b+y)-x^2-3y^2
 Cd ← ×××¯2 a b                # y ← -2aby
 
-Param ← Cubic ⊃(1|Cb|Cc|Cd)
+Param     ← Cubic ⊃(1|Cb|Cc|Cd)
 Normalise ← ÷-b a -b # (t-b)/(a-b)
 
-Shade ← ◿2⌊ +⊙(÷Framerate) ×Segments # value time ← 0 or 1
+Shade ← ◿2⌊ +⊓(×Segments|÷Framerate) # value time ← 0 or 1
 
-⇡×2Framerate
-⍜☇≡(Normalise Param °⊟ -÷2:)1 ⇡⟜¤ Size
-
-∵(⍜(☇1)Shade)¤
+fn = (
+    ⇡×2Framerate
+    Normalise Param °⊟-÷2⟜(°⍉⇡)Size
+    Shade¤
+)

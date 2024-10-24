@@ -19,8 +19,8 @@ enum class Lifetime {
 }
 
 data class IrBlock(
-    val name: String,
-    val ref: Map<String, IrBlock>,
+    var name: String,
+    var ref: Map<String, IrBlock>,
     var instrs: MutableList<IrInstr> = mutableListOf(),
     var flags: MutableList<String> = mutableListOf(),
     var args: MutableList<IrVar> = mutableListOf(),
@@ -28,9 +28,21 @@ data class IrBlock(
     var fillArg: IrVar? = null,
     var private: Boolean = true,
 ) {
-    val uid = nextBlockId ++
+    var uid = nextBlockId ++
 
     val lifetimes = mutableMapOf<IrVar, Lifetime>()
+
+    fun loadFrom(other: IrBlock) {
+        name = other.name
+        ref = other.ref
+        instrs = other.instrs
+        flags = other.flags
+        args = other.args
+        rets = other.rets
+        fillArg = other.fillArg
+        private = other.private
+        uid = other.uid
+    }
 
     fun shouldInline(): Boolean =
         inlineConfig(this)

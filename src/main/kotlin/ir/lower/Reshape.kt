@@ -1,14 +1,11 @@
 package me.alex_s168.uiua.ir.lower
 
 import me.alex_s168.uiua.*
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.constants
 import me.alex_s168.uiua.ir.transform.reduce
 import me.alex_s168.uiua.ir.transform.switch
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
-import me.alex_s168.uiua.ir.withPassArg
 
 val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
     lowerPrimPass(Prim.RESHAPE) { put, newVar, a ->
@@ -188,4 +185,4 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             ))
         }
     }
-}
+}.parallelWithoutDeepCopy()

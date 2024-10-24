@@ -6,6 +6,7 @@ import me.alex_s168.uiua.dontCareOpsBeforePanic
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val dce = Pass<Unit>("DCE") { block, _ ->
     val a = Analysis(block)
@@ -36,4 +37,4 @@ val dce = Pass<Unit>("DCE") { block, _ ->
             mutableListOf()
         ))
     }
-}
+}.parallelWithoutDeepCopy()

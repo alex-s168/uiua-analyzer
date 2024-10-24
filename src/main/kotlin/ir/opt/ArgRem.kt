@@ -1,67 +1,87 @@
 package me.alex_s168.uiua.ir.opt
 
-import blitz.collections.contents
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.intersections
 import me.alex_s168.uiua.ir.Analysis
-import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.withoutParallel
+import me.alex_s168.uiua.unreachable
 
 val argRem = Pass<Unit>("arg rem") { block, _ ->
     val a = Analysis(block)
 
-    block.instrs.toList().forEach { instr ->
-        if (instr.instr !is PrimitiveInstr)
-            return@forEach
+    val unusedArgs = block.args
+        .filter(a::unused)
+        .map { block.args.indexOf(it) }
 
-        val instrCallArgsBegin = when (instr.instr.id) {
+    if (unusedArgs.isEmpty())
+        return@Pass
+
+    val callers = a.callerInstrs()
+
+    val removable = BooleanArray(unusedArgs.size) { true }
+
+    callers.forEach { (caller, instr) ->
+        if (a.isPrim(instr, Prim.SWITCH)) {
+            val ca = Analysis(caller)
+            val calling = ca.origin(instr.args[1])!!.args
+            for (c in calling) {
+                val fn = ca.function(c) ?: return@Pass
+                if (fn != block) {
+                    require(fn.args.size == block.args.size) {
+                        "cases in switch have different args"
+                    }
+                    val fna = Analysis(fn)
+                    unusedArgs.forEachIndexed { idx, it ->
+                        if (removable[idx]) {
+                            if (!fna.unused(fn.args[it]))
+                                removable[idx] = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (removable.none())
+        return@Pass
+
+    val remua = unusedArgs
+        .filterIndexed { idx, _ -> removable[idx] }
+
+    remua
+        .map { block.args[it] }
+        .forEach(block.args::remove)
+
+    callers.forEach { (caller, callerInst) ->
+        require(callerInst.instr is PrimitiveInstr)
+        val instrCallArgsBegin = when (callerInst.instr.id) {
             Prim.SWITCH -> 3
             Prim.Comp.REPEAT -> 2 // don't change!!!
             Prim.CALL -> 1
-            else -> return@forEach
+            else -> unreachable()
         }
 
-        val dests = when (instr.instr.id) {
-            Prim.SWITCH -> (a.origin(instr.args[1]) ?: return@forEach).args
-                .map { block.funDeclFor(it)?.second }
-            Prim.CALL -> listOf(block.funDeclFor(instr.args[0])?.second)
-            Prim.Comp.REPEAT -> listOf(block.funDeclFor(instr.args[2])?.second)
-            else -> return@forEach
+        remua.map {
+            callerInst.args[instrCallArgsBegin + it]
+        }.forEach {
+            callerInst.args.remove(it)
         }
 
-        if (dests.isEmpty()) return@forEach
-        if (dests.any { it == null } ) return@forEach
-        if (!dests.all { Analysis(it!!).callerInstrs().contents == arrayOf(block to instr).contents }) return@forEach
+        if (callerInst.instr.id == Prim.SWITCH) {
+            val ca = Analysis(caller)
+            val calling = ca.origin(callerInst.args[1])!!
+                .args
+                .map(ca::function)
 
-        val removable = dests.map { dest ->
-            dest!!
-
-            dest.args
-                .filter { !dest.varUsed(it) }
-                .map(dest.args::indexOf)
-        }
-
-        val remove = removable.intersections()
-        if (a.isPrim(instr, Prim.Comp.REPEAT)) {
-            remove -= 0 // can't remove counter
-        }
-        if (remove.isEmpty()) return@forEach
-
-        a.transform(listOf(instr)) { put, newVar ->
-            val undef = remove.map { newVar().copy(type = args[instrCallArgsBegin + it].type) }
-
-            put(IrInstr(
-                undef.toMutableList(),
-                PrimitiveInstr(Prim.Comp.UNDEF),
-                mutableListOf()
-            ))
-
-            put(this.deepCopy().also { inst ->
-                remove.zip(undef).forEach { (it, new) ->
-                    inst.args[instrCallArgsBegin + it] = new
+            calling.forEach { c ->
+                c!!
+                if (c != block) {
+                    remua
+                        .map { c.args[it] }
+                        .forEach(c.args::remove)
                 }
-            })
+            }
         }
     }
-}
+}.withoutParallel()

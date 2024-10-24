@@ -133,17 +133,19 @@ class Analysis(val block: IrBlock) {
     fun isCalling(instr: IrInstr, idx: Int) =
         getCalling(instr) == idx
 
+    // WARNING: this takes up a lot of time from compilation
     fun callerInstrs(): List<Pair<IrBlock, IrInstr>> {
         val res = mutableListOf<Pair<IrBlock, IrInstr>>()
-        callers().forEach { block ->
+        this.block.ref.values.forEach { block ->
             val ba = Analysis(block)
             block.instrs
-                .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
                 .forEach { inst ->
-                    val ref = inst.outs[0]
-                    ba.trace(ref) { a, b, v ->
-                        if (isCalling(b, b.args.indexOf(v))) {
-                            res += a to b
+                    if (inst.instr is PushFnRefInstr && inst.instr.fn == this.block.name) {
+                        val ref = inst.outs[0]
+                        ba.trace(ref) { a, b, v ->
+                            if (isCalling(b, b.args.indexOf(v))) {
+                                res += a to b
+                            }
                         }
                     }
                 }
@@ -155,7 +157,22 @@ class Analysis(val block: IrBlock) {
         origin(v)?.let {
             if (it.instr is NumImmInstr)
                 return Either.ofB(it.instr.value)
-            return Either.ofA(this.block to it)
+
+            // required for type checker
+            else if (isPrim(it, Prim.Comp.USE))
+                return deepOriginV2(it.args[0])
+
+            // required for type checker
+            else if (isPrim(it, Prim.OVER))
+                return when (it.outs.indexOf(v)) {
+                    0 -> deepOriginV2(it.args[1])
+                    1 -> deepOriginV2(it.args[0])
+                    2 -> deepOriginV2(it.args[1])
+                    else -> unreachable()
+                }
+
+            else
+                return Either.ofA(this.block to it)
         }
 
         if (v in block.args) {
@@ -200,6 +217,8 @@ class Analysis(val block: IrBlock) {
         return null
     }
 
+    // TODO: GET RID OF THIS ASAP
+    @Deprecated("does not handle all cases", replaceWith = ReplaceWith("deepOriginV2"))
     fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? =
         deepOriginV2(v)?.getAOrNull()
 
@@ -240,7 +259,7 @@ class Analysis(val block: IrBlock) {
         }
 
     fun constNum(v: IrVar) =
-        (origin(v)?.instr as? NumImmInstr)?.value
+        deepOriginV2(v)?.getBOrNull()
 
     fun unused(v: IrVar) =
         usages(v).isEmpty()
@@ -275,7 +294,7 @@ class Analysis(val block: IrBlock) {
 
     fun finish(dbgName: String) {
         if (removed.isNotEmpty() || added.isNotEmpty()) {
-            println("pass $dbgName finished:")
+            println("pass $dbgName finished on block \"${block.name}\":")
         }
         if (removed.isNotEmpty()) {
             println("  removed:")
@@ -459,7 +478,9 @@ class Analysis(val block: IrBlock) {
             Prim.DIV,
             Prim.LT,
             Prim.EQ,
-            Prim.POW
+            Prim.POW,
+            Prim.MOD,
+            Prim.FLOOR,
         )
 
         val independentOfArrayData = arrayOf(

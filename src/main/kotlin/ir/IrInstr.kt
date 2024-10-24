@@ -117,6 +117,17 @@ data class IrInstr(
                 else -> b
             }
 
+        // TODO: use everywhere here
+        fun expandArgFn(arg: Int, inTypes: List<Type>, fillType: Type? = null): IrBlock {
+            val pushfn = parent.instrDeclFor(args[arg])!!
+            val fn = parent.ref[(pushfn.instr as PushFnRefInstr).fn]!!
+            val exp = fn.expandFor(inTypes, putFn, fillType)
+            pushfn.instr.fn = exp
+            val expb = parent.ref[exp]!!
+            updateType(pushfn.outs[0], expb.type())
+            return expb
+        }
+
         when (instr) {
             is ArrImmInstr -> {
                 updateType(outs[0], instr.type.copy(vaOff = true))
@@ -207,11 +218,9 @@ data class IrInstr(
                 }
 
                 Prim.CALL -> {
-                    val (_, fn) = parent.funDeclFor(args[0])!!
                     val callArgs = args.drop(1)
 
-                    val exp = fn.expandFor(callArgs.map { it.type }, putFn, fillType)
-                    val expb = parent.ref[exp]!!
+                    val expb = expandArgFn(0, callArgs.map { it.type }, fillType)
 
                     outs.zip(expb.rets).forEach { (a, b) ->
                         updateType(a, b.type)
@@ -257,8 +266,8 @@ data class IrInstr(
                 Prim.MUL,
                 Prim.MOD -> {
                     val ty: Type = (args.firstOrNull { it.type is ArrayType }?.let { arr ->
-                        arr.type.copyType() // TODO: problem with arr[int] + arr[double]
-                    } ?: args.map { it.type.copyType() }.reduce { a, b ->
+                        arr.type // TODO: problem with arr[int] + arr[double]
+                    } ?: args.map { it.type }.reduce { a, b ->
                         a.combine(b)
                     }).let {
                         // we don't want inaccuracy
@@ -273,7 +282,7 @@ data class IrInstr(
                 }
 
                 Prim.RANGE -> {
-                    updateType(outs[0], Types.array(Types.int))
+                    updateType(outs[0], Types.array(args[0].type))
                 }
 
                 Prim.DUP -> {
@@ -369,7 +378,7 @@ data class IrInstr(
                     args[0] = fnRef(new)
 
                     outs.zip(newb.rets).forEach { (out, ret) ->
-                        updateType(out, highestRank.mapInner { ret.type }.copyType())
+                        updateType(out, highestRank.mapInner { ret.type })
                     }
                 }
 
@@ -435,7 +444,7 @@ data class IrInstr(
                     } else {
                         require(argTy is ArrayType)
                     }
-                    updateType(outs[0], argTy.copyType())
+                    updateType(outs[0], argTy)
                 }
 
                 Prim.PICK -> {
@@ -509,6 +518,28 @@ data class IrInstr(
 
                 Prim.COMPLEX -> {
                     updateType(outs[0], Types.complex)
+                }
+
+                Prim.RERANK -> {
+                    val arr = args[0]
+                    val rank = args[1]
+                    val ra = Analysis(parent).constNum(rank)
+                        ?: error("rank to rerank needs to be immediate number")
+                    val inner = arr.type.innerIfArray()
+                    val res = List(ra.toInt() + 1) { -1 }.shapeToArrType(inner)
+                    updateType(outs[0], res)
+                }
+
+                Prim.UN_COUPLE -> {
+                    val arr = args[0].type as ArrayType
+                    updateType(outs[0], arr.of)
+                    updateType(outs[1], arr.of)
+                }
+
+                Prim.TRANSPOSE,
+                Prim.Comp.UN_TRANSPOSE -> {
+                    val arr = args[0].type as ArrayType
+                    updateType(outs[0], arr.mapShapeElems { -1 })
                 }
 
                 else -> error("infer type for ${instr.id} not implemented")

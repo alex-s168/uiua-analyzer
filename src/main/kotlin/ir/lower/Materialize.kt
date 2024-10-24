@@ -6,6 +6,7 @@ import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.constantArr
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val lowerMaterialize = lowerPrimPass(Prim.Comp.ARR_MATERIALIZE) { put, newVar, a ->
     val data = a.origin(args[0])!!.args
@@ -26,4 +27,4 @@ val lowerMaterialize = lowerPrimPass(Prim.Comp.ARR_MATERIALIZE) { put, newVar, a
             mutableListOf(outs[0], idc, src)
         ))
     }
-}
+}.parallelWithoutDeepCopy()

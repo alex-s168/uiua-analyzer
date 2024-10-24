@@ -3,6 +3,7 @@ package me.alex_s168.uiua.ir.opt
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val identicalSwitchRem = Pass<Unit>("identical switch rem") { block, _ ->
     val a = Analysis(block)
@@ -26,4 +27,4 @@ val identicalSwitchRem = Pass<Unit>("identical switch rem") { block, _ ->
     }
 
     a.finish("identical switch rem")
-}
+}.parallelWithoutDeepCopy()

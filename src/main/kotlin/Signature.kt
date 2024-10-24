@@ -93,7 +93,9 @@ internal fun signature(
         Prim.RAND -> Signature(0, 1)
         Prim.REPLACE_RAND -> Signature(1, 1)
         Prim.COMPLEX -> Signature(2, 1)
-        Prim.IDENTITY -> Signature(1, 1) // TODO: make new inst kind instead
+        Prim.IDENTITY -> Signature(1, 1)
+        Prim.TRANSPOSE -> Signature(1, 1)
+        Prim.Comp.UN_TRANSPOSE -> Signature(1, 1)
 
         Prim.CALL -> {
             val fn = onStack(0).value.getA().instr as PushFnInstr

@@ -3,6 +3,7 @@ package me.alex_s168.uiua.ir.lower
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val lowerLen = lowerPrimPass(Prim.LEN) { put, newVar, a ->
     if (args[0].type is ArrayType) {
@@ -26,4 +27,4 @@ val lowerLen = lowerPrimPass(Prim.LEN) { put, newVar, a ->
             mutableListOf()
         ))
     }
-}
+}.parallelWithoutDeepCopy()

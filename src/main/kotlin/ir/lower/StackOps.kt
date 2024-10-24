@@ -4,6 +4,7 @@ import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val lowerDup = lowerPrimPass(Prim.DUP) { put, newVar, a ->
     outs.forEach {
@@ -13,7 +14,7 @@ val lowerDup = lowerPrimPass(Prim.DUP) { put, newVar, a ->
             mutableListOf(args[0]),
         ))
     }
-}
+}.parallelWithoutDeepCopy()
 
 val lowerFlip = lowerPrimPass(Prim.FLIP) { put, newVar, a ->
     put(IrInstr(
@@ -26,7 +27,7 @@ val lowerFlip = lowerPrimPass(Prim.FLIP) { put, newVar, a ->
         PrimitiveInstr(Prim.Comp.USE),
         mutableListOf(args[0]),
     ))
-}
+}.parallelWithoutDeepCopy()
 
 val lowerOver = lowerPrimPass(Prim.OVER) { put, newVar, a ->
     put(IrInstr(
@@ -44,4 +45,4 @@ val lowerOver = lowerPrimPass(Prim.OVER) { put, newVar, a ->
         PrimitiveInstr(Prim.Comp.USE),
         mutableListOf(args[1]),
     ))
-}
+}.parallelWithoutDeepCopy()

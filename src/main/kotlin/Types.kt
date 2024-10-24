@@ -3,21 +3,19 @@ package me.alex_s168.uiua
 import blitz.collections.contents
 
 open class Type(
-    val name: String,
-    val implicitConv: List<Type> // TODO: remove
+    val name: String
 ) {
     override fun toString(): String =
         name
 }
 
 class NumericType(
-    name: String,
-    down: List<Type>
-): Type(name, down)
+    name: String
+): Type(name)
 
 data class BoxType(
     val of: Type
-): Type("box", listOf()) {
+): Type("box") {
     override fun toString(): String =
         "box[$of]"
 }
@@ -47,7 +45,7 @@ open class ArrayType(
     val of: Type,
     val length: Int?,
     val vaOff: Boolean,
-): Type("arr", listOf()) {
+): Type("arr") {
     val shape: List<Int> by lazy {
         val sha = mutableListOf<Int>()
         var curr: Type = this
@@ -133,7 +131,7 @@ fun List<Int>.shapeToArrType(elem: Type): ArrayType {
 
 data class PtrType(
     val to: Type
-): Type("ptr", listOf()) {
+): Type("ptr") {
     override fun toString(): String =
         "ptr[$to]"
 }
@@ -142,15 +140,19 @@ data class FnType(
     var fillType: Type?,
     val args: List<Type>,
     val rets: List<Type>,
-): Type("func", listOf()) {
+): Type("func") {
     override fun toString(): String =
         "func${fillType?.let { "[$it]" } ?: ""}[${args.joinToString()}][${rets.joinToString()}]"
 }
 
-class AutoByteType: Type("autobyte", listOf()) {
+class AutoByteType: Type("autobyte") {
     override fun equals(other: Any?) =
         other == Types.byte || other == Types.autobyte
 }
+
+fun Type.innerIfArray() =
+    if (this is ArrayType) this.inner
+    else this
 
 fun Type.makeVaOffIfArray() =
     if (this is ArrayType) this.copy(vaOff = true)
@@ -159,10 +161,6 @@ fun Type.makeVaOffIfArray() =
 fun Type.ofIfArray() =
     if (this is ArrayType) this.of
     else this
-
-// TODO: don't use
-fun Type.copyType() =
-    this
 
 object DynTypeId {
     const val NOTYPE = 0
@@ -179,19 +177,19 @@ object DynTypeId {
 }
 
 object Types {
-    val tbd = object : Type("tbd", listOf()) {}
+    val tbd = object : Type("tbd") {}
 
     /* numeric */
-    val double = NumericType("float", listOf())
-    val int = NumericType("int", listOf(double))
-    val byte = NumericType("byte", listOf(int, double))
+    val double = NumericType("float")
+    val int = NumericType("int")
+    val byte = NumericType("byte")
     val autobyte = AutoByteType()
-    val size = NumericType("size", listOf(int, double))
-    val bool = NumericType("bool", listOf())
-    val complex = NumericType("complex", listOf(int, double))
+    val size = NumericType("size")
+    val bool = NumericType("bool")
+    val complex = NumericType("complex")
 
     /* general */
-    val dynamic = Type("dyn", listOf())
+    val dynamic = Type("dyn")
     fun box(of: Type) = BoxType(of)
     fun func(
         args: List<Type>,
@@ -208,7 +206,7 @@ object Types {
     /* native */
     fun pointer(to: Type) = PtrType(to)
     /** Can not be deref-ed; only usable in pointers */
-    val opaque = Type("opaque", listOf())
+    val opaque = Type("opaque")
 
 
     fun parse(str: String): Type {
@@ -256,49 +254,3 @@ object Types {
         }
     }
 }
-
-/*
-# +++ for compatiblity with interpreter
-dynamic ← ()
-fnsig ← (poppop)
-attrib ← (pop)
-use ← (unboxbox)
-# ---
-
-DoShit ← dynamic(+1) # (this has no reason to be dynamic)
-DoShitWrapper ← fnsig["int"]"arr[int]" dynamic(
-  DoShit
-)
-
-# this is now automatically converted to a template
-Inc ← (+1)
-IncB ← attrib["inline"](+1)
-
-A ← fnsig["int"]"int"(Inc)
-B ← fnsig["int"]"int"(IncB)
-C ← fnsig["float"]"float"(Inc)
-D ← fnsig["float"]"float"(IncB)
-E ← (Inc)
-F ← fnsig["int"]"int"(E)
-G ← fnsig["dyn"]"int"(use)
-H ← fnsig["int"]"int"(G)
-
-# The generated binary should behave somewhat like this:
-#
-# IntArray DoShitWrapper(int a) {
-#   auto interpr = new Interpreter(DoShit__assembly); // pass bytecode to interpreter
-#   interpr.push(new Dynamic(a));
-#   interpr.run();
-#   return interpr.pop().as<IntArray>(); // as throws a runtime exception if unsuccesfull
-# }
-# int Inc__int(int a) { return a + 1; }
-# int Inc__float(double a) { return a + 1; }
-# int A(int a) { return Inc__int(a); }
-# int B(int a) { return a + 1; }
-# float C(float a) { return Inc__float(a); }
-# float D(float a) { return a + 1; }
-# int E__int(int a) { return Inc__int(a); }
-# int F(int a) { return E__int(a); }
-# Dynamic G(int a) { return new Dynamic(a); }
-# int H(int a) { return G(a).as<IntArray>(); } // as throws a runtime exception if unsuccesfull
- */

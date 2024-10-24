@@ -52,11 +52,19 @@ fun List<AstNode>.toIr(block: IrBlock, putAnonFn: (Function) -> String, blockArg
                 }
 
                 else -> {
+                    val resInst = when (it.instr) {
+                        is PrimitiveInstr -> when (it.instr.id) {
+                            Prim.IDENTITY -> PrimitiveInstr(Prim.Comp.USE)
+                            else -> it.instr
+                        }
+                        else -> it.instr
+                    }
+
                     val args = it.children.toIr(block, putAnonFn, blockArgs, instrs, newVar)
                     instrs.add(
                         IrInstr(
                             outs = mutableListOf(variable),
-                            instr = it.instr,
+                            instr = resInst,
                             args = args.toMutableList(),
                             ast = node,
                         )

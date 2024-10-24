@@ -5,6 +5,7 @@ import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.comment
 import me.alex_s168.uiua.ir.transform.passValue
 
@@ -37,4 +38,4 @@ val evalDim = Pass<Unit>("evaluate dim") { block, _ ->
             }
         }
     }
-}
+}.parallelWithoutDeepCopy()

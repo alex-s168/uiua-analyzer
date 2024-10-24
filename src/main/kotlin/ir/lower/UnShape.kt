@@ -4,6 +4,7 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.reduce
 
 val lowerUnShape = lowerPrimPass<(IrBlock) -> Unit>(Prim.UN_SHAPE) { put, newVar, a, putBlock ->
@@ -29,4 +30,4 @@ val lowerUnShape = lowerPrimPass<(IrBlock) -> Unit>(Prim.UN_SHAPE) { put, newVar
         PrimitiveInstr(Prim.RESHAPE),
         mutableListOf(shape, rang)
     ))
-}
+}.parallelWithoutDeepCopy()

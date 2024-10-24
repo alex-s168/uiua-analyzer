@@ -1,12 +1,9 @@
 package me.alex_s168.uiua.ir.lower
 
 import me.alex_s168.uiua.*
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.depth
 import me.alex_s168.uiua.ir.transform.into
-import me.alex_s168.uiua.ir.withPassArg
 
 val lowerReduceDepth = withPassArg<(IrBlock) -> Unit>("lower reduce depth") { putBlock ->
     lowerPrimPass(Prim.Front.REDUCE_DEPTH) { put, newVar, a ->
@@ -26,4 +23,4 @@ val lowerReduceDepth = withPassArg<(IrBlock) -> Unit>("lower reduce depth") { pu
             new.into(old, put)
         }
     }
-}
+}.parallelWithoutDeepCopy()

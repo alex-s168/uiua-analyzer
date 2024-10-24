@@ -5,6 +5,7 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.constants
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
 val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prim.RANGE) { put, newVar, a, putBlock ->
@@ -49,4 +50,4 @@ val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prim.RANGE) { put, newVar, a, 
         PrimitiveInstr(Prim.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
         mutableListOf(zero, args[0], fnRef, outs[0])
     ))
-}
+}.parallelWithoutDeepCopy()

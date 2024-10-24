@@ -37,6 +37,9 @@ object Inst {
     fun div(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
         baseBin("div", dest, type, a, b, float).also { require(float) }
 
+    fun mod(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
+        baseBin("remi", dest, type, a, b, float).also { require(float) }
+
     fun pow(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean): String {
         require(float)
         return "$dest = math.powf $a, $b : $type"

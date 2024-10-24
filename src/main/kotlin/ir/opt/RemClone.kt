@@ -4,6 +4,7 @@ import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.Lifetime
 import me.alex_s168.uiua.ir.modifyPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val remClone = modifyPass(
     "optimize away clone",
@@ -18,4 +19,4 @@ val remClone = modifyPass(
         instr as PrimitiveInstr
         instr.id = Prim.Comp.USE
     }
-)
+).parallelWithoutDeepCopy()

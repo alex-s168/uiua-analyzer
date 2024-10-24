@@ -4,11 +4,8 @@ import boundsCheck
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.boundsChecking
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
-import me.alex_s168.uiua.ir.withPassArg
 
 val lowerUndoPick = withPassArg<(IrBlock) -> Unit>("lower unpick") { putBlock ->
     lowerPrimPass(Prim.UNDO_PICK) { put, newVar, a ->
@@ -33,4 +30,4 @@ val lowerUndoPick = withPassArg<(IrBlock) -> Unit>("lower unpick") { putBlock ->
             mutableListOf(outs[0], idc, value)
         ))
     }
-}
+}.parallelWithoutDeepCopy()

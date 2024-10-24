@@ -4,10 +4,7 @@ import blitz.collections.contents
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.PushFnRefInstr
-import me.alex_s168.uiua.ir.Analysis
-import me.alex_s168.uiua.ir.IrBlock
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.*
 
 fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>, putBlock: (IrBlock) -> Unit) {
     if (move.isEmpty())
@@ -124,7 +121,7 @@ val switchDependentCodeMovement = Pass<(IrBlock) -> Unit>("Switch Dependent Code
 
         switchMove(a, block, switch, move, putBlock)
     }
-}
+}.withoutParallel()
 
 val switchIndependentTrailingCodeMovement = Pass<(IrBlock) -> Unit>("Switch Independent Trailing Code Movement") { block, putBlock ->
     val a = Analysis(block)
@@ -139,4 +136,4 @@ val switchIndependentTrailingCodeMovement = Pass<(IrBlock) -> Unit>("Switch Inde
         .filter { !a.isPrim(it, Prim.Comp.SINK) }
 
     switchMove(a, block, switch, move, putBlock)
-}
+}.withoutParallel()

@@ -3,6 +3,7 @@ package me.alex_s168.uiua.ir.lower
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
 val lowerShape = lowerPrimPass(Prim.SHAPE) { put, newVar, a ->
@@ -32,4 +33,4 @@ val lowerShape = lowerPrimPass(Prim.SHAPE) { put, newVar, a ->
         PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
         mutableListOf(dims)
     ))
-}
+}.parallelWithoutDeepCopy()

@@ -8,6 +8,7 @@ import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.constantArr
 import me.alex_s168.uiua.ir.lowerPass
+import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 val lowerArrImm = lowerPass("lower arr imm", { it.instr is ArrImmInstr }) { put, newVar, a ->
     instr as ArrImmInstr
@@ -26,4 +27,4 @@ val lowerArrImm = lowerPass("lower arr imm", { it.instr is ArrImmInstr }) { put,
         PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
         mutableListOf(arr)
     ))
-}
+}.parallelWithoutDeepCopy()
