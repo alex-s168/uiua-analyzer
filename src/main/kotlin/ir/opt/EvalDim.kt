@@ -1,5 +1,7 @@
 package me.alex_s168.uiua.ir.opt
 
+import blitz.mapA
+import blitz.mapB
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.ir.Analysis
@@ -35,6 +37,7 @@ val evalDim = Pass<Unit>("evaluate dim") { block, _ ->
                     a.rename(instr.outs[0], it)
                     block.instrs[index] = comment("rem")
                 }
+                Unit
             }
         }
     }

@@ -40,10 +40,10 @@ sealed interface AnyPass {
 
 data class GlobalPass<A>(
     override val name: String,
-    val internalRun: (Map<String, IrBlock>, A) -> Unit
+    val internalRun: (MutableMap<String, IrBlock>, A) -> Unit
 ): AnyPass
 
-fun <A> GlobalPass<A>.run(map: Map<String, IrBlock>, arg: A) {
+fun <A> GlobalPass<A>.run(map: MutableMap<String, IrBlock>, arg: A) {
     kotlin.runCatching {
         internalRun(map, arg)
     }.onFailure {

@@ -8,6 +8,7 @@ import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.ir.withoutParallel
 
 val lowerFill = Pass<Unit>("lower fill") { block, _ ->
     val a = Analysis(block)
@@ -75,4 +76,8 @@ val lowerFill = Pass<Unit>("lower fill") { block, _ ->
             }
         }
     }
-}
+}.withoutParallel()
+
+val fixFnTypes = Pass<Unit>("fix fn types") { block, _ ->
+    Analysis(block).updateFnType()
+}.withoutParallel()

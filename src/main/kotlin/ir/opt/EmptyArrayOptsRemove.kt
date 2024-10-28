@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
+import blitz.isA
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
@@ -80,7 +81,7 @@ val emptyArrayOpsRemove = Pass<(IrBlock) -> Unit>("infer array sizes") { block, 
             val shapec = a.constShape(arr)
                 ?: return@forEach
 
-            if (shapec.none { it.isA && it.getA() == 0 })
+            if (shapec.none { it.a == 0 })
                 return@forEach
 
             println("empty array: $arr")

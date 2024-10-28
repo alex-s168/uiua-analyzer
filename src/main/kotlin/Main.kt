@@ -1,5 +1,7 @@
 package me.alex_s168.uiua
 
+import blitz.collections.gather
+import blitz.parse.comb2.ParseResult
 import me.alex_s168.uiua.ast.ASTRoot
 import me.alex_s168.uiua.ast.genGraph
 import me.alex_s168.uiua.ir.*
@@ -12,95 +14,17 @@ import me.alex_s168.uiua.mlir.emitMLIRFinalize
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
-inline fun <reified R> Any?.cast(): R? =
-    this?.let { if (it is R) it else null }
-
 fun anonFnName(): String =
     "_\$anon_${Random.nextULong()}"
 
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
-
-fun <T> Iterable<Iterable<T>>.intersections(dest: MutableList<T> = mutableListOf()): MutableList<T> =
-    reduce { acc, li -> acc.intersect(li) }
-        .forEach { dest += it }
-        .let { dest }
-
-fun <T> Iterable<T>.removeAtIndexes(idc: Iterable<Int>, dest: MutableList<T> = mutableListOf()): MutableList<T> =
-    filterIndexedTo(dest) { index, _ -> index !in idc }
-
-fun <T> List<T>.gather(idc: Iterable<Int>): MutableList<T> {
-    val dest = mutableListOf<T>()
-    idc.forEach {
-        dest += get(it)
-    }
-    return dest
-}
-
-fun <T> List<T>.before(idx: Int): List<T> =
-    take(idx)
-
-fun <T> List<T>.after(idx: Int): List<T> =
-    drop(idx + 1)
-
-inline fun <I, reified O> Collection<I>.mapToArray(fn: (I) -> O): Array<O> {
-    val iter = this.iterator()
-    return Array(this.size) {
-        fn(iter.next())
-    }
-}
-
-inline fun <I, reified O> Collection<I>.mapIndexedToArray(fn: (Int, I) -> O): Array<O> {
-    val iter = this.iterator()
-    return Array(this.size) {
-        fn(it, iter.next())
-    }
-}
-
-fun String.startsWith(re: Regex): Boolean =
-    re.matchesAt(this, 0)
-
-fun String.substringAfter(m: MatchResult): String =
-    this.drop(m.value.length)
-
-fun String.substringAfter(re: Regex): String? =
-    re.matchAt(this, 0)
-        ?.let(this::substringAfter)
-
-fun unreachable(): Nothing =
-    error("unreachable")
-
-data class SwitchCase<C, T: Any, R>(
-    val cond: (C) -> Pair<Boolean, T?>,
-    val then: (T) -> R,
-)
-
-inline infix fun <C, T: Any, R> ((C)->Pair<Boolean, T?>).case(noinline then: (T) -> R) =
-    SwitchCase(this, then)
-
-infix fun <R> Regex.startsWithCase(then: (MatchResult) -> R): SwitchCase<String, MatchResult, R> =
-    { it: String ->
-        this.matchAt(it, 0)?.let {
-            true to it
-        } ?: (false to null)
-    } case then
-
-inline fun <T, R> T.switch(vararg cases: SwitchCase<T, *, R>, default: (T) -> R): R {
-    cases.forEach { (cond, then) ->
-        val (b, v) = cond(this)
-        if (b) {
-            return (then as (Any) -> R)(v!!)
-        }
-    }
-    return default(this)
-}
 
 object Inline {
     val all = { block: IrBlock -> true }
@@ -169,6 +93,11 @@ fun main() {
     fun GlobalPass<(IrBlock) -> Unit>.generic() =
         this
 
+    fun <A> GlobalPass<A>.setArg(v: A): GlobalPass<Unit> =
+        GlobalPass(name) { b, _ -> this@setArg.internalRun(b, v) }
+
+    // TODO: fix argrem
+
     val passes = listOf(
         lowerUnCouple.generic(),
         lowerReduceDepth.generic(),
@@ -217,25 +146,23 @@ fun main() {
         fixArgArrays.generic(),
         inlineCUse.generic(),
         unrollLoop.generic(),
-    )
 
-    // lower fill happens here
-    val passes2 = listOf(
+        lowerFill.generic(),
+        fixFnTypes.generic(),
+
         //oneBlockOneCaller.generic(),
         constantTrace.generic(),
         //funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         dce.generic(),
-    )
-    // dse happens here
-    val passes3 = listOf(
+        dse.setArg(exported).generic(),
         remUnused.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
         remComments.generic(),
         //oneBlockOneCaller.generic(),
-        argRem.generic(),
+        //argRem.generic(),
         switchDependentCodeMovement.generic(),
         //oneBlockOneCaller.generic(),
         constantTrace.generic(),
@@ -244,16 +171,13 @@ fun main() {
         funcInline.generic(),
         funcInline.generic(),
         switchIndependentTrailingCodeMovement.generic(),
-    )
-    val passes4 = listOf(
+        dse.setArg(exported).generic(),
         licm.generic(),
         loopUnswitch.generic(),
         remUnused.generic(),
         emptyArrayOpsRemove.generic(),
         dce.generic(),
         remUnused.generic(),
-    )
-    val passes5 = listOf(
         funcInline.generic(),
         dce.generic(),
         remUnused.generic(),
@@ -263,120 +187,18 @@ fun main() {
         remUnused.generic(),
         dce.generic(),
         //identicalSwitchRem.generic(), // TODO: fix
-    )
-
-    val passes6 = listOf(
-        argRem.generic(),
+        //argRem.generic(),
         remUnused.generic(),
         dce.generic(),
-        argRem.generic(),
+        //argRem.generic(),
         remUnused.generic(),
         dce.generic(),
+        dse.setArg(exported).generic(),
     )
 
     val compile = File(".out.uac").printWriter().use { file ->
         val res = runCatching {
-            fun apply(pipe: List<AnyPass>) {
-                val toDo = CopyOnWriteArrayList(blocks.values)
-                val new = CopyOnWriteArrayList<IrBlock>()
-
-                while (toDo.isNotEmpty()) {
-                    val th = toDo.toMutableList()
-                    toDo.clear()
-
-                    new.forEach(blocks::putBlock)
-                    new.clear()
-
-                    pipe.forEach {
-                        println("pass \"${it.name}\" started")
-
-                        val ti = measureTimeMillis {
-                            when (it) {
-                                is GlobalPass<*> -> {
-                                    it as GlobalPass<(IrBlock) -> Unit>
-                                    it.run(blocks, blocks::putBlock)
-                                }
-
-                                is Pass<*> -> {
-                                    it as Pass<(IrBlock) -> Unit>
-                                    if (it.parallel) {
-                                        val tpExec =
-                                            Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
-                                        val exceptions = CopyOnWriteArrayList<Throwable>()
-                                        val flush = if (it.parallelDeepCopyBlocks) {
-                                            th.map { b ->
-                                                val f = b.deepCopy()
-                                                f.name = b.name
-                                                f.uid = b.uid
-                                                tpExec.execute {
-                                                    try {
-                                                        it.run(f) {
-                                                            new += it
-                                                            toDo += it
-                                                        }
-                                                    } catch (e: Throwable) {
-                                                        exceptions += e
-                                                    }
-                                                }
-                                                f
-                                            }
-                                        } else {
-                                            th.forEach { b ->
-                                                tpExec.execute {
-                                                    try {
-                                                        it.run(b) {
-                                                            new += it
-                                                            toDo += it
-                                                        }
-                                                    } catch (e: Throwable) {
-                                                        exceptions += e
-                                                    }
-                                                }
-                                            }
-                                            listOf()
-                                        }
-                                        tpExec.shutdown()
-                                        while (!tpExec.awaitTermination(100, TimeUnit.MILLISECONDS)) {
-                                            exceptions.forEach {
-                                                tpExec.shutdownNow()
-                                                throw it
-                                            }
-                                            exceptions.clear()
-                                        }
-                                        flush.forEachIndexed { i, it ->
-                                            val old = th[i]
-                                            assert(it.name == old.name)
-                                            old.loadFrom(it)
-                                        }
-                                    } else {
-                                        th.forEach { b ->
-                                            it.run(b) {
-                                                new += it
-                                                toDo += it
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        println("pass \"${it.name}\" finished in ${ti}ms")
-                    }
-                }
-            }
-
-            apply(passes)
-            blocks.values.toList().forEach { lowerFill.run(it) }
-            blocks.values.toList().forEach { Analysis(it).updateFnType() }
-            apply(passes2)
-
-            dse(exported, blocks)
-            apply(passes3)
-            dse(exported, blocks)
-            apply(passes4)
-            apply(passes5)
-            apply(passes6)
-            dse(exported, blocks)
+            passes.apply(blocks)
         }
 
         blocks.values.forEach {

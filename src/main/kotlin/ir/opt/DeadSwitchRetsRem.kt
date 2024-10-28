@@ -1,12 +1,12 @@
 package me.alex_s168.uiua.ir.opt
 
+import blitz.collections.gather
+import blitz.collections.removeAtIndexes
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.debugVerify
-import me.alex_s168.uiua.gather
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
-import me.alex_s168.uiua.removeAtIndexes
 
 val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
     val a = Analysis(block)

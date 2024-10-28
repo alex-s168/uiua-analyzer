@@ -37,7 +37,7 @@ fun List<AstNode>.toIr(block: IrBlock, putAnonFn: (Function) -> String, blockArg
                     ast = node,
                 )
             )
-        } ?: node.value.getAOrNull()?.let {
+        } ?: node.value.a?.let {
             when (it.instr) {
                 is PushFnInstr -> {
                     val anon = putAnonFn(it.instr.fn)

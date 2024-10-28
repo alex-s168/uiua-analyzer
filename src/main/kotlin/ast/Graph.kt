@@ -18,10 +18,10 @@ fun List<ASTRoot>.genGraph(): String {
         .associateWith { "node${nextId ++}" }
 
     fun parent(from: AstNode) =
-        node2id.keys.find { it.value.isA && it.value.isA && from in it.value.getA().children }
+        node2id.keys.find { it.value.isA() && from in it.value.a!!.children }
 
     fun parentChildren(from: AstNode) =
-        parent(from)?.value?.getA()?.children
+        parent(from)?.value?.a?.children
             ?: find { from in it.children }?.children
 
     fun trunc(it: String) =
@@ -38,10 +38,10 @@ fun List<ASTRoot>.genGraph(): String {
         it.forEach { v ->
             val k = node2id[v]!!
 
-            if (v.value.isA && v.value.getA().instr.let { it is PushFnInstr || it is PushFnRefInstr })
+            if (v.value.isA() && v.value.a!!.instr.let { it is PushFnInstr || it is PushFnRefInstr })
                 return@forEach
 
-            if (v.value.isB && v.value.getB().isB)
+            if (v.value.isB() && v.value.b!!.isB())
                 return@forEach
 
             val label = v.value
@@ -62,9 +62,9 @@ fun List<ASTRoot>.genGraph(): String {
                 .mapB { it.flatten() }
                 .flatten()
 
-            val childrenSize = v.value.getAOrNull()?.children?.size
+            val childrenSize = v.value.a?.children?.size
             val numExtraArgs = childrenSize?.let { it1 -> max(0, it1 - 1) } ?: 0
-            val numExtraRets = flatFlattened.count { it.value.getBBOrNull()?.let { it.of == v } ?: false } ?: 0
+            val numExtraRets = flatFlattened.count { it.value.getBBOrNull()?.let { it.of == v } ?: false }
             val rem = max(0, numExtraRets - (childrenSize?.let { max(0,it -1) } ?: 0))
             val extraArgs = (List(numExtraArgs) { "<f${it + 1}> x" } + List(rem) { "<f${it + numExtraArgs + 1}> ." })
                 .joinToString("| ")
@@ -81,11 +81,11 @@ fun List<ASTRoot>.genGraph(): String {
 
     node2id.forEach { (to, toKey) ->
         fun inputFrom(argIdx: Int, from: AstNode) {
-            if (from.value.getAOrNull()?.instr?.let { it is PushFnInstr || it is PushFnRefInstr } == true) {
-                val a = from.value.getA().instr
+            if (from.value.a?.instr?.let { it is PushFnInstr || it is PushFnRefInstr } == true) {
+                val a = from.value.a!!.instr
 
                 val fnName =  if (a is PushFnInstr) {
-                    a.fn.value.getA()
+                    a.fn.value.a!!
                 } else if (a is PushFnRefInstr) {
                     a.fn
                 } else null
@@ -118,8 +118,8 @@ fun List<ASTRoot>.genGraph(): String {
             out += " \"$fromKey\":f0 -> \"$toKey\":f$argIdx [color = \"$color\"]"
         }
 
-        if (to.value.isA) {
-            val a = to.value.getA()
+        if (to.value.isA()) {
+            val a = to.value.a!!
 
             a.children.forEachIndexed { i, it -> inputFrom(i, it) }
         }

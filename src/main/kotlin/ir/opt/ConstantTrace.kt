@@ -1,9 +1,9 @@
 package me.alex_s168.uiua.ir.opt
 
+import blitz.isA
 import me.alex_s168.uiua.NumImmInstr
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.Type
-import me.alex_s168.uiua.debugVerify
 import me.alex_s168.uiua.ir.*
 
 private fun constTrace(a: Analysis, origlessVal: IrVar, oldInst: IrInstr, varType: Type, argIdx: Int): IrInstr? {
@@ -11,8 +11,8 @@ private fun constTrace(a: Analysis, origlessVal: IrVar, oldInst: IrInstr, varTyp
         if (a.callerInstrs().size > 1)
             return@let null
 
-        if (origE.isA) {
-            val (_, orig) = origE.getA()
+        if (origE.isA()) {
+            val (_, orig) = origE.assertA()
             if (orig.instr is PushFnRefInstr) {
                 a.transform(listOf(oldInst)) { put, newVar ->
                     val newv = newVar().copy(type = varType)
@@ -27,7 +27,7 @@ private fun constTrace(a: Analysis, origlessVal: IrVar, oldInst: IrInstr, varTyp
                 }
             } else null
         } else {
-            val const = origE.getB()
+            val const = origE.assertB()
 
             a.transform(listOf(oldInst)) { put, newVar ->
                 val newv = newVar().copy(type = varType)
@@ -57,4 +57,4 @@ val constantTrace = Pass<Unit>("const trace") { block, _ ->
             }
         }
     }
-}.withoutParallel() // TODO: is faster with parallel?
+} // TODO: is faster without parallel?

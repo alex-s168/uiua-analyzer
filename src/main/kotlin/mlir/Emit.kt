@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.mlir
 
 import blitz.collections.contents
+import blitz.collections.mapToArray
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr

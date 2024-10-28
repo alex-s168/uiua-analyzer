@@ -1,7 +1,12 @@
 package me.alex_s168.uiua
 
 import blitz.Either
+import blitz.collections.RefVec
 import blitz.parse.JSON
+import blitz.parse.JSON.asArr
+import blitz.parse.JSON.asNum
+import blitz.parse.JSON.asStr
+import blitz.parse.JSON.uncheckedAsStr
 
 data class Signature(
     val inputs: Int,
@@ -14,10 +19,10 @@ data class Signature(
         Signature(inputs, fn(outputs))
 
     companion object {
-        fun parse(arr: List<JSON.Element>): Signature =
+        fun parse(arr: RefVec<JSON.Element>): Signature =
             Signature(
-                arr[0].num.toInt(),
-                arr[1].num.toInt()
+                arr[0].asNum().toInt(),
+                arr[1].asNum().toInt()
             )
     }
 }
@@ -28,11 +33,11 @@ data class Span(
     val end: Loc,
 ) {
     companion object {
-        fun parse(arr: List<JSON.Element>): Span =
+        fun parse(arr: RefVec<JSON.Element>): Span =
             Span(
-                arr[0].str,
-                Loc.parse(arr[1].arr),
-                Loc.parse(arr[2].arr)
+                arr[0].asStr(),
+                Loc.parse(arr[1].asArr()),
+                Loc.parse(arr[2].asArr())
             )
 
         fun parseNew(str: String): Span {
@@ -40,8 +45,8 @@ data class Span(
             val remr = rem.split(' ')
             return Span(
                 file,
-                Loc.parse(JSON.parse(remr[1])!!.arr),
-                Loc.parse(JSON.parse(remr[2])!!.arr)
+                Loc.parse(JSON.parse(remr[1]).assertA().asArr()),
+                Loc.parse(JSON.parse(remr[2]).assertA().asArr())
             )
         }
     }
@@ -62,12 +67,12 @@ data class Loc(
     val charPos: Int
 ) {
     companion object {
-        fun parse(arr: List<JSON.Element>): Loc =
+        fun parse(arr: RefVec<JSON.Element>): Loc =
             Loc(
-                arr[0].num.toInt(),
-                arr[1].num.toInt(),
-                arr[2].num.toInt(),
-                arr[3].num.toInt()
+                arr[0].asNum().toInt(),
+                arr[1].asNum().toInt(),
+                arr[2].asNum().toInt(),
+                arr[3].asNum().toInt()
             )
     }
 }
@@ -77,10 +82,10 @@ data class InstSpan(
     val len: Int,
 ) {
     companion object {
-        fun parse(arr: List<JSON.Element>): InstSpan =
+        fun parse(arr: RefVec<JSON.Element>): InstSpan =
             InstSpan(
-                arr[0].num.toInt(),
-                arr[1].num.toInt()
+                arr[0].asNum().toInt(),
+                arr[1].asNum().toInt()
             )
     }
 }
@@ -124,21 +129,21 @@ data class PushFnInstr(
     val fn: Function
 ): ImmInstr() {
     companion object {
-        fun parse(arr: List<JSON.Element>): PushFnInstr {
+        fun parse(arr: RefVec<JSON.Element>): PushFnInstr {
             val value: Either<String, Span> =
-                if (arr[0].isStr()) {
-                    Either.ofA(arr[0].str)
+                if (arr[0].kind == JSON.Element.STR) {
+                    Either.ofA(arr[0].uncheckedAsStr())
                 } else {
-                    Either.ofB(Span.parse(arr[0].arr))
+                    Either.ofB(Span.parse(arr[0].asArr()))
                 }
-            val signature = Signature.parse(arr[1].arr)
-            val loc = InstSpan.parse(arr[2].arr)
+            val signature = Signature.parse(arr[1].asArr())
+            val loc = InstSpan.parse(arr[2].asArr())
             return PushFnInstr(Function(
                 value,
                 listOf(),
                 signature,
                 loc,
-                if (arr[4].num == 0.0) false else true
+                if (arr[4].asNum() == 0.0) false else true
             ))
         }
     }

@@ -1,9 +1,6 @@
 package me.alex_s168.uiua.ast
 
-import blitz.Either
-import blitz.flatten
-import blitz.mapBA
-import blitz.mapBB
+import blitz.*
 import me.alex_s168.uiua.*
 
 class AstInstrNode(
@@ -32,19 +29,14 @@ class ASTRoot(
     var functionName: String?,
 )
 
-fun AstNode.flatten(): List<AstNode> {
-    return if (value.isA) {
-        value.getA().children.flatMap { it.flatten() } + this
-    } else {
-        val b = value.getB()
-        if (b.isA) {
-            listOf(this)
-        }
-        else {
-            b.getB().of.flatten() + this
-        }
-    }
-}
+fun AstNode.flatten(): List<AstNode> =
+    value.mapA {
+        it.children.flatMap { it.flatten() } + this
+    }.mapBA {
+        listOf(this)
+    }.mapBB {
+        it.of.flatten() + this
+    }.partiallyFlattenB().flatten()
 
 fun List<AstNode>.printAst(indent: Int = 0) {
     forEach { node ->

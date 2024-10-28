@@ -2,6 +2,7 @@ package me.alex_s168.uiua.ir
 
 import blitz.Either
 import blitz.collections.contents
+import blitz.unreachable
 import me.alex_s168.uiua.*
 
 interface VarRef {
@@ -220,7 +221,7 @@ class Analysis(val block: IrBlock) {
     // TODO: GET RID OF THIS ASAP
     @Deprecated("does not handle all cases", replaceWith = ReplaceWith("deepOriginV2"))
     fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? =
-        deepOriginV2(v)?.getAOrNull()
+        deepOriginV2(v)?.a
 
     fun trace(v: IrVar, fn: (block: IrBlock, instr: IrInstr, v: IrVar) -> Unit) {
         usages(v).forEach {
@@ -259,7 +260,7 @@ class Analysis(val block: IrBlock) {
         }
 
     fun constNum(v: IrVar) =
-        deepOriginV2(v)?.getBOrNull()
+        deepOriginV2(v)?.b
 
     fun unused(v: IrVar) =
         usages(v).isEmpty()
@@ -438,7 +439,7 @@ class Analysis(val block: IrBlock) {
 
         return shape.map {
             Analysis(b).deepOriginV2(it)
-                ?.getBOrNull()?.toInt()?.let { Either.ofA(it) }
+                ?.b?.toInt()?.let { Either.ofA(it) }
                 ?: Either.ofB(b to it)
         }
     }

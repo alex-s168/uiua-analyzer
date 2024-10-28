@@ -3,9 +3,13 @@ package me.alex_s168.uiua
 import blitz.Either
 import blitz.collections.mergeNeighbors
 import blitz.collections.nullIfEmpty
+import blitz.collections.substringAfter
 import blitz.parse.JSON
+import blitz.parse.JSON.asArr
+import blitz.parse.comb2.unwrap
+import blitz.startsWithCase
 import blitz.str.unescape
-import kotlin.streams.toList
+import blitz.switch
 
 data class Assembly(
     val instructions: MutableList<Instr>,
@@ -65,12 +69,12 @@ data class Assembly(
                             }
                         },
                         Regex.fromLiteral("[") startsWithCase {
-                            val all = JSON.parse(instr)!!.arr
+                            val all = JSON.parse(instr).assertA().asArr()
 
                             var rank = 1
                             var iter = all
-                            while (iter.firstOrNull()?.isArr() == true) {
-                                iter = iter.firstOrNull()!!.arr
+                            while (iter.firstOrNull()?.kind == JSON.Element.ARR) {
+                                iter = iter.first().asArr()
                                 rank ++
                             }
 
@@ -92,7 +96,7 @@ data class Assembly(
                             CommentInstr(instr.substringAfter(it).trim())
                         },
                         Regex("(?i)push_?func +") startsWithCase {
-                            val arr = JSON.parse(instr.substringAfter(it))!!.arr
+                            val arr = JSON.parse(instr.substringAfter(it).also(::println)).unwrap().asArr()
                             PushFnInstr.parse(arr)
                         },
                         Regex("(?i)copy_?to_?temp *\\[(.*)\\]") startsWithCase {
@@ -138,13 +142,13 @@ data class Assembly(
                 .asSequence()
                 .filter { it.startsWith("func ") }
                 .map {
-                    val j = JSON.parse(it.substringAfter("func "))!!.arr
+                    val j = JSON.parse(it.substringAfter("func ")).assertA().asArr()
                     val fn = PushFnInstr.parse(j).fn
                     fn.children = instrs.subList(fn.loc!!.start, fn.loc.start + fn.loc.len).toList()
                     fn
                 }
                 .associateByTo(mutableMapOf()) {
-                    it.value.getA()
+                    it.value.assertA()
                 }
 
             val entryFn = sections["TOP SLICES"]!!

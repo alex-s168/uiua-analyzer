@@ -1,11 +1,11 @@
 package me.alex_s168.uiua.ir.opt
 
+import blitz.unreachable
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
 import me.alex_s168.uiua.ir.withoutParallel
-import me.alex_s168.uiua.unreachable
 
 val argRem = Pass<Unit>("arg rem") { block, _ ->
     val a = Analysis(block)

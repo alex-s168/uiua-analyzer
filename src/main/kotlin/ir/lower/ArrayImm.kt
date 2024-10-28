@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir.lower
 
 import blitz.flatten
+import blitz.mapA
 import me.alex_s168.uiua.ArrImmInstr
 import me.alex_s168.uiua.ArrayType
 import me.alex_s168.uiua.Prim
