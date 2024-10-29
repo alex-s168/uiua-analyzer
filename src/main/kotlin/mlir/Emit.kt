@@ -16,6 +16,19 @@ private val knowFns = mutableMapOf<IrVar, IrBlock>()
 fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<String> {
     val body = mutableListOf<String>()
 
+    fun IrInstr.unary(
+        body: MutableList<String>,
+        op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean) -> String
+    ) {
+        val outTy = outs[0].type
+        body += op(
+            outs[0].asMLIR(),
+            outTy.toMLIR(),
+            castIfNec(::newVar, body, args[0], outTy).asMLIR(),
+            outTy == Types.double
+        )
+    }
+
     fun IrInstr.binary(
         body: MutableList<String>,
         op: (dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) -> String,
@@ -165,6 +178,14 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
                     Prim.MOD -> instr.binary(body, Inst::mod, reverse = true)
                     Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
+
+                    Prim.SQRT -> instr.unary(body, Inst::sqrt)
+                    Prim.NEG -> instr.unary(body, Inst::neg)
+                    Prim.SIN -> instr.unary(body, Inst::sin)
+                    Prim.ASIN -> instr.unary(body, Inst::asin)
+                    Prim.FLOOR -> instr.unary(body, Inst::floor)
+                    Prim.CEIL -> instr.unary(body, Inst::ceil)
+                    Prim.ROUND -> instr.unary(body, Inst::round)
 
                     Prim.LT -> {
                         cmp(instr, "slt", "ult")

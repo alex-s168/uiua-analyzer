@@ -14,6 +14,7 @@ val lowerPervasive = withPassArg<(IrBlock) -> Unit>("lower pervasive") { putBloc
         instr as PrimitiveInstr
         val outTy = outs[0].type as ArrayType
 
+        println("pervasive($outTy): $this")
         depth(newVar, put, a.block.ref, putBlock, outTy.shape.size, args.toList()) { newVar, put, args ->
             val res = newVar().copy(type = outTy.inner)
             put(IrInstr(

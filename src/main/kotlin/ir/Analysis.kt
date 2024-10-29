@@ -481,7 +481,13 @@ class Analysis(val block: IrBlock) {
             Prim.EQ,
             Prim.POW,
             Prim.MOD,
+            Prim.SQRT,
+            Prim.NEG,
+            Prim.SIN,
+            Prim.ASIN,
             Prim.FLOOR,
+            Prim.CEIL,
+            Prim.ROUND,
         )
 
         val independentOfArrayData = arrayOf(

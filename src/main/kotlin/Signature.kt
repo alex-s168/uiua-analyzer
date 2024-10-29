@@ -57,24 +57,24 @@ internal fun signature(
         Prim.OVER -> Signature(2, 3)
 
         Prim.EACH -> {
-            val each = onStack(0).value.getA().instr as PushFnInstr
+            val each = onStack(0).value.a!!.instr as PushFnInstr
             each.fn.signature!!.mapIns { it + 1 }
         }
         Prim.REDUCE, Prim.Front.REDUCE_DEPTH -> {
-            val fn = onStack(0).value.getA().instr as PushFnInstr
+            val fn = onStack(0).value.a!!.instr as PushFnInstr
             Signature(fn.fn.signature!!.inputs, 1)
         }
         Prim.ROWS -> {
-            val each = onStack(0).value.getA().instr as PushFnInstr
+            val each = onStack(0).value.a!!.instr as PushFnInstr
             each.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
         }
         Prim.FILL -> {
             // onStack(0) is the fill value
-            val fn = onStack(1).value.getA().instr as PushFnInstr
+            val fn = onStack(1).value.a!!.instr as PushFnInstr
             fn.fn.signature!!.mapIns { it + 2 } // arg 0 & arg 1
         }
         Prim.TABLE -> {
-            val inner = onStack(0).value.getA().instr as PushFnInstr
+            val inner = onStack(0).value.a!!.instr as PushFnInstr
             require(inner.fn.signature!!.inputs >= 2) {
                 "function passed to table needs to take in 2 or more arguments"
             }
@@ -98,7 +98,7 @@ internal fun signature(
         Prim.Comp.UN_TRANSPOSE -> Signature(1, 1)
 
         Prim.CALL -> {
-            val fn = onStack(0).value.getA().instr as PushFnInstr
+            val fn = onStack(0).value.a!!.instr as PushFnInstr
             fn.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
         }
 

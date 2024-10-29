@@ -45,6 +45,41 @@ object Inst {
         return "$dest = math.powf $a, $b : $type"
     }
 
+    fun neg(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float) // TODO
+        return "$dest = arith.negf $a : $type"
+    }
+
+    fun sqrt(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.sqrt $a : $type"
+    }
+
+    fun sin(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.sin $a : $type"
+    }
+
+    fun asin(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.asin $a : $type"
+    }
+
+    fun floor(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.floor $a : $type"
+    }
+
+    fun ceil(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.ceil $a : $type"
+    }
+
+    fun round(dest: MLIRVar, type: MLIRType, a: MLIRVar, float: Boolean): String {
+        require(float)
+        return "$dest = math.round $a : $type"
+    }
+
     fun tensorExtract(
         dest: MLIRVar,
         tensorType: MLIRType,

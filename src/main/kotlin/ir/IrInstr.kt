@@ -1,10 +1,12 @@
 package me.alex_s168.uiua.ir
 
+import blitz.cast
 import blitz.collections.contents
 import blitz.flatten
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ast.AstNode
 import kotlin.math.floor
+import kotlin.math.max
 
 /* funny type inference algo:
 var o: Type? = null
@@ -242,19 +244,26 @@ data class IrInstr(
                     updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
-                Prim.FLOOR,
-                Prim.CEIL,
-                Prim.ROUND,
-                Prim.ASIN,
-                Prim.SQRT,
                 Prim.ABS,
                 Prim.NEG -> {
                     updateType(outs[0], args[0].type)
                 }
 
+                Prim.FLOOR,
+                Prim.CEIL,
+                Prim.ROUND,
+                Prim.ASIN,
+                Prim.SQRT,
+                Prim.SIN -> {
+                    val at = args[0].type
+                    val ot = at.cast<ArrayType>()
+                        ?.let { it.mapInner { Types.double } }
+                        ?: at
+                    updateType(outs[0], ot)
+                }
+
                 Prim.RAND,
                 Prim.REPLACE_RAND,
-                Prim.SIN,
                 Prim.NOW -> {
                     updateType(outs[0], Types.double)
                 }
@@ -265,8 +274,9 @@ data class IrInstr(
                 Prim.SUB,
                 Prim.MUL,
                 Prim.MOD -> {
-                    val ty: Type = (args.firstOrNull { it.type is ArrayType }?.let { arr ->
-                        arr.type // TODO: problem with arr[int] + arr[double]
+                    val ty: Type = (args.mapNotNull { it.type as? ArrayType }.reduceOrNull { acc: ArrayType, irVar: ArrayType ->
+                        List(max(irVar.shape.size, acc.shape.size)){-1}
+                            .shapeToArrType(irVar.inner.combine(acc.inner))
                     } ?: args.map { it.type }.reduce { a, b ->
                         a.combine(b)
                     }).let {
