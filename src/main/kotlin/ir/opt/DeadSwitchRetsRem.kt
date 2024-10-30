@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir.opt
 
 import blitz.collections.gather
+import blitz.collections.hasLeast
 import blitz.collections.removeAtIndexes
 import me.alex_s168.uiua.Prim
 import me.alex_s168.uiua.debugVerify
@@ -11,7 +12,7 @@ import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
     val a = Analysis(block)
 
-    block.instrs.forEach { inst ->
+    block.instrs.toList().forEach { inst ->
         if (!a.isPrim(inst, Prim.SWITCH))
             return@forEach
 
@@ -19,7 +20,7 @@ val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
             .map { a.function(it) ?: return@forEach }
 
         if (debugVerify) {
-            require(dests.all { Analysis(it).callerInstrs().size == 1 }) {
+            require(dests.none { Analysis(it).callerInstrs().hasLeast(2) }) {
                 "you need to run oneblockonecaller before deadretsrem"
             }
         }

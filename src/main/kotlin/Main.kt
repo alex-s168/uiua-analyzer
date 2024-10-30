@@ -1,5 +1,8 @@
 package me.alex_s168.uiua
 
+import blitz.collections.LightCache
+import blitz.collections.RefVec
+import blitz.collections.caching
 import blitz.collections.gather
 import blitz.parse.comb2.ParseResult
 import me.alex_s168.uiua.ast.ASTRoot
@@ -26,6 +29,15 @@ fun anonFnName(): String =
 fun loadRes(file: String): String? =
     object {}.javaClass.classLoader.getResourceAsStream(file)?.reader()?.readText()
 
+class CallerInstrsCache(initCap: Int = 0) {
+    val cache = LightCache.new<Int, Sequence<Pair<IrBlock, IrInstr>>>(initCap)
+
+    fun get(blk: IrBlock): Sequence<Pair<IrBlock, IrInstr>> =
+        cache.getOrPut(blk.uid) {
+            Analysis(blk).callerInstrs(::get).caching()
+        }
+}
+
 object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
@@ -43,7 +55,7 @@ object UnrollLoop {
         { block: IrBlock, c: Int -> block.instrs.size * c <= max }
 }
 
-val inlineConfig = Inline.all
+val inlineConfig = Inline.none // TODO: change back
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
@@ -99,6 +111,9 @@ fun main() {
     // TODO: fix argrem
 
     val passes = listOf(
+        lowerUnTranspose.generic(),
+        lowerTranspose.generic(),
+        lowerJoin.generic(),
         lowerUnCouple.generic(),
         lowerReduceDepth.generic(),
         lowerDup.generic(),
@@ -151,7 +166,7 @@ fun main() {
         fixFnTypes.generic(),
 
         //oneBlockOneCaller.generic(),
-        constantTrace.generic(),
+        //constantTrace.generic(),
         //funcInline.generic(),
         switchDependentCodeMovement.generic(),
         remUnused.generic(),
@@ -165,7 +180,7 @@ fun main() {
         //argRem.generic(),
         switchDependentCodeMovement.generic(),
         //oneBlockOneCaller.generic(),
-        constantTrace.generic(),
+        //constantTrace.generic(),
         funcInline.generic(),
         funcInline.generic(),
         funcInline.generic(),
@@ -214,6 +229,8 @@ fun main() {
 
         blocks.values.toSet()
     }
+
+    println("emitting MLIR...")
 
     val out = StringBuilder()
     out.append(loadRes("runtime.mlir")!!)

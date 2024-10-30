@@ -292,7 +292,12 @@ data class IrInstr(
                 }
 
                 Prim.RANGE -> {
-                    updateType(outs[0], Types.array(args[0].type))
+                    val at = args[0].type
+                    val ot = when (at) {
+                        is ArrayType -> List(at.shape.size+1){-1}.shapeToArrType(at.inner)
+                        else -> Types.array(at)
+                    }
+                    updateType(outs[0], ot)
                 }
 
                 Prim.DUP -> {
@@ -518,7 +523,10 @@ data class IrInstr(
                     val arg0 = args[0].type
                     val arg1 = args[1].type
 
-                    val res = highestShapeType(arg0, arg1)
+                    val highest = highestShapeType(arg0, arg1)
+                    val res = if (highest is ArrayType)
+                        highest.mapShapeElems { -1 }
+                    else Types.array(highest)
                     updateType(outs[0], res)
                 }
 
@@ -547,7 +555,7 @@ data class IrInstr(
                 }
 
                 Prim.TRANSPOSE,
-                Prim.Comp.UN_TRANSPOSE -> {
+                Prim.Front.UN_TRANSPOSE -> {
                     val arr = args[0].type as ArrayType
                     updateType(outs[0], arr.mapShapeElems { -1 })
                 }

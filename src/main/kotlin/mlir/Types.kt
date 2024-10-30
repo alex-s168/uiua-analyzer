@@ -24,11 +24,11 @@ fun List<Int>.shapeToMLIRStrided(vaOff: Boolean) =
     "strided<[${shapeToMLIRStrides()}]${if (vaOff) ", offset: ?" else ""}>"
 
 object Ty {
-    fun memref(shape: List<Int>, type: MLIRType, vaOff: Boolean): MLIRType =
-        "memref<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}>"
+    fun memref(shape: List<Int>, type: MLIRType, vaOff: Boolean, extra: String = ""): MLIRType =
+        "memref<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}$extra>"
 
-    fun tensor(shape: List<Int>, type: MLIRType, vaOff: Boolean): MLIRType =
-        "tensor<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}>"
+    fun tensor(shape: List<Int>, type: MLIRType, vaOff: Boolean, extra: String = ""): MLIRType =
+        "tensor<${shape.shapeToMLIR().joinToString(separator = "x")} x $type, ${shape.shapeToMLIRStrided(vaOff)}$extra>"
 
     // https://mlir.llvm.org/docs/TargetLLVMIR/#ranked-memref-types
     fun memrefStruct(shape: List<Int>) =

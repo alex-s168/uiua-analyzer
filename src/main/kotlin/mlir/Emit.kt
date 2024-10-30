@@ -557,8 +557,51 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val arrTy = arr.type as ArrayType
 
                         val out = instr.outs[0]
-
                         body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[][${sha.joinToString()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
+                    }
+
+                    Prim.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]
+                        val arr = instr.args[0]
+                        val arrTy = arr.type as ArrayType
+                        val off = instr.args[1]
+                        val len = instr.args[2]
+
+                        val out = instr.outs[0]
+                        body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[${off.asMLIR()}][${len.asMLIR()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
+                    }
+
+                    Prim.Comp.TRANSPOSE -> {
+                        val dest = instr.args[0]
+                        val arr = instr.args[1]
+                        val arrTy = arr.type as ArrayType
+
+                        // produces something like "(a, b) -> (b, a)"
+                        val namMap = List(arrTy.shape.size) { 'a' + it }
+                            .let {
+                                val a = it.joinToString(prefix = "(", postfix = ")")
+                                val b = it.reversed().joinToString(prefix = "(", postfix = ")")
+                                "$a -> $b"
+                            }
+
+                        // produces something like "affine_map<(d0, d1)[s0] -> (d1 * s0 + d0)>"
+                        val affineMap = let {
+                            val a = List(arrTy.shape.size) { "d$it" }.joinToString(prefix = "(", postfix = ")")
+                            val b = List(arrTy.shape.size - 1) { "s$it" }.joinToString(prefix = "[", postfix = "]")
+                            val c = List(arrTy.shape.size) {
+                                var r = "d$it"
+                                if (it > 0) {
+                                    r += " * s${it-1}"
+                                }
+                                r
+                            }.reduce { aa, ab -> "$aa + $ab" }
+                            "affine_map<$a$b -> ($c)>"
+                        }
+
+                        val transposed = newVar().asMLIR()
+                        val traTy = Ty.memref(arrTy.shape, arrTy.inner.toMLIR(), arrTy.vaOff, ", $affineMap")
+                        body += "$transposed = memref.transpose ${arr.asMLIR()} $namMap : ${arrTy.toMLIR()} to $traTy"
+
+                        body += "memref.copy ${transposed}, ${dest.asMLIR()} : $traTy to ${dest.type.toMLIR()}"
                     }
 
                     else -> error("primitive ${instr.instr.id} not implemented")

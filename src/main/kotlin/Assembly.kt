@@ -58,7 +58,7 @@ data class Assembly(
 
                                 "TRANSPOSE_N" -> {
                                     val to = when (value.toInt()) {
-                                        -1 -> Prim.Comp.UN_TRANSPOSE
+                                        -1 -> Prim.Front.UN_TRANSPOSE
                                         1 -> Prim.TRANSPOSE
                                         else -> error("unsupported transpose_n amount")
                                     }

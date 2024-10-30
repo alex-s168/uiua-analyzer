@@ -72,6 +72,9 @@ fun constants(newVar: () -> IrVar, vararg const: Double, type: Type = Types.doub
         constant
     }
 
+fun constant(const: Double, type: Type = Types.double, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar =
+    constants(newVar, const, type=type, put=put)[0]
+
 fun constantArr(newVar: () -> IrVar, vararg const: Double, type: Type = Types.double, put: (IrInstr) -> Unit): IrVar =
     constants(newVar, *const, type = type, put = put).wrapInArgArray(newVar, type, put)
 
@@ -397,6 +400,21 @@ fun repeat(
         mutableListOf(zero, size, fnref).also { it += args }
     ))
 }
+
+fun binary(prim: String, a: IrVar, b: IrVar, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar {
+    val t = newVar().copy(type = Types.size)
+    put(IrInstr(
+        mutableListOf(t),
+        PrimitiveInstr(prim),
+        mutableListOf(a, b)
+    ))
+    return t
+}
+
+fun List<IrVar>.reduce(prim: String, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar =
+    reduce { acc, irVar ->
+        binary(prim, acc, irVar, newVar, put)
+    }
 
 fun ndRepeat(
     sizes: List<IrVar>,

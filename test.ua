@@ -27,6 +27,6 @@ Shade ← ◿2⌊ +⊓(×Segments|÷Framerate) # value time ← 0 or 1
 
 fn = (
     ⇡×2Framerate
-    Normalise Param °⊟-÷2⟜(°⍉⇡)Size
+    Normalise Param °⊟-÷2⟜(°⍉ ≡(≡⊂:⇡100)⇡100)Size
     Shade¤
 )

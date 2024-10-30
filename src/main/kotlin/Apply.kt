@@ -62,6 +62,9 @@ fun List<AnyPass>.apply(blocks: MutableMap<String, IrBlock>) {
                             }
                             exceptions.clear()
                         }
+                        exceptions.forEach {
+                            throw it
+                        }
                         flush.forEach {
                             val old = blocks[it.name]!!
                             assert(it.name == old.name)

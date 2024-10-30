@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir
 
 import blitz.Either
+import blitz.collections.caching
 import blitz.collections.contents
 import blitz.unreachable
 import me.alex_s168.uiua.*
@@ -37,9 +38,6 @@ class Analysis(val block: IrBlock) {
         block.instrs
             .filterIndexed { index, _ -> index > block.instrs.indexOf(instr) }
             .all(::isEmpty)
-
-    fun onlyCalledBy(src: IrBlock, instr: IrInstr) =
-        callerInstrs().contents == arrayOf(src to instr).contents
 
     fun variables() =
         block.instrs.flatMap { it.outs } + block.args
@@ -135,40 +133,47 @@ class Analysis(val block: IrBlock) {
         getCalling(instr) == idx
 
     // WARNING: this takes up a lot of time from compilation
-    fun callerInstrs(): List<Pair<IrBlock, IrInstr>> {
-        val res = mutableListOf<Pair<IrBlock, IrInstr>>()
-        this.block.ref.values.forEach { block ->
-            val ba = Analysis(block)
-            block.instrs
-                .forEach { inst ->
-                    if (inst.instr is PushFnRefInstr && inst.instr.fn == this.block.name) {
-                        val ref = inst.outs[0]
-                        ba.trace(ref) { a, b, v ->
-                            if (isCalling(b, b.args.indexOf(v))) {
-                                res += a to b
-                            }
-                        }
+    fun callerInstrs(
+        callis: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): Sequence<Pair<IrBlock, IrInstr>> =
+        this.block.ref.values
+            .asSequence()
+            .flatMap { b ->
+                val ba = Analysis(b)
+                val bcall = callis(b)
+                b.instrs.asSequence()
+                    .filter { inst ->
+                        inst.instr is PushFnRefInstr
+                                && inst.instr.fn == this.block.name
                     }
-                }
-        }
-        return res
-    }
+                    .flatMap {
+                        ba.trace(it.outs[0], bcall)
+                            .filter { (_, i, v) ->
+                                isCalling(i, i.args.indexOf(v)) }
+                            .map { it.first to it.second }
+                    }
+            }
+            .caching()
 
-    fun deepOriginV2(v: IrVar): Either<Pair<IrBlock, IrInstr>, Double>? {
+    // I hope it goes without saying that this is slower than slow
+    fun deepOriginV2(
+        v: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): Either<Pair<IrBlock, IrInstr>, Double>? {
         origin(v)?.let {
             if (it.instr is NumImmInstr)
                 return Either.ofB(it.instr.value)
 
             // required for type checker
             else if (isPrim(it, Prim.Comp.USE))
-                return deepOriginV2(it.args[0])
+                return deepOriginV2(it.args[0], callerInstrsWrap)
 
             // required for type checker
             else if (isPrim(it, Prim.OVER))
                 return when (it.outs.indexOf(v)) {
-                    0 -> deepOriginV2(it.args[1])
-                    1 -> deepOriginV2(it.args[0])
-                    2 -> deepOriginV2(it.args[1])
+                    0 -> deepOriginV2(it.args[1], callerInstrsWrap)
+                    1 -> deepOriginV2(it.args[0], callerInstrsWrap)
+                    2 -> deepOriginV2(it.args[1], callerInstrsWrap)
                     else -> unreachable()
                 }
 
@@ -179,11 +184,11 @@ class Analysis(val block: IrBlock) {
         if (v in block.args) {
             val idx = block.args.indexOf(v)
 
-            callerInstrs().forEach { (callBlock, instr) ->
+            callerInstrsWrap(block).forEach { (callBlock, instr) ->
                 val a = Analysis(callBlock)
 
                 if (isPrim(instr, Prim.CALL)) {
-                    a.deepOriginV2(instr.args[idx + 1])?.let { return it }
+                    a.deepOriginV2(instr.args[idx + 1], callerInstrsWrap)?.let { return it }
                 }
 
                 else if (isPrim(instr, Prim.SWITCH)) {
@@ -198,19 +203,19 @@ class Analysis(val block: IrBlock) {
 
                         if (switchIdx != -1) {
                             val from = a.origin(instr.args[0])!!.args[switchIdx]
-                            a.deepOriginV2(from)?.let { return it }
+                            a.deepOriginV2(from, callerInstrsWrap)?.let { return it }
                         }
                     }
 
-                    a.deepOriginV2(ar)?.let { return it }
+                    a.deepOriginV2(ar, callerInstrsWrap)?.let { return it }
                 }
 
                 else if (isPrim(instr, Prim.Comp.REPEAT) && idx != 0) { // can't trace counter
-                    a.deepOriginV2(instr.args[idx + 2])?.let { return it } // +3 -1  (-1 bc takes counter)
+                    a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
                 else if (isPrim(instr, Prim.FILL)) {
-                    a.deepOriginV2(instr.args[idx + 2])?.let { return it }
+                    a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it }
                 }
             }
         }
@@ -223,33 +228,37 @@ class Analysis(val block: IrBlock) {
     fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? =
         deepOriginV2(v)?.a
 
-    fun trace(v: IrVar, fn: (block: IrBlock, instr: IrInstr, v: IrVar) -> Unit) {
-        usages(v).forEach {
-            if (it != null) {
-                fn(block, it, v)
-                it.outs.forEach {
-                    trace(it, fn)
-                }
+    // TODO: is trace useless?
+
+    fun trace(v: IrVar, callerInstrs: Sequence<Pair<IrBlock, IrInstr>>): Sequence<Triple<IrBlock, IrInstr, IrVar>> {
+        val first = usages(v)
+            .filterNotNull()
+            .flatMap {
+                sequenceOf(Triple(block, it, v)) + it.outs
+                    .asSequence()
+                    .flatMap { trace(it, callerInstrs) }
             }
-        }
-        callerInstrs().forEach { (b, i) ->
-            fn(b, i, v)
+        return first + callerInstrs.map { (b, i) ->
+            Triple(b, i, v)
         }
     }
 
     fun isPrim(instr: IrInstr, kind: String? = null) =
         instr.instr is PrimitiveInstr && kind?.let { instr.instr.id == it } ?: true
 
-    fun usages(v: IrVar) =
+    fun usages(v: IrVar): Sequence<IrInstr?> =
         block.instrs
+            .asSequence()
             .filter { it.args.any { it.id == v.id } } +
                 block.rets
+                    .asSequence()
                     .filter { it.id == v.id }
                     .map { null }
 
-    fun recUsages(v: IrVar): List<IrInstr> =
-        usages(v).filterNotNull()
-            .flatMap { it.outs.flatMap(::recUsages) + it }
+    fun recUsages(v: IrVar): Sequence<IrInstr> =
+        usages(v)
+            .filterNotNull()
+            .flatMap { it.outs.asSequence().flatMap(::recUsages) + it }
 
     fun usagesAfter(v: IrVar, inst: IrInstr) =
         block.instrs.indexOf(inst).let { instIdx ->
@@ -259,11 +268,14 @@ class Analysis(val block: IrBlock) {
                 .map(block.instrs::get)
         }
 
-    fun constNum(v: IrVar) =
-        deepOriginV2(v)?.b
+    fun constNum(
+        v: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): Double? =
+        deepOriginV2(v, callerInstrsWrap)?.b
 
     fun unused(v: IrVar) =
-        usages(v).isEmpty()
+        usages(v).none()
 
     fun rename(from: IrVar, to: IrVar) =
         block.updateVar(from, to)
@@ -427,18 +439,21 @@ class Analysis(val block: IrBlock) {
         return a to b
     }
 
-    fun constShape(arr: IrVar): List<Either<Int, Pair<IrBlock, IrVar>>>? {
-        val (b, shape) = deepOrigin(arr)?.let { (b, v) ->
+    fun constShape(
+        arr: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): List<Either<Int, Pair<IrBlock, IrVar>>>? {
+        val (b, shape) = deepOriginV2(arr, callerInstrsWrap)?.a?.let { (b, v) ->
+            // TODO: make work for arg arr and materialize
             if (Analysis(b).isPrim(v, Prim.Comp.ARR_ALLOC))
-                b to v
+                b.instrDeclFor(v.args[0])
+                    ?.args
+                    ?.let { b to it }
             else null
-        }?.let { (b, a) -> b.instrDeclFor(a.args[0])
-            ?.args
-            ?.let { b to it }
         } ?: return null
 
         return shape.map {
-            Analysis(b).deepOriginV2(it)
+            Analysis(b).deepOriginV2(it, callerInstrsWrap)
                 ?.b?.toInt()?.let { Either.ofA(it) }
                 ?: Either.ofB(b to it)
         }
@@ -531,11 +546,11 @@ class Analysis(val block: IrBlock) {
     }
 }
 
-inline fun List<IrInstr?>.allNN(cond: (IrInstr) -> Boolean) =
+inline fun Iterable<IrInstr?>.allNN(cond: (IrInstr) -> Boolean) =
     all { it != null && cond(it) }
 
-inline fun List<IrInstr?>.allPrim(cond: (String) -> Boolean) =
+inline fun Iterable<IrInstr?>.allPrim(cond: (String) -> Boolean) =
     allNN { it.instr is PrimitiveInstr && cond(it.instr.id) }
 
-fun List<IrInstr>.allPrim(type: String) =
+fun Iterable<IrInstr>.allPrim(type: String) =
     allPrim { it == type }

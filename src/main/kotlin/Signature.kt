@@ -95,7 +95,7 @@ internal fun signature(
         Prim.COMPLEX -> Signature(2, 1)
         Prim.IDENTITY -> Signature(1, 1)
         Prim.TRANSPOSE -> Signature(1, 1)
-        Prim.Comp.UN_TRANSPOSE -> Signature(1, 1)
+        Prim.Front.UN_TRANSPOSE -> Signature(1, 1)
 
         Prim.CALL -> {
             val fn = onStack(0).value.a!!.instr as PushFnInstr

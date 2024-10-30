@@ -13,7 +13,7 @@ val remClone = modifyPass(
         val array = args[0]
         val laterUsages = a.usagesAfter(array, this)
         val lifetime = a.block.lifetimes[array]!!
-        laterUsages.isEmpty() && lifetime == Lifetime.LOCAL
+        laterUsages.none() && lifetime == Lifetime.LOCAL
     },
     { put, newVar, a ->
         instr as PrimitiveInstr

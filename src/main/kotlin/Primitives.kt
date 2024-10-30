@@ -31,6 +31,7 @@ object Prim {
 
         val SINK = prim("cSINK") // [val]
 
+        val OFF_VIEW_1D = prim("cOFF_VIEW") //[arr], [begin idx], [len]
         val RESHAPE_VIEW = prim("cRESHAPE_VIEW") // [sha], [arr]
 
         val RT_EXTEND_SCALAR = prim("cRT_EXTEND_SCALAR") // [base], [targetLen], [fillWith]
@@ -46,11 +47,12 @@ object Prim {
         val DYN_WRAP = prim("cDYN_WRAP") // [value]
         val DYN_FREE = prim("cDYN_FREE") // [dyn]
 
-        val UN_TRANSPOSE = prim("cUN_TRANSPOSE")
+        val TRANSPOSE = prim("cTRANSPOSE") // [dest], [src]
     }
 
     object Front {
         val REDUCE_DEPTH = prim("fREDUCE_DEPTH")
+        val UN_TRANSPOSE = prim("fUN_TRANSPOSE")
     }
 
     val ADD = prim("ADD")
