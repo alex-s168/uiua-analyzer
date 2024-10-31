@@ -1,7 +1,8 @@
 package me.alex_s168.uiua.ir
 
 fun MutableList<IrVar>.updateVar(old: IrVar, new: IrVar) {
-    forEachIndexed { index, irVar ->
+    repeat(size) { index ->
+        val irVar = this[index]
         if (irVar.id == old.id)
             this[index] = new
     }

@@ -16,16 +16,17 @@ val evalDim = Pass<Unit>("evaluate dim") { block, _ ->
 
     val a = Analysis(block)
 
-    block.instrs.forEachIndexed { index, instr ->
+    repeat(block.instrs.size) { index ->
+        val instr = block.instrs[index]
         if (a.isPrim(instr, Prim.Comp.DIM)) {
             val arr = instr.args[0]
 
             val dim = a.constNum(instr.args[1], cache::get)
                 ?.toInt()
-                ?: return@forEachIndexed
+                ?: return@repeat
 
             val shapec = a.constShape(arr, cache::get)
-                ?: return@forEachIndexed
+                ?: return@repeat
 
             val res = shapec[dim]
             res.mapA {

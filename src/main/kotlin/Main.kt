@@ -1,9 +1,6 @@
 package me.alex_s168.uiua
 
-import blitz.collections.LightCache
-import blitz.collections.RefVec
-import blitz.collections.caching
-import blitz.collections.gather
+import blitz.collections.*
 import blitz.parse.comb2.ParseResult
 import me.alex_s168.uiua.ast.ASTRoot
 import me.alex_s168.uiua.ast.genGraph
@@ -23,6 +20,11 @@ import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
+// TODO: use block uid for call instrs
+// TODO: fast contains on RefVec
+// TODO: use ids for primitives
+// TODO: RefVec remove methods (remove range, remove if, ...)
+
 fun anonFnName(): String =
     "_\$anon_${Random.nextULong()}"
 
@@ -37,6 +39,16 @@ class CallerInstrsCache(initCap: Int = 0) {
             Analysis(blk).callerInstrs(::get).caching()
         }
 }
+
+fun <T, C: Vec<T>> Sequence<T>.toVec(dest: C): C {
+    forEach { dest.pushBack(it) }
+    return dest
+}
+
+fun <T> Sequence<T>.toVec() = toVec(RefVec())
+
+fun <T> Vec<T>.fastToMutableList() =
+    MutableList(this.size) { this[it] }
 
 object Inline {
     val all = { block: IrBlock -> true }

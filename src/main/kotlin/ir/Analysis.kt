@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir
 
 import blitz.Either
+import blitz.collections.RefVec
 import blitz.collections.caching
 import blitz.collections.contents
 import blitz.unreachable
@@ -49,11 +50,13 @@ class Analysis(val block: IrBlock) {
         block.funDeclFor(v)?.second
 
     fun callers() =
-        this.block.ref.values.filter { v ->
-            v.instrs.any {
-                it.instr is PushFnRefInstr && it.instr.fn == this.block.name
+        this.block.ref.values
+            .asSequence()
+            .filter { v ->
+                v.instrs.any {
+                    it.instr is PushFnRefInstr && it.instr.fn == this.block.name
+                }
             }
-        }
 
     fun terminating(): Boolean =
         block.instrs.any { terminating(it) }
@@ -249,11 +252,10 @@ class Analysis(val block: IrBlock) {
     fun usages(v: IrVar): Sequence<IrInstr?> =
         block.instrs
             .asSequence()
-            .filter { it.args.any { it.id == v.id } } +
-                block.rets
-                    .asSequence()
-                    .filter { it.id == v.id }
-                    .map { null }
+            .filter { v in it.args }
+            .let {
+                if (v in block.rets) it + null else it
+            }
 
     fun recUsages(v: IrVar): Sequence<IrInstr> =
         usages(v)
@@ -354,20 +356,23 @@ class Analysis(val block: IrBlock) {
         val range = idxRange(instrs)
             ?: return true
 
-        val inRange = block.instrs.withIndex()
-            .filterTo(mutableListOf()) { it.index in range }
+        val inRange = block.instrs
+            .filterIndexedTo(mutableListOf()) { idx,_ -> idx in range }
 
-        inRange.removeIf { isPure(it.value) }
-        inRange.removeIf { it.value in instrs }
+        inRange.removeIf(::isPure)
+        inRange.removeAll(instrs)
         return inRange.isEmpty()
     }
 
     fun fnRefs() =
-        callers().flatMap { blk ->
-            blk.instrs
-                .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
-                .map { blk to it }
-        }
+        this.block.ref.values
+            .asSequence()
+            .flatMap { blk ->
+                blk.instrs
+                    .asSequence()
+                    .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
+                    .map { blk to it }
+            }
 
     fun updateFnType() {
         fnRefs().forEach { (blk, instr) ->
@@ -377,25 +382,24 @@ class Analysis(val block: IrBlock) {
         }
     }
 
-    fun allRelatedInstrs(variable: IrVar, after: IrInstr, dest: MutableList<IrInstr?> = mutableListOf()): MutableList<IrInstr?> {
+    fun allRelatedInstrs(variable: IrVar, after: IrInstr, dest: RefVec<IrInstr> = RefVec()): RefVec<IrInstr> {
+        val beginNew = dest.size
         val afterIdx = this.block.instrs.indexOf(after)
-
-        val li = recUsages(variable)
-            .toMutableList()
+        fun filter(it: IrInstr) =
+            it !in dest && this.block.instrs.indexOf(it) > afterIdx
+        recUsages(variable)
+            .filter(::filter)
+            .toVec(dest)
         this.block.instrDeclFor(variable)
-            ?.let {
-                if (this.block.instrs.indexOf(it) > afterIdx) {
-                    li += it
-                }
+            ?.let { if (filter(it)) dest.pushBack(it) }
+        repeat(dest.size - beginNew) { _idx ->
+            val it = dest[_idx + beginNew]
+            repeat(it.args.size) { idx ->
+                allRelatedInstrs(it.args[idx], after, dest)
             }
-        li.removeIf { it in dest }
-        li.removeIf { this.block.instrs.indexOf(it) <= afterIdx }
-        dest.addAll(li)
-        li.flatMap { it.args }.map {
-            allRelatedInstrs(it, after, dest)
-        }
-        li.flatMap { it.outs }.map {
-            allRelatedInstrs(it, after, dest)
+            repeat(it.outs.size) { idx ->
+                allRelatedInstrs(it.outs[idx], after, dest)
+            }
         }
         return dest
     }
@@ -404,13 +408,12 @@ class Analysis(val block: IrBlock) {
         if (variable in block.rets) return listOf()
 
         val block = allRelatedInstrs(variable, after)
-        if (null in block) return listOf()
-        val blocknn = block.filterNotNullTo(mutableListOf())
-        blocknn.removeIf { this.isPrim(it, Prim.Comp.SINK) }
+            .fastToMutableList()
+        block.removeIf { this.isPrim(it, Prim.Comp.SINK) }
 
-        if (!canMove(blocknn)) return listOf()
+        if (!canMove(block)) return listOf()
 
-        return blocknn.sortedBy { this.block.instrs.indexOf(it) }
+        return block.sortedBy { this.block.instrs.indexOf(it) }
     }
 
     fun allDependencies(block: List<IrInstr>): List<IrVar> {

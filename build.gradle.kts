@@ -24,6 +24,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.3.2")
     implementation("me.alex_s168:blitz:0.23")
+    implementation("com.esotericsoftware:reflectasm:1.11.9")
     implementation(kotlin("reflect"))
 }
 

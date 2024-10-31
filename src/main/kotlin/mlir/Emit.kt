@@ -132,7 +132,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
         }
     }
 
-    instrs.forEachIndexed { idx, instr ->
+    repeat(instrs.size) { idx ->
+        val instr = instrs[idx]
+
         if (mlirComments)
             body += "// Instr: $instr"
         runCatching {

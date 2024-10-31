@@ -55,7 +55,7 @@ data class IrBlock(
         rets.updateVar(old, new)
         instrs.forEach {
             it.updateVar(old, new)
-            if (it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.ARG_ARR && it.args.any { it == new }) {
+            if (it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.ARG_ARR && new in it.args) {
                 updateVar(it.outs[0], it.outs[0].copy(type = Types.array(it.args[0].type, it.args.size)))
             }
         }

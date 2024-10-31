@@ -33,6 +33,11 @@ data class IrInstr(
 
     val ast: AstNode? = null
 ) {
+    override fun equals(other: Any?): Boolean =
+        other is IrInstr && instr == other.instr && args == other.args && outs == other.outs
+    override fun hashCode(): Int =
+        outs.hashCode() * 31 + instr.hashCode() * 31 + args.hashCode() * 31
+
     override fun toString(): String {
         val res = StringBuilder()
 
