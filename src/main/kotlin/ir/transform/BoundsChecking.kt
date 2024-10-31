@@ -30,14 +30,14 @@ fun boundsCheck(block: IrBlock, arr: IrVar, indexes: List<IrVar>, newVar: () -> 
         val dim = newVar().copy(type = Types.size)
         put(IrInstr(
             mutableListOf(dim),
-            PrimitiveInstr(Prim.Comp.DIM),
+            PrimitiveInstr(Prims.Comp.DIM),
             mutableListOf(arr, shaIdxV)
         ))
 
         val lt = newVar().copy(type = Types.bool)
         put(IrInstr(
             mutableListOf(lt),
-            PrimitiveInstr(Prim.LT),
+            PrimitiveInstr(Prims.LT),
             mutableListOf(dim, index) // index < dim
         ))
 
@@ -48,7 +48,7 @@ fun boundsCheck(block: IrBlock, arr: IrVar, indexes: List<IrVar>, newVar: () -> 
         val panic = IrBlock(anonFnName(), a.block.ref).apply {
             instrs += IrInstr(
                 mutableListOf(),
-                PrimitiveInstr(Prim.Comp.PANIC),
+                PrimitiveInstr(Prims.Comp.PANIC),
                 mutableListOf()
             )
 

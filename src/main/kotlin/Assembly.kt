@@ -53,13 +53,13 @@ data class Assembly(
                             when (kind.drop(1).dropLast(1)) {
                                 "REDUCE_DEPTH" -> {
                                     val depth = value.toInt()
-                                    PrimitiveInstr(Prim.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
+                                    PrimitiveInstr(Prims.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
                                 }
 
                                 "TRANSPOSE_N" -> {
                                     val to = when (value.toInt()) {
-                                        -1 -> Prim.Front.UN_TRANSPOSE
-                                        1 -> Prim.TRANSPOSE
+                                        -1 -> Prims.Front.UN_TRANSPOSE
+                                        1 -> Prims.TRANSPOSE
                                         else -> error("unsupported transpose_n amount")
                                     }
                                     PrimitiveInstr(to, SpanRef(listOf(loc.toInt())))
@@ -96,7 +96,7 @@ data class Assembly(
                             CommentInstr(instr.substringAfter(it).trim())
                         },
                         Regex("(?i)push_?func +") startsWithCase {
-                            val arr = JSON.parse(instr.substringAfter(it).also(::println)).unwrap().asArr()
+                            val arr = JSON.parse(instr.substringAfter(it)).unwrap().asArr()
                             PushFnInstr.parse(arr)
                         },
                         Regex("(?i)copy_?to_?temp *\\[(.*)\\]") startsWithCase {
@@ -121,7 +121,8 @@ data class Assembly(
                     ) { s ->
                         kotlin.runCatching {
                             val (id, loc) = s.split(' ')
-                            PrimitiveInstr(id.uppercase(), SpanRef(listOf(loc.toInt())))
+                            val prim = Prims.all2[id.uppercase()] ?: error("unknown primitive $id")
+                            PrimitiveInstr(prim, SpanRef(listOf(loc.toInt())))
                         }.getOrElse {
                             NumImmInstr(s.toDouble())
                         }

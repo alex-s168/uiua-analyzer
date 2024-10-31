@@ -20,7 +20,7 @@ private fun lowerEachRec(
     if (left == 0) {
         put(IrInstr(
             outputs.toMutableList(),
-            PrimitiveInstr(Prim.CALL),
+            PrimitiveInstr(Prims.CALL),
             mutableListOf(innerFn).also { it += inputs }
         ))
         return
@@ -56,12 +56,12 @@ private fun lowerEachRec(
 
     put(IrInstr(
         outputs.toMutableList(),
-        PrimitiveInstr(Prim.ROWS),
+        PrimitiveInstr(Prims.ROWS),
         mutableListOf(blockFn, innerFn).also { it += inputs }
     ))
 }
 
-val lowerEach = lowerPrimPass<(IrBlock) -> Unit>(Prim.EACH) { put, newVar, a, putBlock ->
+val lowerEach = lowerPrimPass<(IrBlock) -> Unit>(Prims.EACH) { put, newVar, a, putBlock ->
     val fn = args[0]
 
     val highestRank = args.drop(1)

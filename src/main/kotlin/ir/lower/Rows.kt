@@ -6,7 +6,7 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.transform.*
 
-val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, putBlock ->
+val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, putBlock ->
     val outTypes = outs.map { it.type as ArrayType }
 
     val fn = args[0]
@@ -32,7 +32,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
             val v = newVar().copy(type = Types.size)
             put(IrInstr(
                 mutableListOf(v),
-                PrimitiveInstr(Prim.LEN),
+                PrimitiveInstr(Prims.LEN),
                 mutableListOf(it)
             ))
             v
@@ -44,14 +44,14 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
         val inputsLensArr = newVar().copy(type = inputsLensArgArr.type)
         put(IrInstr(
             mutableListOf(inputsLensArr),
-            PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
+            PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
             mutableListOf(inputsLensArgArr),
         ))
 
         reduce(maxInputsLen, inputsLensArr, ::put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
             instrs += IrInstr(
                 mutableListOf(res),
-                PrimitiveInstr(Prim.MAX),
+                PrimitiveInstr(Prims.MAX),
                 mutableListOf(a, b)
             )
         }
@@ -75,7 +75,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
 
             instrs += IrInstr(
                 mutableListOf(it),
-                PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+                PrimitiveInstr(Prims.Comp.ARR_ALLOC),
                 mutableListOf(shape)
             )
         }
@@ -120,7 +120,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
             val iter0 = outTypes.map { newVar().copy(type = it.of) }
             instrs += IrInstr(
                 iter0.toMutableList(),
-                PrimitiveInstr(Prim.CALL),
+                PrimitiveInstr(Prims.CALL),
                 mutableListOf(fn).also { it += loadedInputs0 }
             )
 
@@ -135,7 +135,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
                             val v = newVar().copy(type = Types.size)
                             instrs += IrInstr(
                                 mutableListOf(v),
-                                PrimitiveInstr(Prim.Comp.DIM),
+                                PrimitiveInstr(Prims.Comp.DIM),
                                 mutableListOf(arr, x)
                             )
                             shape += v
@@ -157,7 +157,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
         outputs.zip(shapes).forEach { (arr, sha) ->
             instrs += IrInstr(
                 mutableListOf(arr),
-                PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+                PrimitiveInstr(Prims.Comp.ARR_ALLOC),
                 mutableListOf(sha)
             )
         }
@@ -167,7 +167,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
         toStoreIter0?.zip(outputs)?.forEach { (src, dest) ->
             instrs += IrInstr(
                 mutableListOf(),
-                PrimitiveInstr(Prim.Comp.ARR_STORE),
+                PrimitiveInstr(Prims.Comp.ARR_STORE),
                 mutableListOf(dest, indc0, src)
             )
         }
@@ -193,7 +193,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
             val iter = outTypes.map { newVar().copy(type = it.of).also { rets += it } }
             instrs += IrInstr(
                 iter.toMutableList(),
-                PrimitiveInstr(Prim.CALL),
+                PrimitiveInstr(Prims.CALL),
                 mutableListOf(fn).also { it += loadedInputs }
             )
 
@@ -202,7 +202,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
             iter.zip(outputs).forEach { (src, destArr) ->
                 instrs += IrInstr(
                     mutableListOf(),
-                    PrimitiveInstr(Prim.Comp.ARR_STORE),
+                    PrimitiveInstr(Prims.Comp.ARR_STORE),
                     mutableListOf(destArr, indc, src)
                 )
             }
@@ -219,7 +219,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prim.ROWS) { put, newVar, a, pu
 
         instrs += IrInstr(
             mutableListOf(),
-            PrimitiveInstr(Prim.Comp.REPEAT),
+            PrimitiveInstr(Prims.Comp.REPEAT),
             mutableListOf(startAt, maxInputsLen, iterFnLoopFn, fn).also {
                 it += inputs
                 it += outputs

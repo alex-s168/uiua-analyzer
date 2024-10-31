@@ -9,18 +9,18 @@ import me.alex_s168.uiua.ir.transform.constant
 import me.alex_s168.uiua.ir.transform.reduce
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
-val lowerJoin = lowerPrimPass(Prim.JOIN) { put, newVar, a ->
+val lowerJoin = lowerPrimPass(Prims.JOIN) { put, newVar, a ->
     val lens = args.map {
         val len = newVar().copy(type = Types.size)
         put(IrInstr(
             mutableListOf(len),
-            PrimitiveInstr(Prim.LEN),
+            PrimitiveInstr(Prims.LEN),
             mutableListOf(it)
         ))
         len
     }
 
-    val sha = lens.reduce(Prim.ADD, newVar, put)
+    val sha = lens.reduce(Prims.ADD, newVar, put)
         .let(::listOf)
         .wrapInArgArray(newVar, put = put)
 
@@ -28,7 +28,7 @@ val lowerJoin = lowerPrimPass(Prim.JOIN) { put, newVar, a ->
 
     put(IrInstr(
         mutableListOf(outs[0]),
-        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+        PrimitiveInstr(Prims.Comp.ARR_ALLOC),
         mutableListOf(sha)
     ))
 
@@ -38,19 +38,19 @@ val lowerJoin = lowerPrimPass(Prim.JOIN) { put, newVar, a ->
                 val view = newVar().copy(type = outTy.mapShapeElems { -1 })
                 put(IrInstr(
                     mutableListOf(view),
-                    PrimitiveInstr(Prim.Comp.OFF_VIEW_1D),
+                    PrimitiveInstr(Prims.Comp.OFF_VIEW_1D),
                     mutableListOf(outs[0], off, len)
                 ))
 
                 put(IrInstr(
                     mutableListOf(),
-                    PrimitiveInstr(Prim.Comp.ARR_COPY),
+                    PrimitiveInstr(Prims.Comp.ARR_COPY),
                     mutableListOf(view, arr)
                 ))
             } else {
                 put(IrInstr(
                     mutableListOf(),
-                    PrimitiveInstr(Prim.Comp.ARR_STORE),
+                    PrimitiveInstr(Prims.Comp.ARR_STORE),
                     mutableListOf(
                         outs[0],
                         listOf(off).wrapInArgArray(newVar, put = put),
@@ -59,6 +59,6 @@ val lowerJoin = lowerPrimPass(Prim.JOIN) { put, newVar, a ->
                 ))
             }
 
-            binary(Prim.ADD, off, len, newVar, put)
+            binary(Prims.ADD, off, len, newVar, put)
         }
 }.parallelWithoutDeepCopy()

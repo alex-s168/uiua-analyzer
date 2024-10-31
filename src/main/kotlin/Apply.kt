@@ -8,7 +8,7 @@ import kotlin.system.measureTimeMillis
 
 fun List<AnyPass>.apply(blocks: MutableMap<String, IrBlock>) {
     forEach {
-        println("pass \"${it.name}\" started")
+        log("pass \"${it.name}\" started")
 
         val ti = measureTimeMillis {
             when (it) {
@@ -84,6 +84,6 @@ fun List<AnyPass>.apply(blocks: MutableMap<String, IrBlock>) {
             }
         }
 
-        println("pass \"${it.name}\" finished in ${ti}ms")
+        log("pass \"${it.name}\" finished in ${ti}ms")
     }
 }

@@ -22,82 +22,82 @@ internal fun signature(
     require(instr is PrimitiveInstr)
 
     return when (instr.id) {
-        Prim.ADD -> Signature(2, 1)
-        Prim.SUB -> Signature(2, 1)
-        Prim.MUL -> Signature(2, 1)
-        Prim.DIV -> Signature(2, 1)
-        Prim.POW -> Signature(2, 1)
-        Prim.EQ -> Signature(2, 1)
-        Prim.MOD -> Signature(2, 1)
-        Prim.ABS -> Signature(1, 1)
-        Prim.SIN -> Signature(1, 1)
-        Prim.NEG -> Signature(1, 1)
-        Prim.SQRT -> Signature(1, 1)
-        Prim.ASIN -> Signature(1, 1)
-        Prim.FLOOR -> Signature(1, 1)
-        Prim.CEIL -> Signature(1, 1)
-        Prim.ROUND -> Signature(1, 1)
-        Prim.RERANK -> Signature(2, 1)
-        Prim.UNDO_RERANK -> Signature(3, 1)
-        Prim.UN_COUPLE -> Signature(1, 2)
+        Prims.ADD -> Signature(2, 1)
+        Prims.SUB -> Signature(2, 1)
+        Prims.MUL -> Signature(2, 1)
+        Prims.DIV -> Signature(2, 1)
+        Prims.POW -> Signature(2, 1)
+        Prims.EQ -> Signature(2, 1)
+        Prims.MOD -> Signature(2, 1)
+        Prims.ABS -> Signature(1, 1)
+        Prims.SIN -> Signature(1, 1)
+        Prims.NEG -> Signature(1, 1)
+        Prims.SQRT -> Signature(1, 1)
+        Prims.ASIN -> Signature(1, 1)
+        Prims.FLOOR -> Signature(1, 1)
+        Prims.CEIL -> Signature(1, 1)
+        Prims.ROUND -> Signature(1, 1)
+        Prims.RERANK -> Signature(2, 1)
+        Prims.UNDO_RERANK -> Signature(3, 1)
+        Prims.UN_COUPLE -> Signature(1, 2)
 
-        Prim.SHAPE -> Signature(1, 1)
-        Prim.FIX -> Signature(1, 1)
-        Prim.LEN -> Signature(1, 1)
+        Prims.SHAPE -> Signature(1, 1)
+        Prims.FIX -> Signature(1, 1)
+        Prims.LEN -> Signature(1, 1)
 
-        Prim.PRIMES -> Signature(1, 1)
-        Prim.RANGE -> Signature(1, 1)
+        Prims.PRIMES -> Signature(1, 1)
+        Prims.RANGE -> Signature(1, 1)
 
-        Prim.BOX -> Signature(1, 1)
-        Prim.UN_BOX -> Signature(1, 1)
+        Prims.BOX -> Signature(1, 1)
+        Prims.UN_BOX -> Signature(1, 1)
 
-        Prim.POP -> Signature(1, 0)
-        Prim.DUP -> Signature(1, 2)
-        Prim.FLIP -> Signature(2, 2)
-        Prim.OVER -> Signature(2, 3)
+        Prims.POP -> Signature(1, 0)
+        Prims.DUP -> Signature(1, 2)
+        Prims.FLIP -> Signature(2, 2)
+        Prims.OVER -> Signature(2, 3)
 
-        Prim.EACH -> {
+        Prims.EACH -> {
             val each = onStack(0).value.a!!.instr as PushFnInstr
             each.fn.signature!!.mapIns { it + 1 }
         }
-        Prim.REDUCE, Prim.Front.REDUCE_DEPTH -> {
+        Prims.REDUCE, Prims.Front.REDUCE_DEPTH -> {
             val fn = onStack(0).value.a!!.instr as PushFnInstr
             Signature(fn.fn.signature!!.inputs, 1)
         }
-        Prim.ROWS -> {
+        Prims.ROWS -> {
             val each = onStack(0).value.a!!.instr as PushFnInstr
             each.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
         }
-        Prim.FILL -> {
+        Prims.FILL -> {
             // onStack(0) is the fill value
             val fn = onStack(1).value.a!!.instr as PushFnInstr
             fn.fn.signature!!.mapIns { it + 2 } // arg 0 & arg 1
         }
-        Prim.TABLE -> {
+        Prims.TABLE -> {
             val inner = onStack(0).value.a!!.instr as PushFnInstr
             require(inner.fn.signature!!.inputs >= 2) {
                 "function passed to table needs to take in 2 or more arguments"
             }
             inner.fn.signature.mapIns { it + 1 } // arg 0 is also part of the inst
         }
-        Prim.WHERE -> Signature(1, 1)
-        Prim.REVERSE -> Signature(1, 1)
-        Prim.PICK -> Signature(2, 1)
-        Prim.UNDO_PICK -> Signature(3, 1)
-        Prim.RESHAPE -> Signature(2, 1)
-        Prim.UN_SHAPE -> Signature(1, 1)
-        Prim.NOW -> Signature(0, 1)
-        Prim.JOIN -> Signature(2, 1)
-        Prim.DESHAPE -> Signature(1, 1)
-        Prim.KEEP -> Signature(2, 1)
-        Prim.RAND -> Signature(0, 1)
-        Prim.REPLACE_RAND -> Signature(1, 1)
-        Prim.COMPLEX -> Signature(2, 1)
-        Prim.IDENTITY -> Signature(1, 1)
-        Prim.TRANSPOSE -> Signature(1, 1)
-        Prim.Front.UN_TRANSPOSE -> Signature(1, 1)
+        Prims.WHERE -> Signature(1, 1)
+        Prims.REVERSE -> Signature(1, 1)
+        Prims.PICK -> Signature(2, 1)
+        Prims.UNDO_PICK -> Signature(3, 1)
+        Prims.RESHAPE -> Signature(2, 1)
+        Prims.UN_SHAPE -> Signature(1, 1)
+        Prims.NOW -> Signature(0, 1)
+        Prims.JOIN -> Signature(2, 1)
+        Prims.DESHAPE -> Signature(1, 1)
+        Prims.KEEP -> Signature(2, 1)
+        Prims.RAND -> Signature(0, 1)
+        Prims.REPLACE_RAND -> Signature(1, 1)
+        Prims.COMPLEX -> Signature(2, 1)
+        Prims.IDENTITY -> Signature(1, 1)
+        Prims.TRANSPOSE -> Signature(1, 1)
+        Prims.Front.UN_TRANSPOSE -> Signature(1, 1)
 
-        Prim.CALL -> {
+        Prims.CALL -> {
             val fn = onStack(0).value.a!!.instr as PushFnInstr
             fn.fn.signature!!.mapIns { it + 1 } // arg 0 is also part of the inst
         }

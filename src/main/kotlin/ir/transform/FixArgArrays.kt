@@ -2,17 +2,18 @@ package me.alex_s168.uiua.ir.transform
 
 import me.alex_s168.uiua.ArrayType
 import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.merge
 import me.alex_s168.uiua.ir.modifyPass
 
-private fun genFor(prim: String, argIdx: Int) =
+private fun genFor(prim: Prim, argIdx: Int) =
     modifyPass(
-        "arg arr fix for $prim",
+        "arg arr fix for ${Prims.all[prim]}",
         prim,
         { a ->
-            !a.isPrim(a.origin(args[argIdx])!!, Prim.Comp.ARG_ARR)
+            !a.isPrim(a.origin(args[argIdx])!!, Prims.Comp.ARG_ARR)
         },
         { put, newVar, a ->
             val sha = args[argIdx]

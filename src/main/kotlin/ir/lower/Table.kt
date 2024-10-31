@@ -7,7 +7,7 @@ import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.transform.genCallBlockFnTail
 import me.alex_s168.uiua.ir.transform.genFix
 
-val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prim.TABLE) { put, newVar, a, putBlock ->
+val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prims.TABLE) { put, newVar, a, putBlock ->
     val allOuts = outs
     val argFn = args[0]
     val argArrays = args.drop(1)
@@ -34,7 +34,7 @@ val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prim.TABLE) { put, newVar, a, 
 
                 instrs += IrInstr(
                     outs.toMutableList(),
-                    PrimitiveInstr(Prim.ROWS),
+                    PrimitiveInstr(Prims.ROWS),
                     (listOf(fn) + ar).toMutableList()
                 )
             }.also(putBlock)
@@ -50,7 +50,7 @@ val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prim.TABLE) { put, newVar, a, 
 
     put(IrInstr(
         allOuts.toMutableList(),
-        PrimitiveInstr(Prim.CALL),
+        PrimitiveInstr(Prims.CALL),
         mutableListOf(fnref)
             .also { it += fixedArrays }
             .also { it += argFn }

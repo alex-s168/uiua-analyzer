@@ -1,6 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
@@ -9,7 +9,7 @@ val identicalSwitchRem = Pass<Unit>("identical switch rem") { block, _ ->
     val a = Analysis(block)
 
     block.instrs.toList().forEach { inst ->
-        if (a.isPrim(inst, Prim.SWITCH)) {
+        if (a.isPrim(inst, Prims.SWITCH)) {
             val dests = a.origin(inst.args[1])!!.args
                 .map { a.function(it) ?: return@forEach }
 

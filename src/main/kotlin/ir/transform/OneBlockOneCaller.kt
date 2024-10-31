@@ -9,7 +9,7 @@ val oneBlockOneCaller = GlobalPass<(IrBlock) -> Unit>("1block1caller") { blocks,
         .values
         .associateWith { Analysis(it).callerInstrs() }
 
-    callers.forEach { block, callers ->
+    callers.forEach { (block, callers) ->
         callers.drop(1).forEach { (callerBlock, caller) ->
             val copy = block.deepCopy()
                 .also(putBlock)

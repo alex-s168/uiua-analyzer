@@ -1,7 +1,7 @@
 package me.alex_s168.uiua.ir.opt
 
 import blitz.unreachable
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
@@ -22,7 +22,7 @@ val argRem = Pass<Unit>("arg rem") { block, _ ->
     val removable = BooleanArray(unusedArgs.size) { true }
 
     callers.forEach { (caller, instr) ->
-        if (a.isPrim(instr, Prim.SWITCH)) {
+        if (a.isPrim(instr, Prims.SWITCH)) {
             val ca = Analysis(caller)
             val calling = ca.origin(instr.args[1])!!.args
             for (c in calling) {
@@ -56,9 +56,9 @@ val argRem = Pass<Unit>("arg rem") { block, _ ->
     callers.forEach { (caller, callerInst) ->
         require(callerInst.instr is PrimitiveInstr)
         val instrCallArgsBegin = when (callerInst.instr.id) {
-            Prim.SWITCH -> 3
-            Prim.Comp.REPEAT -> 2 // don't change!!!
-            Prim.CALL -> 1
+            Prims.SWITCH -> 3
+            Prims.Comp.REPEAT -> 2 // don't change!!!
+            Prims.CALL -> 1
             else -> unreachable()
         }
 
@@ -68,7 +68,7 @@ val argRem = Pass<Unit>("arg rem") { block, _ ->
             callerInst.args.remove(it)
         }
 
-        if (callerInst.instr.id == Prim.SWITCH) {
+        if (callerInst.instr.id == Prims.SWITCH) {
             val ca = Analysis(caller)
             val calling = ca.origin(callerInst.args[1])!!
                 .args

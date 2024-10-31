@@ -174,30 +174,30 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                 }
 
                 is PrimitiveInstr -> when (instr.instr.id) {
-                    Prim.ADD -> instr.binary(body, Inst::add)
-                    Prim.SUB -> instr.binary(body, Inst::sub, reverse = true)
-                    Prim.MUL -> instr.binary(body, Inst::mul)
-                    Prim.DIV -> instr.binary(body, Inst::div, reverse = true)
-                    Prim.MOD -> instr.binary(body, Inst::mod, reverse = true)
-                    Prim.POW -> instr.binary(body, Inst::pow, reverse = true)
+                    Prims.ADD -> instr.binary(body, Inst::add)
+                    Prims.SUB -> instr.binary(body, Inst::sub, reverse = true)
+                    Prims.MUL -> instr.binary(body, Inst::mul)
+                    Prims.DIV -> instr.binary(body, Inst::div, reverse = true)
+                    Prims.MOD -> instr.binary(body, Inst::mod, reverse = true)
+                    Prims.POW -> instr.binary(body, Inst::pow, reverse = true)
 
-                    Prim.SQRT -> instr.unary(body, Inst::sqrt)
-                    Prim.NEG -> instr.unary(body, Inst::neg)
-                    Prim.SIN -> instr.unary(body, Inst::sin)
-                    Prim.ASIN -> instr.unary(body, Inst::asin)
-                    Prim.FLOOR -> instr.unary(body, Inst::floor)
-                    Prim.CEIL -> instr.unary(body, Inst::ceil)
-                    Prim.ROUND -> instr.unary(body, Inst::round)
+                    Prims.SQRT -> instr.unary(body, Inst::sqrt)
+                    Prims.NEG -> instr.unary(body, Inst::neg)
+                    Prims.SIN -> instr.unary(body, Inst::sin)
+                    Prims.ASIN -> instr.unary(body, Inst::asin)
+                    Prims.FLOOR -> instr.unary(body, Inst::floor)
+                    Prims.CEIL -> instr.unary(body, Inst::ceil)
+                    Prims.ROUND -> instr.unary(body, Inst::round)
 
-                    Prim.LT -> {
+                    Prims.LT -> {
                         cmp(instr, "slt", "ult")
                     }
 
-                    Prim.EQ -> {
+                    Prims.EQ -> {
                         cmp(instr, "eq", "eq")
                     }
 
-                    Prim.MAX -> {
+                    Prims.MAX -> {
                         val out = instr.outs[0]
                         val outTy = out.type
                         val a = castIfNec(::newVar, body, instr.args[0], outTy).asMLIR()
@@ -212,7 +212,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.PRIMES -> {
+                    Prims.PRIMES -> {
                         val rtPrimes = Types.func(
                             args = listOf(Types.int),
                             rets = listOf(Types.array(Types.int))
@@ -227,13 +227,13 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.DYN_TYPEID -> {
+                    Prims.Comp.DYN_TYPEID -> {
                         castLaterIfNec(::newVar, body, instr.outs[0], Types.byte) {
                             body += Ty.dyn.getVal(it.asMLIR(), instr.args[0].asMLIR(), 0)
                         }
                     }
 
-                    Prim.Comp.DYN_UNWRAP -> {
+                    Prims.Comp.DYN_UNWRAP -> {
                         val wantType = instr.instr.typeParam!!
                         val fn = UARuntime.dyn.castTo(wantType)
                         body += Inst.funcCall(
@@ -244,7 +244,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.DYN_WRAP -> {
+                    Prims.Comp.DYN_WRAP -> {
                         val fn = UARuntime.dyn.createFrom(instr.args[0].type)
                         body += Inst.funcCall(
                             listOf(instr.outs[0].asMLIR()),
@@ -254,7 +254,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.DYN_FREE -> {
+                    Prims.Comp.DYN_FREE -> {
                         val fn = UARuntime.dyn.drop
                         body += Inst.funcCall(
                             dests = listOf(),
@@ -264,7 +264,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.SWITCH -> {
+                    Prims.SWITCH -> {
                         val conds = argArr(instr.args[0]).mapTo(mutableListOf()) {
                             (instrDeclFor(it)!!.instr as NumImmInstr).value.toULong()
                         }
@@ -288,7 +288,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 val cond = newVar().copy(type = Types.bool)
                                 val inst = IrInstr(
                                     mutableListOf(cond),
-                                    PrimitiveInstr(""),
+                                    PrimitiveInstr(Prims.Comp.INVALID),
                                     mutableListOf(const, on)
                                 )
                                 cmp(inst, "eq", "eq")
@@ -347,11 +347,11 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.Comp.ARG_ARR -> {} // ignore
+                    Prims.Comp.ARG_ARR -> {} // ignore
 
-                    Prim.Comp.ARR_MATERIALIZE -> TODO("in higher level impl arr materialize using alloc and rep store")
+                    Prims.Comp.ARR_MATERIALIZE -> TODO("in higher level impl arr materialize using alloc and rep store")
 
-                    Prim.Comp.ARR_ALLOC -> {
+                    Prims.Comp.ARR_ALLOC -> {
                         val type = instr.outs[0].type as ArrayType
                         val shape = type.shape
                         val shapeDecl = instrDeclFor(instr.args[0])!!
@@ -368,7 +368,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         body += "${instr.outs[0].asMLIR()} = memref.cast ${temp.asMLIR()} : ${temp.type.toMLIR()} to ${type.toMLIR()}"
                     }
 
-                    Prim.Comp.ARR_STORE -> {
+                    Prims.Comp.ARR_STORE -> {
                         val arr = instr.args[0]
                         val arrTy = arr.type as ArrayType
                         val indecies = argArr(instr.args[1])
@@ -388,11 +388,11 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.Comp.ARR_COPY -> {
+                    Prims.Comp.ARR_COPY -> {
                         memRefCopy(instr.args[0], instr.args[1])
                     }
 
-                    Prim.Comp.ARR_LOAD -> {
+                    Prims.Comp.ARR_LOAD -> {
                         val arr = instr.args[0]
                         val indecies = argArr(instr.args[1])
 
@@ -409,14 +409,14 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.Comp.ARR_DESTROY -> {
+                    Prims.Comp.ARR_DESTROY -> {
                         body += Inst.memRefDealloc(
                             instr.args[0].asMLIR(),
                             instr.args[0].type.toMLIR()
                         )
                     }
 
-                    Prim.Comp.REPEAT -> {
+                    Prims.Comp.REPEAT -> {
                         val start = castIfNec(::newVar, body, instr.args[0], Types.size).asMLIR()
 
                         val ends = castIfNec(::newVar, body, instr.args[1], Types.size).asMLIR()
@@ -449,7 +449,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.DIM -> {
+                    Prims.Comp.DIM -> {
                         castLaterIfNec(::newVar, body, instr.outs[0], Types.size) { dest ->
                             val dim = castIfNec(::newVar, body, instr.args[1], Types.size)
                             body += Inst.memRefDim(
@@ -461,7 +461,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.NOW -> {
+                    Prims.NOW -> {
                         body += Inst.funcCall(
                             dests = listOf(instr.outs[0].asMLIR()),
                             UARuntime.time.name,
@@ -469,7 +469,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.RT_EXTEND_SCALAR -> {
+                    Prims.Comp.RT_EXTEND_SCALAR -> {
                         val vspan = instr.instr.loc
                             ?.toString()
                             ?: "-1"
@@ -486,7 +486,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.RT_EXTEND_REPEAT -> {
+                    Prims.Comp.RT_EXTEND_REPEAT -> {
                         val vspan = instr.instr.loc
                             ?.toString()
                             ?: "-1"
@@ -503,7 +503,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.PANIC -> {
+                    Prims.Comp.PANIC -> {
                         val idBlock = newVar().asMLIR()
                         body += Inst.constant(idBlock, "i64", uid.toString())
 
@@ -530,17 +530,17 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prim.Comp.UNDEF -> {
+                    Prims.Comp.UNDEF -> {
                         instr.outs.forEach {
                             body += "${it.asMLIR()} = ub.poison : ${it.type.toMLIR()}"
                         }
                     }
 
-                    Prim.Comp.SINK -> {
+                    Prims.Comp.SINK -> {
                         // do nothing
                     }
 
-                    Prim.CALL -> {
+                    Prims.CALL -> {
                         val fn = instr.args[0]
                         val args = instr.args.drop(1)
 
@@ -551,7 +551,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
-                    Prim.Comp.RESHAPE_VIEW -> {
+                    Prims.Comp.RESHAPE_VIEW -> {
                         val sha = argArr(instr.args[0])
                             .map { castIfNec(::newVar, body, it, Types.size) }
 
@@ -562,7 +562,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[][${sha.joinToString()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
                     }
 
-                    Prim.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]
+                    Prims.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]
                         val arr = instr.args[0]
                         val arrTy = arr.type as ArrayType
                         val off = instr.args[1]
@@ -572,7 +572,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[${off.asMLIR()}][${len.asMLIR()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
                     }
 
-                    Prim.Comp.TRANSPOSE -> {
+                    Prims.Comp.TRANSPOSE -> {
                         val dest = instr.args[0]
                         val arr = instr.args[1]
                         val arrTy = arr.type as ArrayType
@@ -614,7 +614,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                 else -> error("$instr not implemented")
             }
         }.onFailure {
-            println("in mlir emit instr $uid:$idx: ${it.message}")
+            log("in mlir emit instr $uid:$idx: ${it.message}")
             throw it
         }
     }

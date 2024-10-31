@@ -8,7 +8,7 @@ import me.alex_s168.uiua.ir.transform.switch
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
 val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
-    lowerPrimPass(Prim.RESHAPE) { put, newVar, a ->
+    lowerPrimPass(Prims.RESHAPE) { put, newVar, a ->
         if (args[0].type !is ArrayType) { // => scalar
             // repeat array as rows of new array
             val oldValue = args[1]
@@ -23,7 +23,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
                     val dim = newVar().copy(type = Types.size)
                     put(IrInstr(
                         mutableListOf(dim),
-                        PrimitiveInstr(Prim.Comp.DIM),
+                        PrimitiveInstr(Prims.Comp.DIM),
                         mutableListOf(oldValue, d)
                     ))
                     dim
@@ -32,7 +32,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
 
             put(IrInstr(
                 mutableListOf(out),
-                PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+                PrimitiveInstr(Prims.Comp.ARR_ALLOC),
                 mutableListOf(shape.wrapInArgArray(newVar, put = put))
             ))
 
@@ -46,7 +46,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
 
                 instrs += IrInstr(
                     mutableListOf(),
-                    PrimitiveInstr(Prim.Comp.ARR_STORE),
+                    PrimitiveInstr(Prims.Comp.ARR_STORE),
                     mutableListOf(out, idx, oldValue)
                 )
 
@@ -64,7 +64,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
 
             put(IrInstr(
                 mutableListOf(),
-                PrimitiveInstr(Prim.Comp.REPEAT),
+                PrimitiveInstr(Prims.Comp.REPEAT),
                 mutableListOf(zero, args[0], fnref, out, oldValue)
             ))
         }
@@ -76,21 +76,21 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             val matNewShape = newVar().copy(type = newShape.type)
             put(IrInstr(
                 mutableListOf(matNewShape),
-                PrimitiveInstr(Prim.Comp.ARR_MATERIALIZE),
+                PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
                 mutableListOf(newShape)
             ))
 
             val des = newVar().copy(type = Types.array((oldValue.type as ArrayType).inner))
             put(IrInstr(
                 mutableListOf(des),
-                PrimitiveInstr(Prim.DESHAPE),
+                PrimitiveInstr(Prims.DESHAPE),
                 mutableListOf(oldValue)
             ))
 
             val newShapeMul = reduce(matNewShape, put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
                 instrs += IrInstr(
                     mutableListOf(res),
-                    PrimitiveInstr(Prim.MUL),
+                    PrimitiveInstr(Prims.MUL),
                     mutableListOf(a, b)
                 )
             }
@@ -98,7 +98,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             val desLen = newVar().copy(type = Types.size)
             put(IrInstr(
                 mutableListOf(desLen),
-                PrimitiveInstr(Prim.LEN),
+                PrimitiveInstr(Prims.LEN),
                 mutableListOf(des)
             ))
 
@@ -114,7 +114,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             val bool = newVar().copy(type = Types.bool)
             put(IrInstr(
                 mutableListOf(bool),
-                PrimitiveInstr(Prim.LT),
+                PrimitiveInstr(Prims.LT),
                 mutableListOf(desLen, newShapeMul)
             ))
 
@@ -130,7 +130,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
                 // allocating here because in blkExtend a new array is allocated too
                 instrs += IrInstr(
                     mutableListOf(correctSizeArr),
-                    PrimitiveInstr(Prim.Comp.ARR_CLONE),
+                    PrimitiveInstr(Prims.Comp.ARR_CLONE),
                     mutableListOf(des)
                 )
 
@@ -148,14 +148,14 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
                 if (fillArg != null) {
                     instrs += IrInstr(
                         mutableListOf(correctSizeArr),
-                        PrimitiveInstr(Prim.Comp.RT_EXTEND_SCALAR), // TODO: move reshape<scalar> into own primitive and use that + some arr copies
+                        PrimitiveInstr(Prims.Comp.RT_EXTEND_SCALAR), // TODO: move reshape<scalar> into own primitive and use that + some arr copies
                         mutableListOf(des, newShapeMul, fillArg!!)
                     )
                 }
                 else {
                     instrs += IrInstr(
                         mutableListOf(correctSizeArr),
-                        PrimitiveInstr(Prim.Comp.RT_EXTEND_REPEAT),
+                        PrimitiveInstr(Prims.Comp.RT_EXTEND_REPEAT),
                         mutableListOf(des, newShapeMul, des)
                     )
                 }
@@ -180,7 +180,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
 
             put(IrInstr(
                 mutableListOf(outs[0]),
-                PrimitiveInstr(Prim.Comp.RESHAPE_VIEW),
+                PrimitiveInstr(Prims.Comp.RESHAPE_VIEW),
                 mutableListOf(newShape, correctSizeArr)
             ))
         }

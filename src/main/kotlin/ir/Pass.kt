@@ -1,7 +1,6 @@
 package me.alex_s168.uiua.ir
 
-import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.SpanRef
+import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.transform.comment
 
 
@@ -30,7 +29,7 @@ inline fun IrBlock.lowerPass(
 
 fun IrBlock.lowerPrimPass(
     name: String,
-    primitive: String,
+    primitive: Prim,
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = lowerPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, block)
 
@@ -48,10 +47,10 @@ fun <A> GlobalPass<A>.run(map: MutableMap<String, IrBlock>, arg: A) {
         internalRun(map, arg)
     }.onFailure {
         map.values.forEach {
-            println(it)
-            println()
+            log(it.toString())
+            log("")
         }
-        println("in global pass $name with arg $arg")
+        log("in global pass $name with arg $arg")
         throw it
     }
 }
@@ -76,8 +75,8 @@ fun <A> Pass<A>.run(block: IrBlock, arg: A) {
     kotlin.runCatching {
         internalRun(block, arg)
     }.onFailure {
-        println(block)
-        println("in pass $name on block(${block.uid}) with arg $arg")
+        log(block.toString())
+        log("in pass $name on block(${block.uid}) with arg $arg")
         throw it
     }
 }
@@ -107,15 +106,15 @@ fun analysisPass(name: String, run: (IrBlock, Analysis) -> Unit) =
     }
 
 fun lowerPrimPass(
-    primitive: String,
+    primitive: Prim,
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
-) = Pass<Unit>("lower $primitive") { it, _ -> it.lowerPrimPass("lower $primitive", primitive, block) }
+) = Pass<Unit>("lower ${Prims.all[primitive]}") { it, _ -> it.lowerPrimPass("lower ${Prims.all[primitive]}", primitive, block) }
 
 inline fun <A> lowerPrimPass(
-    primitive: String,
+    primitive: Prim,
     crossinline block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis, arg: A) -> Unit
-) = Pass<A>("lower $primitive") { it, arg ->
-    it.lowerPrimPass("lower $primitive", primitive) { put, newVar, a ->
+) = Pass<A>("lower ${Prims.all[primitive]}") { it, arg ->
+    it.lowerPrimPass("lower ${Prims.all[primitive]}", primitive) { put, newVar, a ->
         block(put, newVar, a, arg)
     }
 }
@@ -158,14 +157,14 @@ inline fun optAwayPass(
 
 inline fun optAwayPass(
     name: String,
-    primitive: String,
+    primitive: Prim,
     crossinline rmIf: IrInstr.(a: Analysis) -> Boolean,
     crossinline rm: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = optAwayPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, rmIf, rm)
 
 inline fun optAwayPass(
     name: String,
-    primitive: String,
+    primitive: Prim,
     crossinline rmIf: IrInstr.(a: Analysis) -> Boolean
 ) = optAwayPass(name, primitive, rmIf) { put, newVar, a -> }
 
@@ -181,7 +180,7 @@ inline fun modifyPass(
 
 inline fun modifyPass(
     name: String,
-    primitive: String,
+    primitive: Prim,
     crossinline modIf: IrInstr.(a: Analysis) -> Boolean,
     crossinline mod: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = modifyPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, modIf, mod)

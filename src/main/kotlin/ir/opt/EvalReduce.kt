@@ -1,6 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.into
@@ -9,13 +9,13 @@ import me.alex_s168.uiua.ir.transform.unfailure
 
 val comptimeReduceEval = optAwayPass(
     "comptime reduce eval",
-    Prim.REDUCE,
+    Prims.REDUCE,
     { a -> unfailure {
         val arr = args[1]
         val orig = a.origin(arr)!!
         val what = orig.args.first()
         a.origin(what)!!
-        a.isPrim(orig, Prim.Comp.ARR_MATERIALIZE)
+        a.isPrim(orig, Prims.Comp.ARR_MATERIALIZE)
     } }
 ) { put, newVar, a ->
     val accTy = outs[0].type
@@ -42,7 +42,7 @@ val comptimeReduceEval = optAwayPass(
     val accInit = newVar().copy(type = accTy)
     put(IrInstr(
         mutableListOf(accInit),
-        PrimitiveInstr(Prim.CALL),
+        PrimitiveInstr(Prims.CALL),
         mutableListOf(first, elems[0], elems[1]).also { it += extra }
     ))
 
@@ -50,7 +50,7 @@ val comptimeReduceEval = optAwayPass(
         val acc2 = newVar().copy(type = accTy)
         put(IrInstr(
             mutableListOf(acc2),
-            PrimitiveInstr(Prim.CALL),
+            PrimitiveInstr(Prims.CALL),
             mutableListOf(every, acc, x).also { it += extra }
         ))
         acc2

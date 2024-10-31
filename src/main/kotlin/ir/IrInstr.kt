@@ -51,7 +51,7 @@ data class IrInstr(
         }
 
         val innerStr = when (instr) {
-            is PrimitiveInstr -> "${instr.id}${instr.param?.let { "($it)" } ?: ""}${ (if (uacPrintSpans) instr.loc?.index?.contents?.let { "@$it" } else null) ?: "" }"
+            is PrimitiveInstr -> "${Prims.all[instr.id]}${instr.param?.let { "($it)" } ?: ""}${ (if (uacPrintSpans) instr.loc?.index?.contents?.let { "@$it" } else null) ?: "" }"
             is ArrImmInstr -> "arr-make ${instr.values.flatten().contents}"
             is NumImmInstr -> "imm ${instr.value}"
             is PushFnInstr -> "fn-make ${instr.fn}"
@@ -154,31 +154,31 @@ data class IrInstr(
             }
 
             is PrimitiveInstr -> when (instr.id) {
-                Prim.Comp.USE -> {
+                Prims.Comp.USE -> {
                     updateType(outs[0], args[0].type)
                 }
 
-                Prim.Comp.BOX_LOAD -> {
+                Prims.Comp.BOX_LOAD -> {
                     val box = args[0]
                     val boxType = box.type as BoxType
                     updateType(outs[0], boxType.of)
                 }
 
-                Prim.Comp.BOX_STORE -> {
+                Prims.Comp.BOX_STORE -> {
                     val box = args[0]
                     val boxType = box.type as BoxType
                     val value = args[1]
                     require(value.type == boxType.of)
                 }
 
-                Prim.Comp.BOX_CREATE -> {
+                Prims.Comp.BOX_CREATE -> {
                     val box = outs[0]
                     val boxType = box.type as BoxType
 
                     if (boxType == Types.tbd) {
                         val usage = parent.instrs.firstOrNull {
                             it.instr is PrimitiveInstr &&
-                            it.instr.id == Prim.Comp.BOX_STORE &&
+                            it.instr.id == Prims.Comp.BOX_STORE &&
                             box in it.args
                         } ?: error("untyped box not allowed!")
 
@@ -188,43 +188,43 @@ data class IrInstr(
                     }
                 }
 
-                Prim.Comp.BOX_DESTROY -> {}
+                Prims.Comp.BOX_DESTROY -> {}
 
-                Prim.Comp.ARG_ARR -> {
+                Prims.Comp.ARG_ARR -> {
                     updateType(outs[0], Types.array(args[0].type))
                 }
 
-                Prim.Comp.ARR_MATERIALIZE -> {
+                Prims.Comp.ARR_MATERIALIZE -> {
                     updateType(outs[0], (args[0].type as ArrayType).copy(vaOff = true))
                 }
 
-                Prim.Comp.ARR_ALLOC -> {
+                Prims.Comp.ARR_ALLOC -> {
                     require(outs[0].type != Types.tbd)
                 }
 
-                Prim.Comp.ARR_STORE -> {}
+                Prims.Comp.ARR_STORE -> {}
 
-                Prim.Comp.ARR_LOAD -> {
+                Prims.Comp.ARR_LOAD -> {
                     val arrType = args[0].type as ArrayType
                     val indecies = parent.instrDeclFor(args[1])!!
                     val elemType = arrType.into(indecies.args.size)
                     updateType(outs[0], elemType)
                 }
 
-                Prim.Comp.ARR_DESTROY -> {}
+                Prims.Comp.ARR_DESTROY -> {}
 
-                Prim.Comp.REPEAT -> {}
+                Prims.Comp.REPEAT -> {}
 
-                Prim.Comp.DIM -> {
+                Prims.Comp.DIM -> {
                     updateType(outs[0], Types.size)
                 }
 
-                Prim.DESHAPE -> {
+                Prims.DESHAPE -> {
                     val arrTy = args[0].type as ArrayType
                     updateType(outs[0], Types.array(arrTy.inner))
                 }
 
-                Prim.CALL -> {
+                Prims.CALL -> {
                     val callArgs = args.drop(1)
 
                     val expb = expandArgFn(0, callArgs.map { it.type }, fillType)
@@ -234,32 +234,32 @@ data class IrInstr(
                     }
                 }
 
-                Prim.BOX -> {
+                Prims.BOX -> {
                     updateType(outs[0], Types.box(args[0].type))
                 }
 
-                Prim.UN_BOX -> {
+                Prims.UN_BOX -> {
                     val ty = args[0].type as BoxType
                     updateType(outs[0], ty.of)
                 }
 
-                Prim.POW,
-                Prim.DIV -> {
+                Prims.POW,
+                Prims.DIV -> {
                     val arrTy = args.firstOrNull { it.type is ArrayType }?.type as ArrayType?
                     updateType(outs[0], arrTy?.mapInner { Types.double } ?: Types.double)
                 }
 
-                Prim.ABS,
-                Prim.NEG -> {
+                Prims.ABS,
+                Prims.NEG -> {
                     updateType(outs[0], args[0].type)
                 }
 
-                Prim.FLOOR,
-                Prim.CEIL,
-                Prim.ROUND,
-                Prim.ASIN,
-                Prim.SQRT,
-                Prim.SIN -> {
+                Prims.FLOOR,
+                Prims.CEIL,
+                Prims.ROUND,
+                Prims.ASIN,
+                Prims.SQRT,
+                Prims.SIN -> {
                     val at = args[0].type
                     val ot = at.cast<ArrayType>()
                         ?.let { it.mapInner { Types.double } }
@@ -267,18 +267,18 @@ data class IrInstr(
                     updateType(outs[0], ot)
                 }
 
-                Prim.RAND,
-                Prim.REPLACE_RAND,
-                Prim.NOW -> {
+                Prims.RAND,
+                Prims.REPLACE_RAND,
+                Prims.NOW -> {
                     updateType(outs[0], Types.double)
                 }
 
-                Prim.EQ,
-                Prim.LT,
-                Prim.ADD,
-                Prim.SUB,
-                Prim.MUL,
-                Prim.MOD -> {
+                Prims.EQ,
+                Prims.LT,
+                Prims.ADD,
+                Prims.SUB,
+                Prims.MUL,
+                Prims.MOD -> {
                     val ty: Type = (args.mapNotNull { it.type as? ArrayType }.reduceOrNull { acc: ArrayType, irVar: ArrayType ->
                         List(max(irVar.shape.size, acc.shape.size)){-1}
                             .shapeToArrType(irVar.inner.combine(acc.inner))
@@ -292,11 +292,11 @@ data class IrInstr(
                     updateType(outs[0], ty)
                 }
 
-                Prim.PRIMES -> {
+                Prims.PRIMES -> {
                     updateType(outs[0], Types.array(Types.int))
                 }
 
-                Prim.RANGE -> {
+                Prims.RANGE -> {
                     val at = args[0].type
                     val ot = when (at) {
                         is ArrayType -> List(at.shape.size+1){-1}.shapeToArrType(at.inner)
@@ -305,33 +305,33 @@ data class IrInstr(
                     updateType(outs[0], ot)
                 }
 
-                Prim.DUP -> {
+                Prims.DUP -> {
                     val ty = args[0].type
                     updateType(outs[0], ty)
                     updateType(outs[1], ty)
                 }
 
-                Prim.FLIP -> {
+                Prims.FLIP -> {
                     updateType(outs[0], args[1].type)
                     updateType(outs[1], args[0].type)
                 }
 
-                Prim.OVER -> {
+                Prims.OVER -> {
                     updateType(outs[0], args[1].type)
                     updateType(outs[1], args[0].type)
                     updateType(outs[2], args[1].type)
                 }
 
-                Prim.LEN -> {
+                Prims.LEN -> {
                     updateType(outs[0], Types.size)
                 }
 
-                Prim.SWITCH -> {
+                Prims.SWITCH -> {
                     val at = parent.instrDeclFor(args[0])!!
-                    require(at.instr is PrimitiveInstr && at.instr.id == Prim.Comp.ARG_ARR)
+                    require(at.instr is PrimitiveInstr && at.instr.id == Prims.Comp.ARG_ARR)
 
                     val fnsa = parent.instrDeclFor(args[1])!!
-                    require(fnsa.instr is PrimitiveInstr && fnsa.instr.id == Prim.Comp.ARG_ARR)
+                    require(fnsa.instr is PrimitiveInstr && fnsa.instr.id == Prims.Comp.ARG_ARR)
                     val fns = fnsa.args
 
                     val on = args[2]
@@ -358,11 +358,11 @@ data class IrInstr(
                     }
                 }
 
-                Prim.REDUCE, Prim.Front.REDUCE_DEPTH -> {
+                Prims.REDUCE, Prims.Front.REDUCE_DEPTH -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
                     val inp = args[1].type as ArrayType
 
-                    val depth = if (instr.id == Prim.Front.REDUCE_DEPTH) instr.param!! else 0
+                    val depth = if (instr.id == Prims.Front.REDUCE_DEPTH) instr.param!! else 0
                     val inpOf = inp.into(depth + 1)
 
                     val first = fnblock.expandFor(listOf(inpOf, inpOf), putFn, fillType)
@@ -380,7 +380,7 @@ data class IrInstr(
                     updateType(outs[0], List(depth){-1}.shapeToType(accTy))
                 }
 
-                Prim.EACH -> {
+                Prims.EACH -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
 
                     val highestRank = args.drop(1)
@@ -402,12 +402,12 @@ data class IrInstr(
                     }
                 }
 
-                Prim.SHAPE -> {
+                Prims.SHAPE -> {
                     val arg = args[0].type as ArrayType
                     updateType(outs[0], Types.array(Types.size, arg.shape.size))
                 }
 
-                Prim.ROWS -> {
+                Prims.ROWS -> {
                     val (_, fnblock) = parent.funDeclFor(args[0])!!
 
                     val inps = args.drop(1).map {
@@ -425,7 +425,7 @@ data class IrInstr(
                     }
                 }
 
-                Prim.WHERE -> {
+                Prims.WHERE -> {
                     val arrTy = args[0].type as ArrayType
                     val shaLen = arrTy.shape.size
 
@@ -435,7 +435,7 @@ data class IrInstr(
                     updateType(outs[0], ty)
                 }
 
-                Prim.FILL -> {
+                Prims.FILL -> {
                     val (_, fillValFn) = parent.funDeclFor(args[0])!!
                     val (_, opFn) = parent.funDeclFor(args[1])!!
                     val opArgs = args.drop(2)
@@ -452,12 +452,12 @@ data class IrInstr(
                     }
                 }
 
-                Prim.FIX -> {
+                Prims.FIX -> {
                     val argTy = args[0].type
                     updateType(outs[0], Types.array(argTy, 1))
                 }
 
-                Prim.REVERSE -> {
+                Prims.REVERSE -> {
                     val argTy = args[0].type
                     if (argTy is BoxType) {
                         require(argTy.of is ArrayType)
@@ -467,17 +467,17 @@ data class IrInstr(
                     updateType(outs[0], argTy)
                 }
 
-                Prim.PICK -> {
+                Prims.PICK -> {
                     val arr = args[1].type as ArrayType
                     updateType(outs[0], arr.of.makeVaOffIfArray())
                 }
 
-                Prim.UNDO_PICK -> {
+                Prims.UNDO_PICK -> {
                     val arr = args[0].type as ArrayType
                     updateType(outs[0], arr)
                 }
 
-                Prim.TABLE -> {
+                Prims.TABLE -> {
                     val (_, fn) = parent.funDeclFor(args[0])!!
                     val arr0 = args[1].type as ArrayType
                     val arr1 = args[2].type as ArrayType
@@ -490,7 +490,7 @@ data class IrInstr(
                     }
                 }
 
-                Prim.RESHAPE -> {
+                Prims.RESHAPE -> {
                     val sha = args[0]
 
                     if (sha.type is ArrayType) {
@@ -511,7 +511,7 @@ data class IrInstr(
                     }
                 }
 
-                Prim.UN_SHAPE -> {
+                Prims.UN_SHAPE -> {
                     val sha = args[0]
                     val shaTy = sha.type as ArrayType
 
@@ -524,7 +524,7 @@ data class IrInstr(
                     updateType(outs[0], resTy)
                 }
 
-                Prim.JOIN -> {
+                Prims.JOIN -> {
                     val arg0 = args[0].type
                     val arg1 = args[1].type
 
@@ -535,15 +535,15 @@ data class IrInstr(
                     updateType(outs[0], res)
                 }
 
-                Prim.KEEP -> {
+                Prims.KEEP -> {
                     updateType(outs[0], args[1].type)
                 }
 
-                Prim.COMPLEX -> {
+                Prims.COMPLEX -> {
                     updateType(outs[0], Types.complex)
                 }
 
-                Prim.RERANK -> {
+                Prims.RERANK -> {
                     val arr = args[0]
                     val rank = args[1]
                     val ra = Analysis(parent).constNum(rank)
@@ -553,14 +553,14 @@ data class IrInstr(
                     updateType(outs[0], res)
                 }
 
-                Prim.UN_COUPLE -> {
+                Prims.UN_COUPLE -> {
                     val arr = args[0].type as ArrayType
                     updateType(outs[0], arr.of)
                     updateType(outs[1], arr.of)
                 }
 
-                Prim.TRANSPOSE,
-                Prim.Front.UN_TRANSPOSE -> {
+                Prims.TRANSPOSE,
+                Prims.Front.UN_TRANSPOSE -> {
                     val arr = args[0].type as ArrayType
                     updateType(outs[0], arr.mapShapeElems { -1 })
                 }

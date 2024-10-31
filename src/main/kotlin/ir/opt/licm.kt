@@ -1,15 +1,18 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
+import me.alex_s168.uiua.log
+
+// TODO: finish
 
 // loop independent code movement
 val licm = Pass<Unit>("licm") { block, _ ->
     val a = Analysis(block)
 
     block.instrs.forEach { instr ->
-        if (!a.isPrim(instr, Prim.Comp.REPEAT))
+        if (!a.isPrim(instr, Prims.Comp.REPEAT))
             return@forEach
 
         val fn = a.function(instr.args[2])
@@ -33,9 +36,9 @@ val licm = Pass<Unit>("licm") { block, _ ->
         ok.forEach { okIdx ->
             val (depVarsOld, depInsts) = deps[okIdx]
             val depVars = depVarsOld - depInsts.flatMapTo(mutableSetOf()) { it.outs }
-            println("$depInsts")
+            log("$depInsts")
         }
 
-        println("licmable: $ok")
+        log("licmable: $ok")
     }
 }

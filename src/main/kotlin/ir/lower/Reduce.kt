@@ -6,7 +6,7 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.transform.*
 
-val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a, putBlock ->
+val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prims.REDUCE) { put, newVar, a, putBlock ->
     val accTy = outs[0].type
 
     val arr = args[1]
@@ -23,7 +23,7 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
     val len = newVar().copy(type = Types.size)
     put(IrInstr(
         mutableListOf(len),
-        PrimitiveInstr(Prim.LEN),
+        PrimitiveInstr(Prims.LEN),
         mutableListOf(arr)
     ))
 
@@ -42,7 +42,7 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
                 if (fillArg == null) {
                     instrs += IrInstr(
                         mutableListOf(res0, res1),
-                        PrimitiveInstr(Prim.Comp.PANIC),
+                        PrimitiveInstr(Prims.Comp.PANIC),
                         mutableListOf()
                     )
                 } else if (len == 0) {
@@ -79,14 +79,14 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
     val iter0res = newVar().copy(type = accTy)
     put(IrInstr(
         mutableListOf(iter0res),
-        PrimitiveInstr(Prim.CALL),
+        PrimitiveInstr(Prims.CALL),
         mutableListOf(first, elem0, elem1).also { it += extra }
     ))
 
     val accBox = newVar().copy(type = Types.box(accTy))
     put(IrInstr(
         mutableListOf(accBox),
-        PrimitiveInstr(Prim.BOX),
+        PrimitiveInstr(Prims.BOX),
         mutableListOf(iter0res)
     ))
 
@@ -102,7 +102,7 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
         val acc = newVar().copy(type = accTy)
         instrs += IrInstr(
             mutableListOf(acc),
-            PrimitiveInstr(Prim.UN_BOX),
+            PrimitiveInstr(Prims.UN_BOX),
             mutableListOf(accBox)
         )
 
@@ -111,13 +111,13 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
         val newAcc = newVar().copy(type = accTy)
         instrs += IrInstr(
             mutableListOf(newAcc),
-            PrimitiveInstr(Prim.CALL),
+            PrimitiveInstr(Prims.CALL),
             mutableListOf(every, acc, elem).also { it += extra }
         )
 
         instrs += IrInstr(
             mutableListOf(),
-            PrimitiveInstr(Prim.Comp.BOX_STORE),
+            PrimitiveInstr(Prims.Comp.BOX_STORE),
             mutableListOf(accBox, newAcc)
         )
 
@@ -133,13 +133,13 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prim.REDUCE) { put, newVar, a
 
     put(IrInstr(
         mutableListOf(),
-        PrimitiveInstr(Prim.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
+        PrimitiveInstr(Prims.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
         mutableListOf(two, len, iterFnRef, arr, accBox, every).also { it += extra }
     ))
 
     put(IrInstr(
         mutableListOf(outs[0]),
-        PrimitiveInstr(Prim.UN_BOX),
+        PrimitiveInstr(Prims.UN_BOX),
         mutableListOf(accBox)
     ))
 }

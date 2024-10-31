@@ -33,7 +33,7 @@ class Analysis(val block: IrBlock) {
     val added = mutableListOf<IrInstr>()
 
     fun isEmpty(instr: IrInstr) =
-        isPrim(instr, Prim.Comp.SINK)
+        isPrim(instr, Prims.Comp.SINK)
 
     fun isLast(instr: IrInstr) =
         block.instrs
@@ -62,7 +62,7 @@ class Analysis(val block: IrBlock) {
         block.instrs.any { terminating(it) }
 
     fun terminating(instr: IrInstr) =
-        isPrim(instr, Prim.Comp.PANIC) ||
+        isPrim(instr, Prims.Comp.PANIC) ||
         (getDefinetlyCalling(instr)?.all {
             function(it.get())?.let {
                 Analysis(it).terminating()
@@ -76,14 +76,14 @@ class Analysis(val block: IrBlock) {
     fun getCalling(instr: IrInstr): Int? =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.CALL,
-                Prim.REDUCE,
-                Prim.ROWS,
-                Prim.TABLE,
-                Prim.EACH -> 0
-                Prim.Comp.REPEAT -> 2
-                Prim.SWITCH -> 1
-                Prim.FILL -> 1
+                Prims.CALL,
+                Prims.REDUCE,
+                Prims.ROWS,
+                Prims.TABLE,
+                Prims.EACH -> 0
+                Prims.Comp.REPEAT -> 2
+                Prims.SWITCH -> 1
+                Prims.FILL -> 1
                 else -> null
             }
             else -> null
@@ -92,13 +92,13 @@ class Analysis(val block: IrBlock) {
     fun getDefinetlyCalling(instr: IrInstr): List<VarRef>? =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.CALL -> listOf(VarRef.ofListElem(instr.args, 0))
+                Prims.CALL -> listOf(VarRef.ofListElem(instr.args, 0))
 
-                Prim.SWITCH -> origin(instr.args[1])!!.args
+                Prims.SWITCH -> origin(instr.args[1])!!.args
                     .let { li -> List(li.size) { i ->
                         VarRef.ofListElem(li, i) } }
 
-                Prim.FILL -> instr.args
+                Prims.FILL -> instr.args
                     .let { li -> (0..<1).map {
                         VarRef.ofListElem(li, it) } }
 
@@ -111,19 +111,19 @@ class Analysis(val block: IrBlock) {
     fun getDeepCalling(instr: IrInstr): List<VarRef> =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.CALL,
-                Prim.REDUCE,
-                Prim.ROWS,
-                Prim.TABLE,
-                Prim.EACH -> listOf(VarRef.ofListElem(instr.args, 0))
+                Prims.CALL,
+                Prims.REDUCE,
+                Prims.ROWS,
+                Prims.TABLE,
+                Prims.EACH -> listOf(VarRef.ofListElem(instr.args, 0))
 
-                Prim.Comp.REPEAT -> listOf(VarRef.ofListElem(instr.args, 2))
+                Prims.Comp.REPEAT -> listOf(VarRef.ofListElem(instr.args, 2))
 
-                Prim.SWITCH -> origin(instr.args[1])!!.args
+                Prims.SWITCH -> origin(instr.args[1])!!.args
                     .let { li -> List(li.size) { i ->
                         VarRef.ofListElem(li, i) } }
 
-                Prim.FILL -> instr.args
+                Prims.FILL -> instr.args
                     .let { li -> (0..<1).map {
                         VarRef.ofListElem(li, it) } }
 
@@ -168,11 +168,11 @@ class Analysis(val block: IrBlock) {
                 return Either.ofB(it.instr.value)
 
             // required for type checker
-            else if (isPrim(it, Prim.Comp.USE))
+            else if (isPrim(it, Prims.Comp.USE))
                 return deepOriginV2(it.args[0], callerInstrsWrap)
 
             // required for type checker
-            else if (isPrim(it, Prim.OVER))
+            else if (isPrim(it, Prims.OVER))
                 return when (it.outs.indexOf(v)) {
                     0 -> deepOriginV2(it.args[1], callerInstrsWrap)
                     1 -> deepOriginV2(it.args[0], callerInstrsWrap)
@@ -190,11 +190,11 @@ class Analysis(val block: IrBlock) {
             callerInstrsWrap(block).forEach { (callBlock, instr) ->
                 val a = Analysis(callBlock)
 
-                if (isPrim(instr, Prim.CALL)) {
+                if (isPrim(instr, Prims.CALL)) {
                     a.deepOriginV2(instr.args[idx + 1], callerInstrsWrap)?.let { return it }
                 }
 
-                else if (isPrim(instr, Prim.SWITCH)) {
+                else if (isPrim(instr, Prims.SWITCH)) {
                     val ar = instr.args[idx + 3]
 
                     if (ar == instr.args[2]) { // identical to on param
@@ -213,11 +213,11 @@ class Analysis(val block: IrBlock) {
                     a.deepOriginV2(ar, callerInstrsWrap)?.let { return it }
                 }
 
-                else if (isPrim(instr, Prim.Comp.REPEAT) && idx != 0) { // can't trace counter
+                else if (isPrim(instr, Prims.Comp.REPEAT) && idx != 0) { // can't trace counter
                     a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
-                else if (isPrim(instr, Prim.FILL)) {
+                else if (isPrim(instr, Prims.FILL)) {
                     a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it }
                 }
             }
@@ -246,7 +246,7 @@ class Analysis(val block: IrBlock) {
         }
     }
 
-    fun isPrim(instr: IrInstr, kind: String? = null) =
+    fun isPrim(instr: IrInstr, kind: Prim? = null) =
         instr.instr is PrimitiveInstr && kind?.let { instr.instr.id == it } ?: true
 
     fun usages(v: IrVar): Sequence<IrInstr?> =
@@ -295,10 +295,10 @@ class Analysis(val block: IrBlock) {
             runCatching {
                 each(it, { block.instrs.add(idx++, it) }, block::newVar)
             }.onFailure { err ->
-                println("in transform on ${onIn.contents}:")
+                log("in transform on ${onIn.contents}:")
                 block.instrs.clear()
                 block.instrs.addAll(pre)
-                println("(restored pre transform state; indecies in further error messages might be off)")
+                log("(restored pre transform state; indecies in further error messages might be off)")
                 throw err
             }.getOrThrow()
         }
@@ -309,18 +309,18 @@ class Analysis(val block: IrBlock) {
 
     fun finish(dbgName: String) {
         if (removed.isNotEmpty() || added.isNotEmpty()) {
-            println("pass $dbgName finished on block \"${block.name}\":")
+            log("pass $dbgName finished on block \"${block.name}\":")
         }
         if (removed.isNotEmpty()) {
-            println("  removed:")
+            log("  removed:")
             removed.forEach {
-                println("    $it")
+                log("    $it")
             }
         }
         if (added.isNotEmpty()) {
-            println("  added:")
+            log("  added:")
             added.forEach {
-                println("    $it")
+                log("    $it")
             }
         }
     }
@@ -328,19 +328,19 @@ class Analysis(val block: IrBlock) {
     fun isPure(instr: IrInstr): Boolean =
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
-                Prim.Comp.USE,
-                Prim.Comp.ARR_MATERIALIZE,
-                Prim.Comp.DIM,
-                Prim.ADD,
-                Prim.SUB,
-                Prim.MUL,
-                Prim.DIV,
-                Prim.POW,
-                Prim.MAX,
-                Prim.LT,
-                Prim.EQ,
-                Prim.PRIMES,
-                Prim.RANGE -> true
+                Prims.Comp.USE,
+                Prims.Comp.ARR_MATERIALIZE,
+                Prims.Comp.DIM,
+                Prims.ADD,
+                Prims.SUB,
+                Prims.MUL,
+                Prims.DIV,
+                Prims.POW,
+                Prims.MAX,
+                Prims.LT,
+                Prims.EQ,
+                Prims.PRIMES,
+                Prims.RANGE -> true
                 else -> false
             }
             else -> true
@@ -409,7 +409,7 @@ class Analysis(val block: IrBlock) {
 
         val block = allRelatedInstrs(variable, after)
             .fastToMutableList()
-        block.removeIf { this.isPrim(it, Prim.Comp.SINK) }
+        block.removeIf { this.isPrim(it, Prims.Comp.SINK) }
 
         if (!canMove(block)) return listOf()
 
@@ -448,7 +448,7 @@ class Analysis(val block: IrBlock) {
     ): List<Either<Int, Pair<IrBlock, IrVar>>>? {
         val (b, shape) = deepOriginV2(arr, callerInstrsWrap)?.a?.let { (b, v) ->
             // TODO: make work for arg arr and materialize
-            if (Analysis(b).isPrim(v, Prim.Comp.ARR_ALLOC))
+            if (Analysis(b).isPrim(v, Prims.Comp.ARR_ALLOC))
                 b.instrDeclFor(v.args[0])
                     ?.args
                     ?.let { b to it }
@@ -484,40 +484,40 @@ class Analysis(val block: IrBlock) {
 
     companion object {
         val argArrayUsing = mapOf(
-            Prim.Comp.ARR_ALLOC to 0,
-            Prim.Comp.ARR_STORE to 1,
-            Prim.Comp.ARR_LOAD to 1,
-            Prim.RESHAPE to 0,
+            Prims.Comp.ARR_ALLOC to 0,
+            Prims.Comp.ARR_STORE to 1,
+            Prims.Comp.ARR_LOAD to 1,
+            Prims.RESHAPE to 0,
         )
 
         val pervasive = arrayOf(
-            Prim.ADD,
-            Prim.SUB,
-            Prim.MUL,
-            Prim.DIV,
-            Prim.LT,
-            Prim.EQ,
-            Prim.POW,
-            Prim.MOD,
-            Prim.SQRT,
-            Prim.NEG,
-            Prim.SIN,
-            Prim.ASIN,
-            Prim.FLOOR,
-            Prim.CEIL,
-            Prim.ROUND,
+            Prims.ADD,
+            Prims.SUB,
+            Prims.MUL,
+            Prims.DIV,
+            Prims.LT,
+            Prims.EQ,
+            Prims.POW,
+            Prims.MOD,
+            Prims.SQRT,
+            Prims.NEG,
+            Prims.SIN,
+            Prims.ASIN,
+            Prims.FLOOR,
+            Prims.CEIL,
+            Prims.ROUND,
         )
 
         val independentOfArrayData = arrayOf(
-            Prim.Comp.DIM,
-            Prim.ADD,
-            Prim.SUB,
-            Prim.MUL,
-            Prim.DIV,
-            Prim.POW,
-            Prim.MAX,
-            Prim.LT,
-            Prim.EQ,
+            Prims.Comp.DIM,
+            Prims.ADD,
+            Prims.SUB,
+            Prims.MUL,
+            Prims.DIV,
+            Prims.POW,
+            Prims.MAX,
+            Prims.LT,
+            Prims.EQ,
         )
 
         fun blocksEqual(block1: IrBlock, block2: IrBlock): Boolean {
@@ -552,8 +552,8 @@ class Analysis(val block: IrBlock) {
 inline fun Iterable<IrInstr?>.allNN(cond: (IrInstr) -> Boolean) =
     all { it != null && cond(it) }
 
-inline fun Iterable<IrInstr?>.allPrim(cond: (String) -> Boolean) =
+inline fun Iterable<IrInstr?>.allPrim(cond: (Prim) -> Boolean) =
     allNN { it.instr is PrimitiveInstr && cond(it.instr.id) }
 
-fun Iterable<IrInstr>.allPrim(type: String) =
+fun Iterable<IrInstr>.allPrim(type: Prim) =
     allPrim { it == type }

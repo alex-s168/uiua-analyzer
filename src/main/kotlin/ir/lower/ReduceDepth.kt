@@ -6,7 +6,7 @@ import me.alex_s168.uiua.ir.transform.depth
 import me.alex_s168.uiua.ir.transform.into
 
 val lowerReduceDepth = withPassArg<(IrBlock) -> Unit>("lower reduce depth") { putBlock ->
-    lowerPrimPass(Prim.Front.REDUCE_DEPTH) { put, newVar, a ->
+    lowerPrimPass(Prims.Front.REDUCE_DEPTH) { put, newVar, a ->
         val depth = (instr as PrimitiveInstr).param!!
 
         val oldOut = outs.toList()
@@ -15,7 +15,7 @@ val lowerReduceDepth = withPassArg<(IrBlock) -> Unit>("lower reduce depth") { pu
             val out = oldOut.map { newVar().copy(type = it.type.ofIfArray()) }
             put(IrInstr(
                 out.toMutableList(),
-                PrimitiveInstr(Prim.REDUCE),
+                PrimitiveInstr(Prims.REDUCE),
                 args.toMutableList()
             ))
             out

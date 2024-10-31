@@ -1,12 +1,19 @@
 package me.alex_s168.uiua
 
-object Prim {
-    val ALL = mutableSetOf<String>()
+typealias Prim = Short
 
-    private fun prim(name: String): String =
-        name.also { ALL.add(it) }
+object Prims {
+    val all = mutableMapOf<Prim, String>()
+    val all2 = mutableMapOf<String, Prim>()
+    private var nextPrimId: Prim = 0
+
+    private fun prim(name: String): Prim =
+        (nextPrimId ++)
+            .also { all[it] = name }
+            .also { all2[name] = it }
 
     object Comp {
+        val INVALID = prim("?????")
         val USE = prim("cUSE")
 
         val BOX_CREATE = prim("cBOX_CREATE")

@@ -5,7 +5,7 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
-val lowerLen = lowerPrimPass(Prim.LEN) { put, newVar, a ->
+val lowerLen = lowerPrimPass(Prims.LEN) { put, newVar, a ->
     if (args[0].type is ArrayType) {
         val const = newVar().copy(type = Types.size)
         put(IrInstr(
@@ -16,7 +16,7 @@ val lowerLen = lowerPrimPass(Prim.LEN) { put, newVar, a ->
 
         put(IrInstr(
             outs,
-            PrimitiveInstr(Prim.Comp.DIM),
+            PrimitiveInstr(Prims.Comp.DIM),
             mutableListOf(args[0], const)
         ))
     }

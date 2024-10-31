@@ -11,23 +11,23 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
         .filterNotNull()
         .toList()
         .forEach {
-            if (a.isPrim(it, Prim.Comp.ARR_COPY)) {
+            if (a.isPrim(it, Prims.Comp.ARR_COPY)) {
                 block.instrs.remove(it)
             }
-            else if (a.isPrim(it, Prim.Comp.ARR_LOAD)) {
+            else if (a.isPrim(it, Prims.Comp.ARR_LOAD)) {
                 val idx = block.instrs.indexOf(it)
                 block.instrs.add(idx, IrInstr(
                     mutableListOf(),
-                    PrimitiveInstr(Prim.Comp.PANIC),
+                    PrimitiveInstr(Prims.Comp.PANIC),
                     mutableListOf()
                 ))
             }
-            else if (a.isPrim(it, Prim.Comp.ARR_STORE)) {
+            else if (a.isPrim(it, Prims.Comp.ARR_STORE)) {
                 if (it.args[0] == arr) {
                     val idx = block.instrs.indexOf(it)
                     block.instrs.add(idx, IrInstr(
                         mutableListOf(),
-                        PrimitiveInstr(Prim.Comp.PANIC),
+                        PrimitiveInstr(Prims.Comp.PANIC),
                         mutableListOf()
                     ))
                 }
@@ -35,7 +35,7 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
                     block.instrs.remove(it)
                 }
             }
-            else if (a.isPrim(it, Prim.Comp.DIM)) {
+            else if (a.isPrim(it, Prims.Comp.DIM)) {
                 val idx = block.instrs.indexOf(it)
                 block.instrs[idx] = IrInstr(
                     mutableListOf(it.outs[0]),
@@ -48,9 +48,9 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
                     var argIdx = it.args.indexOf(arr)
                     if (argIdx == -1) return@forEach // TODO: wtf
                     argIdx -= when ((it.instr as PrimitiveInstr).id) {
-                        Prim.Comp.REPEAT -> 2
-                        Prim.CALL -> 1
-                        Prim.SWITCH -> 3
+                        Prims.Comp.REPEAT -> 2
+                        Prims.CALL -> 1
+                        Prims.SWITCH -> 3
                         else -> return@forEach
                     }
 
@@ -62,7 +62,7 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
                         }
 
                         val arg = fn.args[argIdx]
-                        println("tracing empty array from ${block.name} -> ${fn.name}")
+                        log("tracing empty array from ${block.name} -> ${fn.name}")
                         emptyArray(fn, arg, putBlock)
                     }
                 }
@@ -74,7 +74,7 @@ val emptyArrayOpsRemove = Pass<(IrBlock) -> Unit>("arr ops remove") { block, put
     val a = Analysis(block)
 
     block.instrs.toList().forEach {
-        if (a.isPrim(it, Prim.Comp.ARR_ALLOC)) {
+        if (a.isPrim(it, Prims.Comp.ARR_ALLOC)) {
             val arr = it.outs[0]
             val shapec = a.constShape(arr)
                 ?: return@forEach

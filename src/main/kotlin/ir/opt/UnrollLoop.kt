@@ -1,6 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.fullUnrollLoop
 import me.alex_s168.uiua.ir.Analysis
@@ -11,7 +11,7 @@ val unrollLoop = Pass<Unit>("full unroll loop") { block, _ ->
     val a = Analysis(block)
 
     block.instrs.toList().forEach { instr ->
-        if (!a.isPrim(instr, Prim.Comp.REPEAT))
+        if (!a.isPrim(instr, Prims.Comp.REPEAT))
             return@forEach
 
         val begin = a.constNum(instr.args[0])

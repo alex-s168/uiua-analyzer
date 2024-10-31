@@ -22,7 +22,7 @@ fun genCallBlockFnTail(innerFnType: FnType, ref: Map<String, IrBlock>): IrBlock 
 
         instrs += IrInstr(
             outs.toMutableList(),
-            PrimitiveInstr(Prim.CALL),
+            PrimitiveInstr(Prims.CALL),
             (listOf(fn) + ar).toMutableList()
         )
     }
@@ -34,7 +34,7 @@ fun IrVar.genFix(put: (IrInstr) -> Unit, newVar: () -> IrVar): IrVar {
 
     put(IrInstr(
         mutableListOf(out),
-        PrimitiveInstr(Prim.FIX),
+        PrimitiveInstr(Prims.FIX),
         mutableListOf(this)
     ))
 
@@ -45,7 +45,7 @@ fun List<IrVar>.wrapInArgArray(newVar: () -> IrVar, type: Type = first().type, p
     val v = newVar().copy(type = Types.array(type, size))
     put(IrInstr(
         mutableListOf(v),
-        PrimitiveInstr(Prim.Comp.ARG_ARR),
+        PrimitiveInstr(Prims.Comp.ARG_ARR),
         toMutableList()
     ))
     return v
@@ -55,7 +55,7 @@ fun IrVar.into(dest: IrVar, put: (IrInstr) -> Unit) {
     if (this.id != dest.id) {
         put(IrInstr(
             mutableListOf(dest),
-            PrimitiveInstr(Prim.Comp.USE),
+            PrimitiveInstr(Prims.Comp.USE),
             mutableListOf(this)
         ))
     }
@@ -87,7 +87,7 @@ fun oneDimLoad(dest: IrVar, arr: IrVar, newVar: () -> IrVar, idx: Int, put: (IrI
 
     put(IrInstr(
         mutableListOf(dest),
-        PrimitiveInstr(Prim.Comp.ARR_LOAD),
+        PrimitiveInstr(Prims.Comp.ARR_LOAD),
         mutableListOf(arr, indecies)
     ))
 }
@@ -103,7 +103,7 @@ fun oneDimLoad(dest: IrVar, arr: IrVar, newVar: () -> IrVar, idx: IrVar, put: (I
 
     put(IrInstr(
         mutableListOf(dest),
-        PrimitiveInstr(Prim.Comp.ARR_LOAD),
+        PrimitiveInstr(Prims.Comp.ARR_LOAD),
         mutableListOf(arr, indecies)
     ))
 }
@@ -144,7 +144,7 @@ fun oneDimFillLoad(
             if (fillArg == null) {
                 instrs += IrInstr(
                     mutableListOf(value),
-                    PrimitiveInstr(Prim.Comp.PANIC),
+                    PrimitiveInstr(Prims.Comp.PANIC),
                     mutableListOf()
                 )
             } else {
@@ -164,7 +164,7 @@ fun oneDimFillLoad(
 
             instrs += IrInstr(
                 mutableListOf(value),
-                PrimitiveInstr(Prim.Comp.ARR_LOAD),
+                PrimitiveInstr(Prims.Comp.ARR_LOAD),
                 mutableListOf(arr, idc)
             )
 
@@ -174,14 +174,14 @@ fun oneDimFillLoad(
         val len = newVar().copy(type = Types.size)
         put(IrInstr(
             mutableListOf(len),
-            PrimitiveInstr(Prim.LEN),
+            PrimitiveInstr(Prims.LEN),
             mutableListOf(arr)
         ))
 
         val lt = newVar().copy(type = Types.byte)
         put(IrInstr(
             mutableListOf(lt),
-            PrimitiveInstr(Prim.LT),
+            PrimitiveInstr(Prims.LT),
             mutableListOf(len, idx) // idx < len
         ))
 
@@ -238,7 +238,7 @@ fun switch(
 
     put(IrInstr(
         dest.toMutableList(),
-        PrimitiveInstr(Prim.SWITCH),
+        PrimitiveInstr(Prims.SWITCH),
         mutableListOf(conds, dests, on).also { it += inputs }
     ))
 }
@@ -290,7 +290,7 @@ fun filled(
 
     put(IrInstr(
         rets.toMutableList(),
-        PrimitiveInstr(Prim.FILL),
+        PrimitiveInstr(Prims.FILL),
         mutableListOf(fillProvFn, fn).also { it.addAll(args) },
     ))
 }
@@ -348,7 +348,7 @@ fun reduce(
 
     put(IrInstr(
         mutableListOf(dest),
-        PrimitiveInstr(Prim.REDUCE),
+        PrimitiveInstr(Prims.REDUCE),
         mutableListOf(reuceBody, arr, reuceBody)
     ))
 }
@@ -396,12 +396,12 @@ fun repeat(
 
     put(IrInstr(
         mutableListOf(),
-        PrimitiveInstr(Prim.Comp.REPEAT),
+        PrimitiveInstr(Prims.Comp.REPEAT),
         mutableListOf(zero, size, fnref).also { it += args }
     ))
 }
 
-fun binary(prim: String, a: IrVar, b: IrVar, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar {
+fun binary(prim: Prim, a: IrVar, b: IrVar, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar {
     val t = newVar().copy(type = Types.size)
     put(IrInstr(
         mutableListOf(t),
@@ -411,7 +411,7 @@ fun binary(prim: String, a: IrVar, b: IrVar, newVar: () -> IrVar, put: (IrInstr)
     return t
 }
 
-fun List<IrVar>.reduce(prim: String, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar =
+fun List<IrVar>.reduce(prim: Prim, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar =
     reduce { acc, irVar ->
         binary(prim, acc, irVar, newVar, put)
     }

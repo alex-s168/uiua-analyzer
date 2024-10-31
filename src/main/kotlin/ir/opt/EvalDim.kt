@@ -3,7 +3,7 @@ package me.alex_s168.uiua.ir.opt
 import blitz.mapA
 import blitz.mapB
 import me.alex_s168.uiua.NumImmInstr
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.CallerInstrsCache
 import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.comment
@@ -18,7 +18,7 @@ val evalDim = Pass<Unit>("evaluate dim") { block, _ ->
 
     repeat(block.instrs.size) { index ->
         val instr = block.instrs[index]
-        if (a.isPrim(instr, Prim.Comp.DIM)) {
+        if (a.isPrim(instr, Prims.Comp.DIM)) {
             val arr = instr.args[0]
 
             val dim = a.constNum(instr.args[1], cache::get)

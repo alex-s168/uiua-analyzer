@@ -1,10 +1,11 @@
 package me.alex_s168.uiua.ir.opt
 
 import blitz.collections.contents
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.ir.*
+import me.alex_s168.uiua.log
 
 fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>, putBlock: (IrBlock) -> Unit) {
     if (move.isEmpty())
@@ -56,9 +57,9 @@ fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>
 
     switch.args.addAll(deps)
 
-    println("moving (deps: ${deps.contents}):")
+    log("moving (deps: ${deps.contents}):")
     move.forEach {
-        println("  $it")
+        log("  $it")
     }
 
     dests.forEach { dest ->
@@ -101,7 +102,7 @@ fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>
     switchOldOuts.filter { !block.varUsed(it) }.forEach {
         block.instrs.add(swidx + 1, IrInstr(
             mutableListOf(),
-            PrimitiveInstr(Prim.Comp.SINK),
+            PrimitiveInstr(Prims.Comp.SINK),
             mutableListOf(it)
         ))
     }
@@ -111,7 +112,7 @@ val switchDependentCodeMovement = Pass<(IrBlock) -> Unit>("Switch Dependent Code
     val a = Analysis(block)
 
     val switchStmts = block.instrs
-        .filter { a.isPrim(it, Prim.SWITCH) }
+        .filter { a.isPrim(it, Prims.SWITCH) }
         .filter { it.outs.isNotEmpty() }
 
     switchStmts.forEach { switch ->
@@ -127,13 +128,13 @@ val switchIndependentTrailingCodeMovement = Pass<(IrBlock) -> Unit>("Switch Inde
     val a = Analysis(block)
 
     val switch = block.instrs
-        .lastOrNull { a.isPrim(it, Prim.SWITCH) }
+        .lastOrNull { a.isPrim(it, Prims.SWITCH) }
         ?: return@Pass
 
     val switchIdx = block.instrs.indexOf(switch)
     val move = block.instrs
         .filterIndexed { index, _ -> index > switchIdx }
-        .filter { !a.isPrim(it, Prim.Comp.SINK) }
+        .filter { !a.isPrim(it, Prims.Comp.SINK) }
 
     switchMove(a, block, switch, move, putBlock)
 }.withoutParallel()

@@ -55,7 +55,7 @@ data class IrBlock(
         rets.updateVar(old, new)
         instrs.forEach {
             it.updateVar(old, new)
-            if (it.instr is PrimitiveInstr && it.instr.id == Prim.Comp.ARG_ARR && new in it.args) {
+            if (it.instr is PrimitiveInstr && it.instr.id == Prims.Comp.ARG_ARR && new in it.args) {
                 updateVar(it.outs[0], it.outs[0].copy(type = Types.array(it.args[0].type, it.args.size)))
             }
         }
@@ -163,7 +163,7 @@ data class IrBlock(
 
             newName
         }.getOrElse {
-            println(this)
+            log(this.toString())
             error("While trying to expand function \"$name\" as func${fillType?.let { "[$it]" } ?: ""}[${inTypes.contents}][?]:\n${it.stackTraceToString()}")
         }
     }

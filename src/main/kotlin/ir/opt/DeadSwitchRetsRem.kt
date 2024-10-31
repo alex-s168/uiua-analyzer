@@ -3,7 +3,7 @@ package me.alex_s168.uiua.ir.opt
 import blitz.collections.gather
 import blitz.collections.hasLeast
 import blitz.collections.removeAtIndexes
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.debugVerify
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
@@ -13,7 +13,7 @@ val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
     val a = Analysis(block)
 
     block.instrs.toList().forEach { inst ->
-        if (!a.isPrim(inst, Prim.SWITCH))
+        if (!a.isPrim(inst, Prims.SWITCH))
             return@forEach
 
         val dests = a.origin(inst.args[1])!!.args
@@ -26,7 +26,7 @@ val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
         }
 
         val toRem = inst.outs.mapIndexedNotNull { index, it ->
-            if (a.usages(it).all { it != null && a.isPrim(it, Prim.Comp.SINK) }) {
+            if (a.usages(it).all { it != null && a.isPrim(it, Prims.Comp.SINK) }) {
                 index
             } else null
         }

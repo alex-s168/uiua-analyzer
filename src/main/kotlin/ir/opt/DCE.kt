@@ -1,6 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.dontCareOpsBeforePanic
 import me.alex_s168.uiua.ir.Analysis
@@ -16,7 +16,7 @@ val dce = Pass<Unit>("DCE") { block, _ ->
             block.instrs.clear()
             block.instrs.add(IrInstr(
                 block.rets.toMutableList(),
-                PrimitiveInstr(Prim.Comp.PANIC),
+                PrimitiveInstr(Prims.Comp.PANIC),
                 mutableListOf()
             ))
         }
@@ -33,7 +33,7 @@ val dce = Pass<Unit>("DCE") { block, _ ->
 
         block.instrs.add(IrInstr(
             block.rets.toMutableList(),
-            PrimitiveInstr(Prim.Comp.PANIC),
+            PrimitiveInstr(Prims.Comp.PANIC),
             mutableListOf()
         ))
     }

@@ -9,14 +9,14 @@ import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
-val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar, a, putBlock ->
+val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prims.REVERSE) { put, newVar, a, putBlock ->
     val arg = args[0]
 
     val operate = if (arg.type is BoxType) {
         val unboxed = newVar().copy(type = arg.type.of)
         put(IrInstr(
             mutableListOf(unboxed),
-            PrimitiveInstr(Prim.UN_BOX),
+            PrimitiveInstr(Prims.UN_BOX),
             mutableListOf(arg)
         ))
         unboxed
@@ -31,7 +31,7 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
     val len = newVar().copy(type = Types.size)
     put(IrInstr(
         mutableListOf(len),
-        PrimitiveInstr(Prim.LEN),
+        PrimitiveInstr(Prims.LEN),
         mutableListOf(operate),
     ))
 
@@ -39,7 +39,7 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
 
     put(IrInstr(
         mutableListOf(out),
-        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+        PrimitiveInstr(Prims.Comp.ARR_ALLOC),
         mutableListOf(shape)
     ))
 
@@ -54,14 +54,14 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
         val temp = newVar().copy(type = operateTy.of.makeVaOffIfArray())
         instrs += IrInstr(
             mutableListOf(temp),
-            PrimitiveInstr(Prim.Comp.ARR_LOAD),
+            PrimitiveInstr(Prims.Comp.ARR_LOAD),
             mutableListOf(operate, indec)
         )
 
         val revIdx = newVar().copy(type = Types.size)
         instrs += IrInstr(
             mutableListOf(revIdx),
-            PrimitiveInstr(Prim.SUB),
+            PrimitiveInstr(Prims.SUB),
             mutableListOf(idx, lenM1)
         )
 
@@ -69,7 +69,7 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
 
         instrs += IrInstr(
             mutableListOf(),
-            PrimitiveInstr(Prim.Comp.ARR_STORE),
+            PrimitiveInstr(Prims.Comp.ARR_STORE),
             mutableListOf(out, revIdcs, temp)
         )
 
@@ -88,13 +88,13 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prim.REVERSE) { put, newVar,
     val lenM1 = newVar().copy(type = Types.size)
     put(IrInstr(
         mutableListOf(lenM1),
-        PrimitiveInstr(Prim.SUB),
+        PrimitiveInstr(Prims.SUB),
         mutableListOf(one, len)
     ))
 
     put(IrInstr(
         mutableListOf(),
-        PrimitiveInstr(Prim.Comp.REPEAT),
+        PrimitiveInstr(Prims.Comp.REPEAT),
         mutableListOf(zero, len, blockFn, operate, out, lenM1)
     ))
 

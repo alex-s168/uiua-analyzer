@@ -31,7 +31,7 @@ fun depth(newVar: () -> IrVar, put: (IrInstr) -> Unit, ref: Map<String, IrBlock>
 
     put(IrInstr(
         rets.toMutableList(),
-        PrimitiveInstr(Prim.ROWS),
+        PrimitiveInstr(Prims.ROWS),
         (listOf(fn) + args).toMutableList()
     ))
 

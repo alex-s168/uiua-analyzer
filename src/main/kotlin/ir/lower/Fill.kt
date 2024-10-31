@@ -3,23 +3,24 @@ package me.alex_s168.uiua.ir.lower
 import blitz.Obj
 import blitz.collections.findCommon
 import me.alex_s168.uiua.FnType
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
 import me.alex_s168.uiua.ir.withoutParallel
+import me.alex_s168.uiua.log
 
 val lowerFill = Pass<Unit>("lower fill") { block, _ ->
     val a = Analysis(block)
 
     block.fillArg?.let {
-        println("added fill arg $it to ${block.name}")
+        log("added fill arg $it to ${block.name}")
         block.args.add(it)
     }
 
     block.instrs.toList().forEach { inst ->
-        if (a.isPrim(inst, Prim.FILL)) {
+        if (a.isPrim(inst, Prims.FILL)) {
             var idx = block.instrs.indexOf(inst)
             val calling = inst.args[1]
             val callingType = calling.type as FnType
@@ -28,7 +29,7 @@ val lowerFill = Pass<Unit>("lower fill") { block, _ ->
                 val fillv = block.newVar().copy(type = callingType.fillType!!)
                 block.instrs.add(idx ++, IrInstr(
                     mutableListOf(fillv),
-                    PrimitiveInstr(Prim.CALL),
+                    PrimitiveInstr(Prims.CALL),
                     mutableListOf(inst.args[0])
                 ))
                 listOf(fillv)
@@ -36,11 +37,11 @@ val lowerFill = Pass<Unit>("lower fill") { block, _ ->
 
             block.instrs[idx] = IrInstr(
                 inst.outs.toMutableList(),
-                PrimitiveInstr(Prim.CALL),
+                PrimitiveInstr(Prims.CALL),
                 (listOf(calling) + inst.args.drop(2) + fillv).toMutableList()
             )
         }
-        else if (a.isPrim(inst, Prim.SWITCH)) {
+        else if (a.isPrim(inst, Prims.SWITCH)) {
             val dests = a.origin(inst.args[1])!!.args
                 .map { it.type as FnType }
             val ft = dests.map { Obj.of(it.fillType) }.findCommon()

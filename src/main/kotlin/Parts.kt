@@ -103,15 +103,16 @@ data class Function(
 
 abstract class Instr
 
+// TODO: make smaller
 data class PrimitiveInstr(
-    var id: String,
+    var id: Prim,
     var loc: SpanRef? = null,
 
     val param: Int? = null,
     val typeParam: Type? = null,
 ): Instr() {
     override fun toString(): String =
-        "PrimitiveInstr($id:$param)"
+        "PrimitiveInstr(${Prims.all[id]}:$param)"
 }
 
 abstract class ImmInstr: Instr()

@@ -8,14 +8,14 @@ import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
-val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prim.RANGE) { put, newVar, a, putBlock ->
+val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prims.RANGE) { put, newVar, a, putBlock ->
     val arrTy = outs[0].type as ArrayType
 
     val shape = args.wrapInArgArray(newVar, put = put)
 
     put(IrInstr(
         outs,
-        PrimitiveInstr(Prim.Comp.ARR_ALLOC),
+        PrimitiveInstr(Prims.Comp.ARR_ALLOC),
         mutableListOf(shape)
     ))
 
@@ -31,7 +31,7 @@ val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prim.RANGE) { put, newVar, a, 
 
         instrs += IrInstr(
             mutableListOf(),
-            PrimitiveInstr(Prim.Comp.ARR_STORE),
+            PrimitiveInstr(Prims.Comp.ARR_STORE),
             mutableListOf(out, indecies, index)
         )
 
@@ -47,7 +47,7 @@ val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prim.RANGE) { put, newVar, a, 
 
     put(IrInstr(
         mutableListOf(),
-        PrimitiveInstr(Prim.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
+        PrimitiveInstr(Prims.Comp.REPEAT), // [start], [end], [fn which takes counter], [additional]...
         mutableListOf(zero, args[0], fnRef, outs[0])
     ))
 }.parallelWithoutDeepCopy()

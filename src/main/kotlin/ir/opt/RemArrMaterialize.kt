@@ -1,6 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
-import me.alex_s168.uiua.Prim
+import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.allPrim
 import me.alex_s168.uiua.ir.optAwayPass
@@ -8,7 +8,7 @@ import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 
 var remArrMat = optAwayPass(
     "opt away array materialize",
-    Prim.Comp.ARR_MATERIALIZE,
+    Prims.Comp.ARR_MATERIALIZE,
     { a ->
         a.usages(outs[0])
             .asIterable()
