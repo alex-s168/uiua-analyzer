@@ -213,7 +213,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
         val iterFnLoopFn = newVar().copy(type = iterFnLoop.type())
         instrs += IrInstr(
             mutableListOf(iterFnLoopFn),
-            PushFnRefInstr(iterFnLoop.name),
+            PushFnRefInstr(iterFnLoop.uid),
             mutableListOf()
         )
 

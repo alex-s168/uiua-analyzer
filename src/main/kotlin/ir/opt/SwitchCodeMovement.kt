@@ -25,7 +25,7 @@ fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>
 
     var dests = destRefList
         ?.args
-        ?.map { block.funDeclFor(it)!!.second }
+        ?.map { block.funDeclFor(it)!! }
         ?: return
 
     dests = dests.map { it.deepCopy().also(putBlock) }
@@ -34,7 +34,7 @@ fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>
         val v = block.newVar().copy(type = destRefList.args[i].type)
         block.instrs.add(block.instrs.indexOf(switch), IrInstr(
             mutableListOf(v),
-            PushFnRefInstr(it.name),
+            PushFnRefInstr(it.uid),
             mutableListOf()
         ))
         v
@@ -94,8 +94,6 @@ fun switchMove(a: Analysis, block: IrBlock, switch: IrInstr, move: List<IrInstr>
         additionalOuts.forEach {
             dest.rets += outsMap[it]!!
         }
-
-        Analysis(dest).updateFnType()
     }
 
     val swidx = block.instrs.indexOf(switch)

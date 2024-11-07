@@ -9,6 +9,12 @@ open class Type(
         name
 }
 
+fun Type.similar(other: Type) =
+    runCatching { combine(other) }.isSuccess
+
+fun Iterable<Type>.tyEq(other: Iterable<Type>) =
+    count() == other.count() && zip(other).all { (a, b) -> a.similar(b) }
+
 class NumericType(
     name: String
 ): Type(name)
@@ -22,6 +28,7 @@ data class BoxType(
 
 fun Type.combine(other: Type): Type =
     when (this) {
+        Types.bool -> other
         Types.byte -> other
         Types.int -> when (other) {
             Types.byte,
@@ -36,7 +43,25 @@ fun Type.combine(other: Type): Type =
         }
         Types.size -> Types.size
         is ArrayType -> {
-            this.combineShape(other as ArrayType)
+            if (this.length == 1 && other is BoxType)
+                this.of.combine(other.of)
+            else
+                this.combineShape(other as ArrayType)
+        }
+        is BoxType -> {
+            Types.box(if (other is ArrayType && other.length == 1)
+                this.of.combine(other.of)
+            else this.of.combine((other as BoxType).of))
+        }
+        Types.dynamic -> this
+        // only for verifier:
+        is FnType -> {
+            other as FnType
+            copy(
+                fillType = other.fillType?.let { fillType?.combine(it) ?: it } ?: fillType,
+                args = other.args.zip(args).map { (a,b) -> a.combine(b) },
+                rets = other.args.zip(args).map { (a,b) -> a.combine(b) },
+            )
         }
         else -> error("")
     }
@@ -50,9 +75,8 @@ open class ArrayType(
         val sha = mutableListOf<Int>()
         var curr: Type = this
         while (curr is ArrayType) {
-            val currArr = curr as ArrayType
-            sha += currArr.length ?: -1
-            curr = currArr.of
+            sha += curr.length ?: -1
+            curr = curr.of
         }
         sha
     }
@@ -91,7 +115,7 @@ open class ArrayType(
         shape.zip(other.shape).map { (a, b) ->
             if (a == b) a
             else -1
-        }.shapeToArrType(inner)
+        }.shapeToArrType(inner.combine(other.inner))
 
     override fun toString(): String =
         "arr[$of]${length ?: "?"}" + if (vaOff) "vaoff" else ""

@@ -127,7 +127,7 @@ val lowerReduce = lowerPrimPass<(IrBlock) -> Unit>(Prims.REDUCE) { put, newVar, 
     val iterFnRef = newVar().copy(type = iterFn.type())
     put(IrInstr(
         mutableListOf(iterFnRef),
-        PushFnRefInstr(iterFn.name),
+        PushFnRefInstr(iterFn.uid),
         mutableListOf(),
     ))
 

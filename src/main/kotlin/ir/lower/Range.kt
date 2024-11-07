@@ -10,6 +10,8 @@ import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
 val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prims.RANGE) { put, newVar, a, putBlock ->
     val arrTy = outs[0].type as ArrayType
+    if (arrTy.of is ArrayType)
+        TODO("multi-dimentional range not yet supported")
 
     val shape = args.wrapInArgArray(newVar, put = put)
 
@@ -41,7 +43,7 @@ val lowerRange = lowerPrimPass<(IrBlock) -> Unit>(Prims.RANGE) { put, newVar, a,
     val fnRef = newVar().copy(type = fn.type())
     put(IrInstr(
         mutableListOf(fnRef),
-        PushFnRefInstr(fn.name),
+        PushFnRefInstr(fn.uid),
         mutableListOf()
     ))
 

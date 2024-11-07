@@ -56,7 +56,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             val fnref = newVar().copy(type = loopBody.type())
             put(IrInstr(
                 mutableListOf(fnref),
-                PushFnRefInstr(loopBody.name),
+                PushFnRefInstr(loopBody.uid),
                 mutableListOf()
             ))
 

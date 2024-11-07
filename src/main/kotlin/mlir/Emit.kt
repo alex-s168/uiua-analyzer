@@ -2,7 +2,9 @@ package me.alex_s168.uiua.mlir
 
 import blitz.collections.contents
 import blitz.collections.mapToArray
+import blitz.mapB
 import me.alex_s168.uiua.*
+import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
@@ -66,10 +68,11 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
     fun genCall(dests: List<IrVar>, fn: IrVar, argsIn: List<IrVar>): List<String> {
         val ty = fn.type as FnType
 
+        require(ty.args.size == argsIn.size)
         val args = argsIn.zip(ty.args)
             .map { (it, want) -> castIfNec(::newVar, body, it, want) }
 
-        (funDeclFor(fn)?.second ?: knowFns[fn])?.let { block ->
+        (funDeclFor(fn) ?: knowFns[fn])?.let { block ->
             return genCall(dests, block, args)
         }
 
@@ -81,8 +84,11 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
         ))
     }
 
+    val analysis = Analysis(this)
+    val cache = CallerInstrsCache()
+
     fun argArr(argArray: IrVar): List<IrVar> =
-        instrDeclFor(argArray)!!.args
+        analysis.argArr(argArray, cache::get)?.b!!
 
     fun cmp(instr: IrInstr, s: String, u: String) {
         val out = instr.outs[0]
@@ -161,7 +167,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                 is PushFnRefInstr -> {
                     knowFns[instr.outs[0]] = ref[instr.instr.fn]
                         ?: error("sym ${instr.instr.fn} not found")
-                    val fn = instr.instr.fn.legalizeMLIR()
+                    val fn = ref[instr.instr.fn]!!.name.legalizeMLIR()
                     body += Inst.funcConstant(
                         dest = instr.outs[0].asMLIR(),
                         fn = "@$fn",
@@ -197,17 +203,19 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         cmp(instr, "eq", "eq")
                     }
 
-                    Prims.MAX -> {
+                    Prims.MAX,
+                    Prims.MIN -> {
                         val out = instr.outs[0]
                         val outTy = out.type
                         val a = castIfNec(::newVar, body, instr.args[0], outTy).asMLIR()
                         val b = castIfNec(::newVar, body, instr.args[1], outTy).asMLIR()
 
+                        val str = if (instr.instr.id == Prims.MAX) "max" else "min"
                         body += when (outTy) {
-                            Types.double -> "${out.asMLIR()} = arith.maxnumf $a, $b : f64"
-                            Types.int -> "${out.asMLIR()} = arith.maxsi $a, $b : i64"
-                            Types.byte -> "${out.asMLIR()} = arith.maxui $a, $b : i8"
-                            Types.size -> "${out.asMLIR()} = arith.maxui $a, $b : index"
+                            Types.double -> "${out.asMLIR()} = arith.${str}numf $a, $b : f64"
+                            Types.int -> "${out.asMLIR()} = arith.${str}si $a, $b : i64"
+                            Types.byte -> "${out.asMLIR()} = arith.${str}ui $a, $b : i8"
+                            Types.size -> "${out.asMLIR()} = arith.${str}ui $a, $b : index"
                             else -> error("")
                         }
                     }
@@ -522,7 +530,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                             dests = listOf(),
                             UARuntime.panic.name,
                             UARuntime.panic.type.toMLIR(),
-                            vspan, idBlock, idInst
+                            span, idBlock, idInst
                         )
 
                         instr.outs.forEach {
@@ -552,8 +560,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     }
 
                     Prims.Comp.RESHAPE_VIEW -> {
-                        val sha = argArr(instr.args[0])
-                            .map { castIfNec(::newVar, body, it, Types.size) }
+                        val sha = analysis.argArr(instr.args[0], cache::get)!!
+                            .mapB { it.map { castIfNec(::newVar, body, it, Types.size) } }
+                            .insideFlatMap(Any::toString, IrVar::asMLIR)
 
                         val arr = instr.args[1]
                         val arrTy = arr.type as ArrayType

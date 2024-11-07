@@ -5,7 +5,7 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
-fun depth(newVar: () -> IrVar, put: (IrInstr) -> Unit, ref: Map<String, IrBlock>, putBlock: (IrBlock) -> Unit, depth: Int, args: List<IrVar>, blockBuilder: (newVar: () -> IrVar, put: (IrInstr) -> Unit, args: List<IrVar>) -> List<IrVar>): List<IrVar> {
+fun depth(newVar: () -> IrVar, put: (IrInstr) -> Unit, ref: Map<BlockId, IrBlock>, putBlock: (IrBlock) -> Unit, depth: Int, args: List<IrVar>, blockBuilder: (newVar: () -> IrVar, put: (IrInstr) -> Unit, args: List<IrVar>) -> List<IrVar>): List<IrVar> {
     if (depth == 0)
         return blockBuilder(newVar, put, args)
 
@@ -22,7 +22,7 @@ fun depth(newVar: () -> IrVar, put: (IrInstr) -> Unit, ref: Map<String, IrBlock>
     val fn = newVar().copy(type = block.type())
     put(IrInstr(
         mutableListOf(fn),
-        PushFnRefInstr(block.name),
+        PushFnRefInstr(block.uid),
         mutableListOf()
     ))
 

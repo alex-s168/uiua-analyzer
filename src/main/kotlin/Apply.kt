@@ -6,7 +6,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
-fun List<AnyPass>.apply(blocks: MutableMap<String, IrBlock>) {
+fun List<AnyPass>.apply(blocks: MutableMap<BlockId, IrBlock>) {
     forEach {
         log("pass \"${it.name}\" started")
 
@@ -66,8 +66,8 @@ fun List<AnyPass>.apply(blocks: MutableMap<String, IrBlock>) {
                             throw it
                         }
                         flush.forEach {
-                            val old = blocks[it.name]!!
-                            assert(it.name == old.name)
+                            val old = blocks[it.uid]!!
+                            assert(it.uid == old.uid)
                             old.loadFrom(it)
                         }
                         new.forEach(blocks::putBlock)

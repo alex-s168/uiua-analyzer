@@ -101,7 +101,9 @@ data class Function(
         "Function($signature) { ${children.joinToString()} }"
 }
 
-abstract class Instr
+abstract class Instr {
+    abstract fun clone(): Instr
+}
 
 // TODO: make smaller
 data class PrimitiveInstr(
@@ -113,6 +115,9 @@ data class PrimitiveInstr(
 ): Instr() {
     override fun toString(): String =
         "PrimitiveInstr(${Prims.all[id]}:$param)"
+
+    override fun clone(): Instr =
+        this.copy()
 }
 
 abstract class ImmInstr: Instr()
@@ -120,11 +125,17 @@ abstract class ImmInstr: Instr()
 data class ArrImmInstr(
     val type: ArrayType,
     val values: Either<List<Int>, List<Double>>
-): ImmInstr()
+): ImmInstr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class NumImmInstr(
     val value: Double,
-): ImmInstr()
+): ImmInstr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class PushFnInstr(
     val fn: Function
@@ -148,35 +159,61 @@ data class PushFnInstr(
             ))
         }
     }
+
+    override fun clone(): Instr =
+        this.copy()
 }
 
+typealias BlockId = Int
+
 data class PushFnRefInstr(
-    var fn: String
-): ImmInstr()
+    var fn: BlockId
+): ImmInstr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class CopyTempStackInstr(
     val stack: String,
     val count: Int,
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class PushTempStackInstr(
     val stack: String,
     val count: Int,
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class PopTempStackInstr(
     val stack: String,
     val count: Int,
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class CommentInstr(
     val comment: String
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class FlagInstr(
     val flag: String
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}
 
 data class SourceLocInstr(
     val uasmSpanIdc: List<Int>,
-): Instr()
+): Instr() {
+    override fun clone(): Instr =
+        this.copy()
+}

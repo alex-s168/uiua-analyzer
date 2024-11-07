@@ -3,7 +3,7 @@ package me.alex_s168.uiua.ir
 import blitz.collections.contents
 import me.alex_s168.uiua.*
 
-private var nextBlockId = 0
+private var nextBlockId: BlockId = 0
 private var nextGVarId: ULong = 0u
 
 enum class Lifetime {
@@ -20,7 +20,7 @@ enum class Lifetime {
 
 data class IrBlock(
     var name: String,
-    var ref: Map<String, IrBlock>,
+    var ref: Map<BlockId, IrBlock>,
     var instrs: MutableList<IrInstr> = mutableListOf(),
     var flags: MutableList<String> = mutableListOf(),
     var args: MutableList<IrVar> = mutableListOf(),
@@ -28,7 +28,7 @@ data class IrBlock(
     var fillArg: IrVar? = null,
     var private: Boolean = true,
 ) {
-    var uid = nextBlockId ++
+    var uid: BlockId = nextBlockId ++
 
     val lifetimes = mutableMapOf<IrVar, Lifetime>()
 
@@ -55,7 +55,7 @@ data class IrBlock(
         rets.updateVar(old, new)
         instrs.forEach {
             it.updateVar(old, new)
-            if (it.instr is PrimitiveInstr && it.instr.id == Prims.Comp.ARG_ARR && new in it.args) {
+            if (it.instr is PrimitiveInstr && it.instr.id == Prims.Comp.ARG_ARR && new in it.args && it.outs[0] != new) {
                 updateVar(it.outs[0], it.outs[0].copy(type = Types.array(it.args[0].type, it.args.size)))
             }
         }
@@ -66,10 +66,10 @@ data class IrBlock(
     fun instrDeclFor(variable: IrVar): IrInstr? =
         instrs.find { variable in it.outs }
 
-    fun funDeclFor(v: IrVar): Pair<String, IrBlock>? {
+    fun funDeclFor(v: IrVar): IrBlock? {
         val fn = instrDeclFor(v)?.instr as? PushFnRefInstr
         return fn?.let { a ->
-            ref[a.fn]?.let { a.fn to it }
+            ref[a.fn]
         }
     }
 
@@ -126,14 +126,13 @@ data class IrBlock(
         inTypes: List<Type>,
         putFn: (IrBlock) -> Unit,
         fillType: Type? = null
-    ): String {
+    ): BlockId {
         require(inTypes.size == args.size) {
             "${inTypes.size} vs ${args.size}"
         }
 
         return runCatching {
             val newName = "${name}_\$_${fillType?.toString() ?: ""}_${inTypes.joinToString(separator = "_")}"
-            if (ref[newName] != null) return newName
 
             val new = IrBlock(
                 newName,
@@ -161,7 +160,7 @@ data class IrBlock(
 
             putFn(new)
 
-            newName
+            new.uid
         }.getOrElse {
             log(this.toString())
             error("While trying to expand function \"$name\" as func${fillType?.let { "[$it]" } ?: ""}[${inTypes.contents}][?]:\n${it.stackTraceToString()}")

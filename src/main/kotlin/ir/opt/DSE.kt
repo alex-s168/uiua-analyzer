@@ -1,11 +1,12 @@
 package me.alex_s168.uiua.ir.opt
 
 import blitz.collections.contents
+import me.alex_s168.uiua.BlockId
 import me.alex_s168.uiua.PushFnRefInstr
 import me.alex_s168.uiua.ir.GlobalPass
 import me.alex_s168.uiua.ir.IrBlock
 
-private fun findBlocks(block: IrBlock, blocks: MutableMap<String, IrBlock>, dest: MutableList<IrBlock>) {
+private fun findBlocks(block: IrBlock, blocks: MutableMap<BlockId, IrBlock>, dest: MutableList<IrBlock>) {
     if (block in dest) return
     dest.add(block)
 
@@ -17,7 +18,7 @@ private fun findBlocks(block: IrBlock, blocks: MutableMap<String, IrBlock>, dest
     }
 }
 
-val dse = GlobalPass("dead symbol elimination") { blocks: MutableMap<String, IrBlock>, roots: List<String> ->
+val dse = GlobalPass("dead symbol elimination") { blocks: MutableMap<BlockId, IrBlock>, roots: List<BlockId> ->
     val relevantBlocks = mutableListOf<IrBlock>()
 
     roots.forEach {

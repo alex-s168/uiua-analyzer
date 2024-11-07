@@ -4,7 +4,7 @@ import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.ir.*
 
-data class ArgLifetimeAnalysis(
+private data class ArgLifetimeAnalysis(
     val visited: MutableList<IrBlock>
 )
 
@@ -13,9 +13,9 @@ private fun IrBlock.updateArgLifetimes(ctx: ArgLifetimeAnalysis) {
 
     ctx.visited += this
     a.variables().forEach { arg ->
+        lifetimes[arg] = Lifetime.LOCAL
         a.usages(arg).filterNotNull().forEach { usage ->
             if (usage.instr is PrimitiveInstr) {
-                lifetimes[arg] = Lifetime.LOCAL
                 when (usage.instr.id) {
                     Prims.CALL -> {
                         lifetimes[arg] = a.function(usage.args[0])?.let {

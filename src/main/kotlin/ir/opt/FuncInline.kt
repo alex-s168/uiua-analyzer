@@ -10,7 +10,7 @@ val funcInline = Pass<Unit>("Inline") { block, _ ->
 
     block.instrs.toList().forEach { instr ->
         if (a.isPrim(instr, Prims.CALL)) {
-            block.funDeclFor(instr.args[0])?.let { (_, called) ->
+            block.funDeclFor(instr.args[0])?.let { called ->
                 if (called.shouldInline()) {
                     val inlined = called.inlinableCopy(instr.args.drop(1), instr.outs.toList(), block.fillArg)
                     val idx = block.instrs.indexOf(instr)

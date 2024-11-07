@@ -81,7 +81,7 @@ val lowerReverse = lowerPrimPass<(IrBlock) -> Unit>(Prims.REVERSE) { put, newVar
     val blockFn = newVar().copy(type = block.type())
     put(IrInstr(
         mutableListOf(blockFn),
-        PushFnRefInstr(block.name),
+        PushFnRefInstr(block.uid),
         mutableListOf()
     ))
 

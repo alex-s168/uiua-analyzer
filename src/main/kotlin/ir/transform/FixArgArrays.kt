@@ -13,7 +13,7 @@ private fun genFor(prim: Prim, argIdx: Int) =
         "arg arr fix for ${Prims.all[prim]}",
         prim,
         { a ->
-            !a.isPrim(a.origin(args[argIdx])!!, Prims.Comp.ARG_ARR)
+            a.origin(args[argIdx])?.let { !a.isPrim(it, Prims.Comp.ARG_ARR) } ?: false
         },
         { put, newVar, a ->
             val sha = args[argIdx]

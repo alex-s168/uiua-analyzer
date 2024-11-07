@@ -2,14 +2,11 @@ package me.alex_s168.uiua.ir.lower
 
 import blitz.Obj
 import blitz.collections.findCommon
-import me.alex_s168.uiua.FnType
-import me.alex_s168.uiua.Prims
-import me.alex_s168.uiua.PrimitiveInstr
+import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.Pass
 import me.alex_s168.uiua.ir.withoutParallel
-import me.alex_s168.uiua.log
 
 val lowerFill = Pass<Unit>("lower fill") { block, _ ->
     val a = Analysis(block)
@@ -80,5 +77,10 @@ val lowerFill = Pass<Unit>("lower fill") { block, _ ->
 }.withoutParallel()
 
 val fixFnTypes = Pass<Unit>("fix fn types") { block, _ ->
-    Analysis(block).updateFnType()
+    block.instrs.forEach {
+        if (it.instr is PushFnRefInstr) {
+            val new = it.outs[0].copy(type = block.ref[it.instr.fn]!!.type())
+            block.updateVar(it.outs[0], new)
+        }
+    }
 }.withoutParallel()

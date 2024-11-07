@@ -42,7 +42,6 @@ val deadRetsRem = Pass<Unit>("dead rets rem") { block, _ ->
 
         dests.forEach {
             it.rets = it.rets.removeAtIndexes(toRem)
-            Analysis(it).updateFnType()
         }
     }
 }.parallelWithoutDeepCopy()

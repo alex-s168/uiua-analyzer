@@ -9,7 +9,7 @@ import me.alex_s168.uiua.ir.lowerPrimPass
 private fun lowerEachRec(
     newVar: () -> IrVar,
     fill: IrVar?,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
     inputs: List<IrVar>,
@@ -50,7 +50,7 @@ private fun lowerEachRec(
     val blockFn = newVar().copy(type = block.type())
     put(IrInstr(
         mutableListOf(blockFn),
-        PushFnRefInstr(block.name),
+        PushFnRefInstr(block.uid),
         mutableListOf()
     ))
 

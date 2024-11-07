@@ -8,7 +8,7 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.Function
 import me.alex_s168.uiua.ast.*
 
-fun List<AstNode>.toIr(block: IrBlock, putAnonFn: (Function) -> String, blockArgs: List<IrVar>, instrs: MutableList<IrInstr>, newVar: Provider<IrVar>): List<IrVar> {
+fun List<AstNode>.toIr(block: IrBlock, putAnonFn: (Function) -> BlockId, blockArgs: List<IrVar>, instrs: MutableList<IrInstr>, newVar: Provider<IrVar>): List<IrVar> {
     val vars = List(size) { newVar() }
 
     forEachIndexed { index, node ->
@@ -78,7 +78,7 @@ fun List<AstNode>.toIr(block: IrBlock, putAnonFn: (Function) -> String, blockArg
 }
 
 fun Function.toIr(
-    getFn: Map<String, IrBlock>,
+    getFn: Map<BlockId, IrBlock>,
     putFn: (IrBlock) -> Unit,
     name: String,
     astDest: MutableList<ASTRoot>
@@ -116,7 +116,7 @@ fun Function.toIr(
 }
 
 fun ASTRoot.toIr(
-    getFn: Map<String, IrBlock>,
+    getFn: Map<BlockId, IrBlock>,
     putFn: (IrBlock) -> Unit,
     name: String,
     astDest: MutableList<ASTRoot>
@@ -136,10 +136,9 @@ fun ASTRoot.toIr(
 
     val tbCorr = mutableListOf<Triple<AstNode, Int, IrVar>>()
     block.rets.addAll(0, children.toIr(block, {
-        anonFnName().also { name ->
-            it.value = Either.ofA(name)
-            putFn(it.toIr(getFn, putFn, name, astDest))
-        }
+        val name = anonFnName()
+        it.value = Either.ofA(name)
+        it.toIr(getFn, putFn, name, astDest).also(putFn).uid
     }, block.args, block.instrs, block::newVar))
 
     tbCorr.forEach { (no, outIdx, variable) ->
@@ -149,8 +148,8 @@ fun ASTRoot.toIr(
     return block
 }
 
-fun Map<String, Function>.toIr(astDest: MutableList<ASTRoot>): MutableMap<String, IrBlock> {
-    val new = mutableMapOf<String, IrBlock>()
+fun Map<String, Function>.toIr(astDest: MutableList<ASTRoot>): MutableMap<BlockId, IrBlock> {
+    val new = mutableMapOf<BlockId, IrBlock>()
 
     forEach { (k, v) ->
         new.putBlock(v.toIr(new, new::putBlock, k, astDest))

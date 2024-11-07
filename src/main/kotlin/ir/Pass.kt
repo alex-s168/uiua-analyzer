@@ -39,10 +39,10 @@ sealed interface AnyPass {
 
 data class GlobalPass<A>(
     override val name: String,
-    val internalRun: (MutableMap<String, IrBlock>, A) -> Unit
+    val internalRun: (MutableMap<BlockId, IrBlock>, A) -> Unit
 ): AnyPass
 
-fun <A> GlobalPass<A>.run(map: MutableMap<String, IrBlock>, arg: A) {
+fun <A> GlobalPass<A>.run(map: MutableMap<BlockId, IrBlock>, arg: A) {
     kotlin.runCatching {
         internalRun(map, arg)
     }.onFailure {
@@ -102,6 +102,23 @@ fun analysisPass(name: String, run: (IrBlock, Analysis) -> Unit) =
     Pass<Unit>(name) { it, _ ->
         val a = Analysis(it)
         run(it, a)
+        a.finish(name)
+    }
+
+fun genericEachInstrPass(name: String, run: IrInstr.(IrBlock, Analysis) -> Unit) =
+    Pass<Unit>(name) { blk, _ ->
+        val a = Analysis(blk)
+        blk.instrs.toList().forEach { it.run(blk, a) }
+        a.finish(name)
+    }
+
+fun genericEachPrimPass(name: String, prim: Prim, run: IrInstr.(IrBlock, Analysis) -> Unit) =
+    Pass<Unit>(name) { blk, _ ->
+        val a = Analysis(blk)
+        blk.instrs.toList().forEach {
+            if (a.isPrim(it, prim))
+                it.run(blk, a)
+        }
         a.finish(name)
     }
 

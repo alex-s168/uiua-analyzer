@@ -1,11 +1,11 @@
 package me.alex_s168.uiua.ir
 
-import blitz.Either
+import blitz.*
 import blitz.collections.RefVec
 import blitz.collections.caching
 import blitz.collections.contents
-import blitz.unreachable
 import me.alex_s168.uiua.*
+import me.alex_s168.uiua.ir.transform.constant
 
 interface VarRef {
     fun get(): IrVar
@@ -24,7 +24,7 @@ interface VarRef {
     }
 }
 
-fun List<VarRef>.filterCertainlyCalling(srcBlock: IrBlock, what: String) =
+fun List<VarRef>.filterCertainlyCalling(srcBlock: IrBlock, what: BlockId) =
     filter { srcBlock.instrDeclFor(it.get())
         ?.let { it.instr is PushFnRefInstr && it.instr.fn == what } == true }
 
@@ -41,20 +41,26 @@ class Analysis(val block: IrBlock) {
             .all(::isEmpty)
 
     fun variables() =
-        block.instrs.flatMap { it.outs } + block.args
+        block.instrs.asSequence().flatMap { it.outs } + block.args
 
     fun origin(v: IrVar): IrInstr? =
         block.instrDeclFor(v)
 
-    fun function(v: IrVar): IrBlock? =
-        block.funDeclFor(v)?.second
+    fun function(
+        v: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): IrBlock? =
+        deepOriginV2(v, callerInstrsWrap)
+            ?.a?.second
+            ?.instr?.cast<PushFnRefInstr>()
+            ?.fn?.let(block.ref::get)
 
     fun callers() =
         this.block.ref.values
             .asSequence()
             .filter { v ->
                 v.instrs.any {
-                    it.instr is PushFnRefInstr && it.instr.fn == this.block.name
+                    it.instr is PushFnRefInstr && it.instr.fn == this.block.uid
                 }
             }
 
@@ -147,7 +153,7 @@ class Analysis(val block: IrBlock) {
                 b.instrs.asSequence()
                     .filter { inst ->
                         inst.instr is PushFnRefInstr
-                                && inst.instr.fn == this.block.name
+                                && inst.instr.fn == this.block.uid
                     }
                     .flatMap {
                         ba.trace(it.outs[0], bcall)
@@ -214,22 +220,17 @@ class Analysis(val block: IrBlock) {
                 }
 
                 else if (isPrim(instr, Prims.Comp.REPEAT) && idx != 0) { // can't trace counter
-                    a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it } // +3 -1  (-1 bc takes counter)
+                    a.deepOriginV2(instr.arg(idx + 2), callerInstrsWrap)?.let { return it } // +3 -1  (-1 bc takes counter)
                 }
 
                 else if (isPrim(instr, Prims.FILL)) {
-                    a.deepOriginV2(instr.args[idx + 2], callerInstrsWrap)?.let { return it }
+                    a.deepOriginV2(instr.arg(idx + 2), callerInstrsWrap)?.let { return it }
                 }
             }
         }
 
         return null
     }
-
-    // TODO: GET RID OF THIS ASAP
-    @Deprecated("does not handle all cases", replaceWith = ReplaceWith("deepOriginV2"))
-    fun deepOrigin(v: IrVar): Pair<IrBlock, IrInstr>? =
-        deepOriginV2(v)?.a
 
     // TODO: is trace useless?
 
@@ -282,9 +283,32 @@ class Analysis(val block: IrBlock) {
     fun rename(from: IrVar, to: IrVar) =
         block.updateVar(from, to)
 
-    inline fun <R> transform(
+    fun <R> modify(
+        first: IrInstr,
+        run: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar) -> R
+    ): R {
+        val pre = block.instrs.toMutableList()
+
+        var idx = block.instrs.indexOf(first)
+
+        val res = runCatching {
+            run(first, { block.instrs.add(idx++, it) }, block::newVar)
+        }.onFailure { err ->
+            log("in transform starting at ${first}:")
+            block.instrs.clear()
+            block.instrs.addAll(pre)
+            log("(restored pre transform state; indecies in further error messages might be off)")
+            throw err
+        }.getOrThrow()
+
+        added.addAll(block.instrs - pre)
+        removed.addAll(pre - block.instrs)
+        return res
+    }
+
+    fun <R> transform(
         onIn: List<IrInstr>,
-        crossinline each: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar) -> R
+        each: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar) -> R
     ): List<R> {
         val pre = block.instrs.toMutableList()
         val on = if (onIn === block.instrs) onIn.toList() else onIn
@@ -362,24 +386,6 @@ class Analysis(val block: IrBlock) {
         inRange.removeIf(::isPure)
         inRange.removeAll(instrs)
         return inRange.isEmpty()
-    }
-
-    fun fnRefs() =
-        this.block.ref.values
-            .asSequence()
-            .flatMap { blk ->
-                blk.instrs
-                    .asSequence()
-                    .filter { it.instr is PushFnRefInstr && it.instr.fn == this.block.name }
-                    .map { blk to it }
-            }
-
-    fun updateFnType() {
-        fnRefs().forEach { (blk, instr) ->
-            val old = instr.outs[0]
-            val new = old.copy(type = this.block.type())
-            blk.updateVar(old, new)
-        }
     }
 
     fun allRelatedInstrs(variable: IrVar, after: IrInstr, dest: RefVec<IrInstr> = RefVec()): RefVec<IrInstr> {
@@ -462,6 +468,42 @@ class Analysis(val block: IrBlock) {
         }
     }
 
+    fun argArr(
+        arr: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): Either<List<Double>, List<IrVar>>? =
+        deepOriginV2(arr, callerInstrsWrap)?.a?.second
+            ?.let {
+                if (isPrim(it, Prims.Comp.ARR_MATERIALIZE))
+                    argArr(it.args[0], callerInstrsWrap)
+                else if (it.instr is ArrImmInstr)
+                    it.instr.values
+                        .mapA { it.map(Int::toDouble) }
+                        .flatten()
+                        .let { Either.ofA(it) }
+                else if (isPrim(it, Prims.Comp.ARG_ARR))
+                    Either.ofB(it.args)
+                else null
+            }
+
+    fun argArrAsConsts(
+        arr: IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): List<Double>? =
+        argArr(arr, callerInstrsWrap)
+            ?.mapBOrNull { it.mapOrNull { deepOriginV2(it, callerInstrsWrap)?.b }?.fastToMutableList() }
+            ?.flatten()
+
+    fun argArrAsVars(
+        arr: IrVar,
+        put: (IrInstr) -> Unit,
+        newVar: () -> IrVar,
+        callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
+    ): List<IrVar>? =
+        argArr(arr, callerInstrsWrap)
+            ?.mapA { it.map { constant(it, newVar = newVar, put = put) } }
+            ?.flatten()
+
     fun isConstant(instr: IrInstr) =
         when (instr.instr) {
             is PushFnRefInstr,
@@ -488,6 +530,7 @@ class Analysis(val block: IrBlock) {
             Prims.Comp.ARR_STORE to 1,
             Prims.Comp.ARR_LOAD to 1,
             Prims.RESHAPE to 0,
+            Prims.Comp.RESHAPE_VIEW to 0,
         )
 
         val pervasive = arrayOf(
@@ -506,6 +549,8 @@ class Analysis(val block: IrBlock) {
             Prims.FLOOR,
             Prims.CEIL,
             Prims.ROUND,
+            Prims.MAX,
+            Prims.MIN,
         )
 
         val independentOfArrayData = arrayOf(

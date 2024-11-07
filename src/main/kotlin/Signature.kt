@@ -29,6 +29,8 @@ internal fun signature(
         Prims.POW -> Signature(2, 1)
         Prims.EQ -> Signature(2, 1)
         Prims.MOD -> Signature(2, 1)
+        Prims.MAX -> Signature(2, 1)
+        Prims.MIN -> Signature(2, 1)
         Prims.ABS -> Signature(1, 1)
         Prims.SIN -> Signature(1, 1)
         Prims.NEG -> Signature(1, 1)

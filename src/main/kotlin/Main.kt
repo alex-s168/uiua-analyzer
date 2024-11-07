@@ -1,7 +1,10 @@
 package me.alex_s168.uiua
 
+import blitz.Either
 import blitz.collections.*
+import blitz.flatten
 import blitz.parse.comb2.ParseResult
+import blitz.then
 import me.alex_s168.uiua.ast.ASTRoot
 import me.alex_s168.uiua.ast.genGraph
 import me.alex_s168.uiua.ir.*
@@ -43,6 +46,8 @@ class CallerInstrsCache(initCap: Int = 0) {
         }
 }
 
+// TODO: move to blitz
+
 fun <T, C: Vec<T>> Sequence<T>.toVec(dest: C): C {
     forEach { dest.pushBack(it) }
     return dest
@@ -52,6 +57,57 @@ fun <T> Sequence<T>.toVec() = toVec(RefVec())
 
 fun <T> Vec<T>.fastToMutableList() =
     MutableList(this.size) { this[it] }
+
+fun <T, R: Any> Iterable<T>.mapOrNull(fn: (T) -> R?): RefVec<R>? {
+    val out = RefVec<R>()
+    forEach {
+        val v = fn(it)
+        if (v == null)
+            return null
+        out.pushBack(v)
+    }
+    return out
+}
+
+fun <A: Any, B: Any, RA: Any> Either<A, B>.mapAOrNull(fn: (A) -> RA?): Either<RA, B>? {
+    if (a != null) {
+        val v = fn(a!!) ?: return null
+        return Either.ofA(v)
+    }
+    return Either.ofB(b!!)
+}
+
+fun <A: Any, B: Any, RB: Any> Either<A, B>.mapBOrNull(fn: (B) -> RB?): Either<A, RB>? {
+    if (b != null) {
+        val v = fn(b!!) ?: return null
+        return Either.ofB(v)
+    }
+    return Either.ofA(a!!)
+}
+
+fun <A: Any, B: Any, CA: Collection<A>, CB: Collection<B>> Either<CA, CB>.inside(): RefVec<Either<A, B>> =
+    RefVec<Either<A, B>>(flatten().size).also { r ->
+        this.then(
+            { it.forEach { r.pushBack(Either.ofA(it)) } },
+            { it.forEach { r.pushBack(Either.ofB(it)) } },
+        )
+    }
+
+fun <A: Any, B: Any, CA: Collection<A>, CB: Collection<B>, R> Either<CA, CB>.insideFlatMap(fnA: (A) -> R, fnB: (B) -> R): RefVec<R> =
+    RefVec<R>(flatten().size).also { r ->
+        this.then(
+            { it.forEach { r.pushBack(fnA(it)) } },
+            { it.forEach { r.pushBack(fnB(it)) } },
+        )
+    }
+
+fun <A: C, B: C, CA: Collection<A>, CB: Collection<B>, C: Any> Either<CA, CB>.insideFlatten(): RefVec<C> =
+    RefVec<C>(flatten().size).also { r ->
+        this.then(
+            { it.forEach { r.pushBack(it) } },
+            { it.forEach { r.pushBack(it) } },
+        )
+    }
 
 object Inline {
     val all = { block: IrBlock -> true }
@@ -76,7 +132,7 @@ var log = { str: String ->
 
 val inlineConfig = Inline.none
 val unfilledLoadBoundsCheck = false
-val fullUnrollLoop = UnrollLoop.sumLte(16)
+val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
 val mlirComments = true
 val dontCareOpsBeforePanic = true
@@ -95,10 +151,12 @@ class ConcurrentLogger(private val dest: Writer) {
         } else {
             logwrlock.withLock {
                 logwrcache.get()?.let {
-                    dest.appendLine(it)
+                    if (it != "null")
+                        dest.appendLine(it)
                     logwrcache.set(null)
                 }
-                dest.appendLine(txt)
+                if (txt != "null")
+                    dest.appendLine(txt)
             }
         }
     }
@@ -120,7 +178,7 @@ fun main() {
 
         val old = blocks.keys.toList()
         val exported = listOf(
-            blocks["fn"]!!.expandFor(
+            blocks.find("fn")!!.expandFor(
                 listOf(
                     //Types.array(Types.array(Types.int)),
                 ), blocks::putBlock
@@ -168,6 +226,7 @@ fun main() {
             lowerPervasive.generic(),
             lowerUnShape.generic(),
             lowerReshape.generic(),
+            lowerDeshape.generic(),
             lowerEach.generic(),
             lowerTable.generic(),
             lowerRows.generic(),
@@ -186,10 +245,10 @@ fun main() {
             lowerBoxStore.generic(),
             lowerBoxCreate.generic(),
             lowerBoxDestroy.generic(),
-            lowerDeshape.generic(),
 
             fixArgArrays.generic(),
             inlineCUse.generic(),
+
             lifetimes.generic(),
             remClone.generic(),
 
@@ -202,27 +261,35 @@ fun main() {
             remArrMat.generic(),
             lowerMaterialize.generic(),
 
+            lowerFill.generic(),
+            fixFnTypes.generic(),
+
+            //globalPrint.setArg { File(".preVerify.uac").printWriter().use(it) }.generic(),
+            //verifyBlock.generic(),
+
             fixArgArrays.generic(),
             inlineCUse.generic(),
             unrollLoop.generic(),
 
-            lowerFill.generic(),
-            fixFnTypes.generic(),
-
             //oneBlockOneCaller.generic(),
             //constantTrace.generic(),
             //funcInline.generic(),
+
             switchDependentCodeMovement.generic(),
+            fixFnTypes.generic(),
+
             remUnused.generic(),
             dce.generic(),
             dse.setArg(exported).generic(),
             remUnused.generic(),
             switchDependentCodeMovement.generic(),
+            fixFnTypes.generic(),
             remUnused.generic(),
-            remComments.generic(),
+            //remComments.generic(),
             //oneBlockOneCaller.generic(),
             //argRem.generic(),
             switchDependentCodeMovement.generic(),
+            fixFnTypes.generic(),
             //oneBlockOneCaller.generic(),
             //constantTrace.generic(),
             funcInline.generic(),
@@ -230,6 +297,7 @@ fun main() {
             funcInline.generic(),
             funcInline.generic(),
             switchIndependentTrailingCodeMovement.generic(),
+            fixFnTypes.generic(),
             dse.setArg(exported).generic(),
             //licm.generic(),
             loopUnswitch.generic(),
@@ -246,6 +314,7 @@ fun main() {
             remUnused.generic(),
             dce.generic(),
             //identicalSwitchRem.generic(), // TODO: fix
+            //fixFnTypes.generic(),
             //argRem.generic(),
             remUnused.generic(),
             dce.generic(),
@@ -253,6 +322,7 @@ fun main() {
             remUnused.generic(),
             dce.generic(),
             dse.setArg(exported).generic(),
+            fixFnTypes.generic(),
         )
 
         val compile = File(".out.uac").printWriter().use { file ->

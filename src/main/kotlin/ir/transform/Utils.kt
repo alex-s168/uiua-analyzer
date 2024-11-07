@@ -5,7 +5,7 @@ import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
 
-fun genCallBlockFnTail(innerFnType: FnType, ref: Map<String, IrBlock>): IrBlock {
+fun genCallBlockFnTail(innerFnType: FnType, ref: Map<BlockId, IrBlock>): IrBlock {
     return IrBlock(anonFnName(), ref).apply {
         val outs = innerFnType.rets.map {
             newVar().copy(type = it)
@@ -120,7 +120,7 @@ fun oneDimFillLoad(
     fill: IrVar?,
     arr: IrVar,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     idx: IrVar,
     put: (IrInstr) -> Unit
@@ -205,7 +205,7 @@ fun oneDimFillLoad(
     fill: IrVar?,
     arr: IrVar,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     idx: IrVar,
     put: (IrInstr) -> Unit
@@ -230,7 +230,7 @@ fun switch(
         val fnref = newVar().copy(type = it.second.type())
         put(IrInstr(
             mutableListOf(fnref),
-            PushFnRefInstr(it.second.name),
+            PushFnRefInstr(it.second.uid),
             mutableListOf()
         ))
         fnref
@@ -246,7 +246,7 @@ fun switch(
 fun filled(
     fillType: Type,
     fillBody: IrBlock.(IrVar) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     putBlock: IrBlock.() -> Unit,
     put: (IrInstr) -> Unit,
@@ -269,7 +269,7 @@ fun filled(
     val fn = newVar().copy(type = block.type())
     put(IrInstr(
         mutableListOf(fn),
-        PushFnRefInstr(block.name),
+        PushFnRefInstr(block.uid),
         mutableListOf()
     ))
 
@@ -284,7 +284,7 @@ fun filled(
     val fillProvFn = newVar().copy(type = fillProv.type())
     put(IrInstr(
         mutableListOf(fillProvFn),
-        PushFnRefInstr(fillProv.name),
+        PushFnRefInstr(fillProv.uid),
         mutableListOf()
     ))
 
@@ -308,7 +308,7 @@ fun unfailure(block: () -> Boolean): Boolean =
 fun reduceBody(
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     type: Type,
     body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
@@ -327,7 +327,7 @@ fun reduceBody(
     val reduceBodyFn = newVar().copy(type = reduceBody.type())
     put(IrInstr(
         mutableListOf(reduceBodyFn),
-        PushFnRefInstr(reduceBody.name),
+        PushFnRefInstr(reduceBody.uid),
         mutableListOf()
     ))
 
@@ -339,7 +339,7 @@ fun reduce(
     arr: IrVar,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     type: Type,
     body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
@@ -357,7 +357,7 @@ fun reduce(
     arr: IrVar,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     type: Type,
     body: IrBlock.(a: IrVar, b: IrVar, res: IrVar) -> Unit,
@@ -371,7 +371,7 @@ fun repeat(
     size: IrVar,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     args: List<IrVar>,
     body: IrBlock.(idx: IrVar, args: List<IrVar>) -> Unit
@@ -390,7 +390,7 @@ fun repeat(
     val fnref = newVar().copy(type = block.type())
     put(IrInstr(
         mutableListOf(fnref),
-        PushFnRefInstr(block.name),
+        PushFnRefInstr(block.uid),
         mutableListOf()
     ))
 

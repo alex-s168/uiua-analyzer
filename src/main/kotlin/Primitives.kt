@@ -68,6 +68,7 @@ object Prims {
     val DIV = prim("DIV")
     val POW = prim("POW")
     val MAX = prim("MAX")
+    val MIN = prim("MIN")
     val LT = prim("LT")
     val EQ = prim("EQ")
     val MOD = prim("MOD")

@@ -20,14 +20,14 @@ val oneBlockOneCaller = GlobalPass<(IrBlock) -> Unit>("1block1caller") { blocks,
             callerBlock.instrs.add(
                 callerBlock.instrs.indexOf(caller), IrInstr(
                     mutableListOf(newFnRef),
-                    PushFnRefInstr(copy.name),
+                    PushFnRefInstr(copy.uid),
                     mutableListOf()
                 )
             )
 
             Analysis(callerBlock)
                 .getDeepCalling(caller)
-                .filterCertainlyCalling(callerBlock, block.name)
+                .filterCertainlyCalling(callerBlock, block.uid)
                 .forEach { it.replace(newFnRef) }
         }
     }

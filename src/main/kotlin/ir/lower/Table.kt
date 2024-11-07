@@ -44,7 +44,7 @@ val lowerTable = lowerPrimPass<(IrBlock) -> Unit>(Prims.TABLE) { put, newVar, a,
 
     put(IrInstr(
         mutableListOf(fnref),
-        PushFnRefInstr(outer.name),
+        PushFnRefInstr(outer.uid),
         mutableListOf()
     ))
 
