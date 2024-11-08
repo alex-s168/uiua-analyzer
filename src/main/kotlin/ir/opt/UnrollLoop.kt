@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.ir.opt
 
+import me.alex_s168.uiua.CallerInstrsCache
 import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.fullUnrollLoop
@@ -10,24 +11,28 @@ import me.alex_s168.uiua.ir.transform.constants
 val unrollLoop = Pass<Unit>("full unroll loop") { block, _ ->
     val a = Analysis(block)
 
+    val cache = CallerInstrsCache()
+
     block.instrs.toList().forEach { instr ->
         if (!a.isPrim(instr, Prims.Comp.REPEAT))
             return@forEach
 
-        val begin = a.constNum(instr.args[0])
+        val begin = a.constNum(instr.args[0], cache::get)
             ?.toInt()
             ?: return@forEach
 
-        val end = a.constNum(instr.args[1])
+        val end = a.constNum(instr.args[1], cache::get)
             ?.toInt()
             ?: return@forEach
+
+        println("begin: $begin, end: $end")
 
         val count = end - begin + 1
 
         if (!fullUnrollLoop(block, count))
             return@forEach
 
-        val fn = a.function(instr.args[2])
+        val fn = a.function(instr.args[2], cache::get)
             ?: return@forEach
 
         val extra = instr.args.drop(3)

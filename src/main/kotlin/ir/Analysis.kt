@@ -203,6 +203,8 @@ class Analysis(val block: IrBlock) {
                 else if (isPrim(instr, Prims.SWITCH)) {
                     val ar = instr.args[idx + 3]
 
+                    // TODO: ??????
+                    /*
                     if (ar == instr.args[2]) { // identical to on param
                         val switchIdx = a.origin(instr.args[1])
                             ?.args
@@ -214,7 +216,7 @@ class Analysis(val block: IrBlock) {
                             val from = a.origin(instr.args[0])!!.args[switchIdx]
                             a.deepOriginV2(from, callerInstrsWrap)?.let { return it }
                         }
-                    }
+                    }*/
 
                     a.deepOriginV2(ar, callerInstrsWrap)?.let { return it }
                 }
