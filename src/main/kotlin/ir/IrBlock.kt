@@ -2,9 +2,10 @@ package me.alex_s168.uiua.ir
 
 import blitz.collections.contents
 import me.alex_s168.uiua.*
+import java.util.concurrent.atomic.AtomicLong
 
 private var nextBlockId: BlockId = 0
-private var nextGVarId: ULong = 0u
+private var nextGVarId = AtomicLong(0)
 
 enum class Lifetime {
     LOCAL,
@@ -48,7 +49,7 @@ data class IrBlock(
         inlineConfig(this)
 
     fun newVar(): IrVar =
-        IrVar(Types.tbd, nextGVarId ++)
+        IrVar(Types.tbd, nextGVarId.getAndIncrement().toULong())
 
     fun updateVar(old: IrVar, new: IrVar) {
         args.updateVar(old, new)
@@ -76,6 +77,18 @@ data class IrBlock(
     fun varUsed(variable: IrVar): Boolean =
         if (variable in rets) true
         else instrs.any { variable in it.args }
+
+    fun deepCopyNoNewVar() =
+        IrBlock(
+            name,
+            ref,
+            instrs.mapTo(mutableListOf()) { it.deepCopy() },
+            flags.toMutableList(),
+            args.toMutableList(),
+            rets.toMutableList(),
+            fillArg,
+            private
+        )
 
     fun deepCopy(): IrBlock {
         val a = args.mapTo(mutableListOf()) { newVar().copy(type = it.type) }
@@ -116,7 +129,8 @@ data class IrBlock(
             require(a.type == b.type) {
                 "inlining arg types do not match:\n  call with ${cArgs.map { it.type }.contents}\n  fn with ${args.map { it.type }.contents}"
             }
-            updateVar(new, a, b)
+            if (a != b)
+                updateVar(new, a, b)
         }
 
         return new

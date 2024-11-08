@@ -130,7 +130,7 @@ var log = { str: String ->
     println(str)
 }
 
-val inlineConfig = Inline.none
+val inlineConfig = Inline.lte(64)
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
@@ -264,31 +264,34 @@ fun main() {
             lowerFill.generic(),
             fixFnTypes.generic(),
 
-            //globalPrint.setArg { File(".preVerify.uac").printWriter().use(it) }.generic(),
+            globalPrint.setArg { File(".preOpt.uac").printWriter().use(it) }.generic(),
+
             //verifyBlock.generic(),
 
             fixArgArrays.generic(),
             inlineCUse.generic(),
-            unrollLoop.generic(),
+            //unrollLoop.generic(), // TODO: fix
 
             //oneBlockOneCaller.generic(),
             //constantTrace.generic(),
             //funcInline.generic(),
 
-            switchDependentCodeMovement.generic(),
+            // TODO: !!!! fix switch move
+
+            //switchDependentCodeMovement.generic(),
             fixFnTypes.generic(),
 
             remUnused.generic(),
             dce.generic(),
             dse.setArg(exported).generic(),
             remUnused.generic(),
-            switchDependentCodeMovement.generic(),
+            //switchDependentCodeMovement.generic(),
             fixFnTypes.generic(),
             remUnused.generic(),
             //remComments.generic(),
             //oneBlockOneCaller.generic(),
             //argRem.generic(),
-            switchDependentCodeMovement.generic(),
+            //switchDependentCodeMovement.generic(),
             fixFnTypes.generic(),
             //oneBlockOneCaller.generic(),
             //constantTrace.generic(),
@@ -296,11 +299,11 @@ fun main() {
             funcInline.generic(),
             funcInline.generic(),
             funcInline.generic(),
-            switchIndependentTrailingCodeMovement.generic(),
+            //switchIndependentTrailingCodeMovement.generic(),
             fixFnTypes.generic(),
             dse.setArg(exported).generic(),
             //licm.generic(),
-            loopUnswitch.generic(),
+            //loopUnswitch.generic(),
             remUnused.generic(),
             emptyArrayOpsRemove.generic(),
             dce.generic(),

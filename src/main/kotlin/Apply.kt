@@ -26,7 +26,7 @@ fun List<AnyPass>.apply(blocks: MutableMap<BlockId, IrBlock>) {
                         val new = CopyOnWriteArrayList<IrBlock>()
                         val flush = if (it.parallelDeepCopyBlocks) {
                             blocks.values.map { b ->
-                                val f = b.deepCopy()
+                                val f = b.deepCopyNoNewVar()
                                 f.name = b.name
                                 f.uid = b.uid
                                 tpExec.execute {

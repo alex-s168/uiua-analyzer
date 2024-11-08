@@ -3,11 +3,10 @@ package me.alex_s168.uiua.ir.opt
 import me.alex_s168.uiua.CallerInstrsCache
 import me.alex_s168.uiua.Prims
 import me.alex_s168.uiua.PrimitiveInstr
-import me.alex_s168.uiua.ir.IrInstr
-import me.alex_s168.uiua.ir.modifyPass
+import me.alex_s168.uiua.ir.*
 import me.alex_s168.uiua.ir.transform.into
 
-val comptimeReduceEval = modifyPass(
+val comptimeReduceEval = optAwayPass(
     "comptime reduce eval",
     Prims.REDUCE,
     {true}
@@ -20,7 +19,10 @@ val comptimeReduceEval = modifyPass(
 
     val cache = CallerInstrsCache()
     val argArr = a.argArrAsVars(arr, put, newVar, cache::get)
-        ?: return@modifyPass
+    if (argArr == null) {
+        put(this)
+        return@optAwayPass
+    }
 
     val elems = if (argArr.size < 2) {
         val default = a.block.fillArg
@@ -48,4 +50,4 @@ val comptimeReduceEval = modifyPass(
         ))
         acc2
     }.into(outs[0], put)
-}
+}.parallelWithoutDeepCopy()
