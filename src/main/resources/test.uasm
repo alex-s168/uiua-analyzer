@@ -7,21 +7,29 @@ RANGE 4
 MUL 5
 DUP 6
 ADD 7
+[2.0,5000.0]
+RESHAPE 9
+UN_COUPLE 10
+ADD 11
 Comment "fn from test.ua:34:6)"
 
 TOP SLICES
 
 BINDINGS
-func ["fn",[0,1],[1,8],3385006999031074692,0]
+func ["fn",[0,1],[1,12],550182673156980251,0]
 
 SPANS
 "test.ua" [34,1,1161,938] [34,3,1163,940]
-"test.ua" [34,20,1180,957] [34,21,1181,958]
-"test.ua" [34,17,1177,954] [34,20,1180,957]
-"test.ua" [34,14,1174,951] [34,17,1177,954]
-"test.ua" [34,9,1169,946] [34,12,1172,949]
-"test.ua" [34,8,1168,945] [34,9,1169,946]
+"test.ua" [34,41,1201,978] [34,42,1202,979]
+"test.ua" [34,38,1198,975] [34,41,1201,978]
+"test.ua" [34,35,1195,972] [34,38,1198,975]
+"test.ua" [34,30,1190,967] [34,33,1193,970]
+"test.ua" [34,29,1189,966] [34,30,1190,967]
+"test.ua" [34,28,1188,965] [34,29,1189,966]
+"test.ua" [34,21,1181,958] [34,27,1187,964]
+"test.ua" [34,18,1178,955] [34,21,1181,958]
+"test.ua" [34,11,1171,948] [34,17,1177,954]
 "test.ua" [34,7,1167,944] [34,8,1168,945]
 
 FILES
-test.ua: "# P ← ÷⊙+⊃(×3ⁿ2|¯ⁿ2◌|××3⊙⋅∘)                # a b c ← (3ac - b^2)/(3a^2)\r\n# Q ← ÷⊙(++)⊃(×27ⁿ3|×2ⁿ3◌|¯×××9|××27ⁿ2⊙⋅⋅∘) # a b c d ← (2b^3 - 9abc + 27a^2d)/(27a^3)\r\n# S ← ¯÷×3                                  # a b ← -b/(3a)\r\n#\r\n# R ← ×2√¯÷3⊙◌       # p q ← 2sqrt(-p/3)\r\n# A ← -:η°∿ ×3÷⊃R÷   # p q ← arccos(3(q/p)/R)\r\n# D ← ×⊃R(∿+η ÷3-τA) # p q ← R cos((A-2π)/3)\r\n#\r\n# # solve ax^3 + bx^2 + cx + d = 0\r\n# # assumes 3 real roots - take the middle one\r\n# Cubic ← +D ⊃(P|Q|S)\r\n#\r\n# a         ← 10\r\n# b         ← ¯30\r\n# Segments  ← 20\r\n# Framerate ← 24\r\n# Size      ← 100_100\r\n#\r\n# Cb ← ×¯2+a b                  # -2(a+b)\r\n# Cc ← ++××2⊃(+b|+a|¯ⁿ2◌|×¯3ⁿ2) # y x ← 2(a+y)(b+y)-x^2-3y^2\r\n# Cd ← ×××¯2 a b                # y ← -2aby\r\n#\r\n# Param     ← Cubic ⊃(1|Cb|Cc|Cd)\r\n# Normalise ← ÷-b a -b # (t-b)/(a-b)\r\n#\r\n# Shade ← ◿2⌊ +⊓(×Segments|÷Framerate) # value time ← 0 or 1\r\n#\r\n# fn = (\r\n#     ⇡×2Framerate\r\n#     Normalise Param °⊟-÷2⟜(°⍉ ≡(≡⊂:⇡100)⇡100)Size\r\n#     Shade¤\r\n# )\r\n\r\nfn = (+.mul4 ranmul.100)"
+test.ua: "# P ← ÷⊙+⊃(×3ⁿ2|¯ⁿ2◌|××3⊙⋅∘)                # a b c ← (3ac - b^2)/(3a^2)\r\n# Q ← ÷⊙(++)⊃(×27ⁿ3|×2ⁿ3◌|¯×××9|××27ⁿ2⊙⋅⋅∘) # a b c d ← (2b^3 - 9abc + 27a^2d)/(27a^3)\r\n# S ← ¯÷×3                                  # a b ← -b/(3a)\r\n#\r\n# R ← ×2√¯÷3⊙◌       # p q ← 2sqrt(-p/3)\r\n# A ← -:η°∿ ×3÷⊃R÷   # p q ← arccos(3(q/p)/R)\r\n# D ← ×⊃R(∿+η ÷3-τA) # p q ← R cos((A-2π)/3)\r\n#\r\n# # solve ax^3 + bx^2 + cx + d = 0\r\n# # assumes 3 real roots - take the middle one\r\n# Cubic ← +D ⊃(P|Q|S)\r\n#\r\n# a         ← 10\r\n# b         ← ¯30\r\n# Segments  ← 20\r\n# Framerate ← 24\r\n# Size      ← 100_100\r\n#\r\n# Cb ← ×¯2+a b                  # -2(a+b)\r\n# Cc ← ++××2⊃(+b|+a|¯ⁿ2◌|×¯3ⁿ2) # y x ← 2(a+y)(b+y)-x^2-3y^2\r\n# Cd ← ×××¯2 a b                # y ← -2aby\r\n#\r\n# Param     ← Cubic ⊃(1|Cb|Cc|Cd)\r\n# Normalise ← ÷-b a -b # (t-b)/(a-b)\r\n#\r\n# Shade ← ◿2⌊ +⊓(×Segments|÷Framerate) # value time ← 0 or 1\r\n#\r\n# fn = (\r\n#     ⇡×2Framerate\r\n#     Normalise Param °⊟-÷2⟜(°⍉ ≡(≡⊂:⇡100)⇡100)Size\r\n#     Shade¤\r\n# )\r\n\r\nfn = (+ uncouple res2_5000 +.mul4 ranmul.100)"

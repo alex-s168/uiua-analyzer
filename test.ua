@@ -31,4 +31,4 @@
 #     Shade¤
 # )
 
-fn = (+.mul4 ranmul.100)
+fn = (+ uncouple res2_5000 +.mul4 ranmul.100)

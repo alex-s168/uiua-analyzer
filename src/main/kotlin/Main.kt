@@ -270,7 +270,7 @@ fun main() {
 
             fixArgArrays.generic(),
             inlineCUse.generic(),
-            unrollLoop.generic(), // TODO: fix
+            unrollLoop.generic(),
 
             //oneBlockOneCaller.generic(),
             //constantTrace.generic(),
