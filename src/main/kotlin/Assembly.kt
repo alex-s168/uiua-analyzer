@@ -24,7 +24,9 @@ private fun parseInstrV2(input: JSON.Element): List<Instr> =
 
         JSON.Element.ARR -> {
             val args = input.asArr()
-            val prim = Prims.all2[args[0].asStr()]!!
+            val primStr = args[0].asStr()
+            val prim = Prims.all2[primStr] 
+                ?: error("primitive $primStr not found")
 
             if (args[1].kind == JSON.Element.NUM) {
                 listOf(
