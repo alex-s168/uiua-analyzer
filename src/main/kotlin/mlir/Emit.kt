@@ -570,6 +570,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val arr = instr.args[1]
 
                         val out = instr.outs[0]
+
                         body += "${out.asMLIR()} = memref.reshape ${arr.asMLIR()}(${sha.asMLIR()}) :\n  (${arr.type.toMLIR()}, ${sha.type.toMLIR()}) -> ${out.type.toMLIR()}"
                     }
 

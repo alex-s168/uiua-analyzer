@@ -77,16 +77,34 @@ data class Loc(
     }
 }
 
-data class InstSpan(
-    val start: Int,
-    val len: Int,
+@JvmInline
+value class InstSpan(
+    val impl: Either<Range, Fn>
 ) {
+    data class Range(
+        val start: Int,
+        val len: Int,
+    )
+
+    data class Fn(
+        val loc: Int
+    )
+
     companion object {
-        fun parse(arr: RefVec<JSON.Element>): InstSpan =
-            InstSpan(
-                arr[0].asNum().toInt(),
-                arr[1].asNum().toInt()
-            )
+        fun of(r: Range) = InstSpan(Either.ofA(r))
+        fun of(f: Fn) = InstSpan(Either.ofB(f))
+
+        fun parse(input: JSON.Element): InstSpan =
+            if (input.kind == JSON.Element.ARR) {
+                val arr = input.asArr()
+
+                InstSpan.of(Range(
+                    arr[0].asNum().toInt(),
+                    arr[1].asNum().toInt()
+                ))
+            } else {
+                InstSpan.of(Fn(input.asNum().toInt()))
+            }
     }
 }
 
@@ -141,6 +159,7 @@ data class PushFnInstr(
     val fn: Function
 ): ImmInstr() {
     companion object {
+        // example of new version: ["fn",[0,1],0,7445049646653302546]
         fun parse(arr: RefVec<JSON.Element>): PushFnInstr {
             val value: Either<String, Span> =
                 if (arr[0].kind == JSON.Element.STR) {
@@ -149,13 +168,13 @@ data class PushFnInstr(
                     Either.ofB(Span.parse(arr[0].asArr()))
                 }
             val signature = Signature.parse(arr[1].asArr())
-            val loc = InstSpan.parse(arr[2].asArr())
+            val loc = InstSpan.parse(arr[2])
             return PushFnInstr(Function(
                 value,
                 listOf(),
                 signature,
                 loc,
-                if (arr[4].asNum() == 0.0) false else true
+                if (arr.size == 4 /* new format */ || arr[4].asNum() == 0.0) false else true
             ))
         }
     }
