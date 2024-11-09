@@ -32,6 +32,6 @@
 # )
 
 fn = (
-  +.mul4 ranmul.100
+    -⇡⧻. +.mul4 ranmul.10000
 # + uncouple res2_5000 
 )

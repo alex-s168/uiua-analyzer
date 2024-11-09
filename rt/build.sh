@@ -3,7 +3,7 @@
 set -e 
 
 target=$(llvm-config --host-target)
-cflags="-O3 -target $target -fPIC -Wall -Wextra -Werror -Wno-unused-function"
+cflags="-O3 -target $target -fPIC -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-parameter"
 clang="clang"
 
 have_interpreter=0

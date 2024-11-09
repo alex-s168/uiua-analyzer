@@ -6,7 +6,7 @@
 //#define PRINT_DIM_ONLY
 #define HAVE_DEBUG_INFO
 #define DYNCAST_CHECK
-#define HAVE_INTERPRETER
+//#define HAVE_INTERPRETER
 
 
 static void checkAllocImpl (void* alloc) {

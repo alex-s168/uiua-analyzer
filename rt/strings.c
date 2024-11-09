@@ -27,7 +27,7 @@ void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
 }
 #else 
 # define GenPrint(of, uacName, customCode) \
-void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
+void printVal_Arru_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
     if (arr.rank > 2) { \
         printUArrDim_##of(arr, stream, writtenOut); \
         return; \
@@ -62,7 +62,7 @@ void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
         Arru_##of inner = allocUArr_##of(arr.sizes[1], 1, &arr.sizes[1]); \
         unshapedArrPickRight2Copy(inner, inner.rank, arr, arr.rank, i, uint8_t); \
         size_t written; \
-        printUArr_##of(inner, stream, &written); \
+        printVal_Arru_##of(inner, stream, &written); \
         arrDealloc(inner); \
         if (written > maxLen) maxLen = written; \
     } \
@@ -117,7 +117,7 @@ GenPrintScalar(uint8_t, { sprintf(buf, "%b", el); })
 
 GenPrintDim(int64_t, "int")
 GenPrint   (int64_t, "int",  {})
-GenPrintScalar(int64_t, { sprintf(buf, "%lld", el); })
+GenPrintScalar(int64_t, { sprintf(buf, "%ld", el); })
 
 GenPrintDim(double, "flt")
 GenPrint   (double, "flt",  {})

@@ -104,7 +104,7 @@ extern Arr1_##ofTy _$_rt_extendRepeat_##nameExt (OptInstSpan inst, Arr1_##ofTy b
 void printUArrDim_##of(Arru_##of arr, FILE* stream, size_t* writtenOut);
 
 #   define HGenPrint(of, uacName) \
-void printUArr_##of(Arru_##of arr, FILE* stream, size_t* writtenOut); \
+void printVal_Arru_##of(Arru_##of arr, FILE* stream, size_t* writtenOut); \
 void printVal_##of(of value, FILE* stream, size_t* writtenOut);
 
 
@@ -206,55 +206,55 @@ __attribute__ ((noreturn))
 void uac_panic();
 
 #define DynamicDispatch(dyn, fnPrefix, outCast, ...) \
-switch ((dyn).ty) {
-    case UAC_NOTYPE:
-    default:
-        fprintf(stderr, "Invalid dyn[] type!\n");
-        uac_panic();
-
-    case UAC_BYTE:
-        uint8_t outCast = uac_Dyn_as_uint8_t(dyn);
-        return fnPrefix##_uint8_t(__VA_ARGS__);
-
-    case UAC_INT:
-        int64_t outCast = uac_Dyn_as_int64_t(dyn);
-        return fnPrefix##_uint64_t(__VA_ARGS__);
-
-    case UAC_FLT:
-        double outCast = uac_Dyn_as_double(dyn);
-        return fnPrefix##_double(__VA_ARGS__);
-
-    case UAC_SIZE:
-        size_t outCast = uac_Dyn_as_size_t(dyn);
-        return fnPrefix##_size_t(__VA_ARGS__);
-
-    case UAC_DYN:
-        uac_Dyn outCast = uac_Dyn_as_uac_Dyn(dyn);
-        return fnPrefix##_uac_Dyn(__VA_ARGS__);
-
-    case UAC_ARR_BYTE:
-        Arru_uint8_t outCast = uac_Dyn_as_Arru_uint8_t(dyn);
-        return fnPrefix##_Arru_uint8_t(__VA_ARGS__);
-
-    case UAC_ARR_INT:
-        Arru_int64_t outCast = uac_Dyn_as_Arru_int64_t(dyn);
-        return fnPrefix##_Arru_uint64_t(__VA_ARGS__);
-
-    case UAC_ARR_FLT:
-        Arru_double outCast = uac_Dyn_as_Arru_double(dyn);
-        return fnPrefix##_Arru_double(__VA_ARGS__);
-
-    case UAC_ARR_SIZE:
-        Arru_size_t outCast = uac_Dyn_as_Arru_size_t(dyn);
-        return fnPrefix##_Arru_size_t(__VA_ARGS__);
-
-    case UAC_ARR_DYN:
-        Arru_uac_Dyn outCast = uac_Dyn_as_Arru_uac_Dyn(dyn);
-        return fnPrefix##_Arru_uac_Dyn(__VA_ARGS__);
+switch ((dyn).ty) { \
+    case UAC_NOTYPE: \
+    default: \
+        fprintf(stderr, "Invalid dyn[] type!\n"); \
+        uac_panic(); \
+\
+    case UAC_BYTE: { \
+        uint8_t outCast = uac_Dyn_as_uint8_t(dyn); \
+        return fnPrefix##_uint8_t(__VA_ARGS__); } \
+\
+    case UAC_INT: { \
+        int64_t outCast = uac_Dyn_as_int64_t(dyn); \
+        return fnPrefix##_int64_t(__VA_ARGS__); } \
+\
+    case UAC_FLT: { \
+        double outCast = uac_Dyn_as_double(dyn); \
+        return fnPrefix##_double(__VA_ARGS__); } \
+\
+    case UAC_SIZE: { \
+        size_t outCast = uac_Dyn_as_size_t(dyn); \
+        return fnPrefix##_size_t(__VA_ARGS__); } \
+\
+    case UAC_DYN: { \
+        uac_Dyn outCast = uac_Dyn_as_uac_Dyn(dyn); \
+        return fnPrefix##_uac_Dyn(__VA_ARGS__); } \
+\
+    case UAC_ARR_BYTE: { \
+        Arru_uint8_t outCast = uac_Dyn_as_Arru_uint8_t(dyn); \
+        return fnPrefix##_Arru_uint8_t(__VA_ARGS__); } \
+\
+    case UAC_ARR_INT: { \
+        Arru_int64_t outCast = uac_Dyn_as_Arru_int64_t(dyn); \
+        return fnPrefix##_Arru_int64_t(__VA_ARGS__); } \
+\
+    case UAC_ARR_FLT: { \
+        Arru_double outCast = uac_Dyn_as_Arru_double(dyn); \
+        return fnPrefix##_Arru_double(__VA_ARGS__); } \
+\
+    case UAC_ARR_SIZE: { \
+        Arru_size_t outCast = uac_Dyn_as_Arru_size_t(dyn); \
+        return fnPrefix##_Arru_size_t(__VA_ARGS__); } \
+\
+    case UAC_ARR_DYN: { \
+        Arru_uac_Dyn outCast = uac_Dyn_as_Arru_uac_Dyn(dyn); \
+        return fnPrefix##_Arru_uac_Dyn(__VA_ARGS__); } \
 }
 
 extern const char * uac_uasmFilePath; // nullable
 
 // interpret a range of instructions from the source UASM file ; only going to work if runtime configured correctly and uac_uasmFilePath is set
-extern void _$_rt_interpret(OptInstSpan int, size_t beginInstrId, size_t endInstrId,
+extern void _$_rt_interpret(OptInstSpan i, size_t beginInstrId, size_t endInstrId,
                             const Arr1_uac_Dyn inputs, Arr1_uac_Dyn outputs);

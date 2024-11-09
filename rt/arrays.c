@@ -133,5 +133,4 @@ GenEverything(uint8_t, byte)
 GenEverything(int64_t, int)
 GenEverything(double,  flt)
 GenEverything(size_t,  size)
-
-GenRankedUtils(2, int64_t)
+GenEverything(uac_Dyn, uac_dyn)

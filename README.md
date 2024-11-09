@@ -31,3 +31,20 @@ The main goal of uiuac is to maximize both scalar and vector execution speed to 
 
 ## Contributing
 uiuac is still missing support for a lot of Uiua operations
+
+## Using 
+this project is still very WIP, but you can already compile simple uiua programs.
+
+To do that, you need Clang, MLIR, and a JDK installed.
+You need the following things in your path: `clang`, `mlir-opt`, `mlir-translate`.
+
+run this in the repo root:
+```shell
+# you only need to do these once 
+cd rt && ./build.sh && cd ..
+
+uiua build [uiua file] -o test.uasm
+./gradlew run
+
+# you now should have a .out.exe, which you can execute
+```

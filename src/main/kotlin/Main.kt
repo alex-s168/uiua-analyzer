@@ -164,7 +164,7 @@ fun main() {
     File(".log.txt").bufferedWriter().use { logwriter ->
         log = ConcurrentLogger(logwriter)::log
 
-        val test = loadRes("test.uasm")!!
+        val test = File("test.uasm").readText()
         val assembly = Assembly.parse(test)
 
         val astNodes = mutableListOf<ASTRoot>()
@@ -367,11 +367,12 @@ fun main() {
         val optMlir = ".opt.mlir"
         val outLlc = ".out.llc"
         val outObj = ".out.o"
+        val outExe = ".out.exe"
 
         File(inMlir).writeText(out.toString())
 
-        val mlirOpt = "/home/alex/llvm-project/build/bin/mlir-opt"
-        val mlirTranslate = "/home/alex/llvm-project/build/bin/mlir-translate"
+        val mlirOpt = "mlir-opt"
+        val mlirTranslate = "mlir-translate"
         val clang = "clang"
         val llvmLower = true
         val enableBufferDealloc = false
@@ -395,7 +396,8 @@ fun main() {
         Unit.run(listOf(mlirOpt, "-o", optMlir, inMlir) + mlirOptFlags)
             ?.run(listOf(mlirTranslate, "-o", outLlc, optMlir) + mlirTranslateFlags)
             ?.run(listOf(clang, "-c", "-O3", "-march=native", "-o", outObj) + clangFlags + outLlc)
-            ?.let { println("Generated .out.o") }
+            ?.run(listOf(clang, outObj, "rt/build/rt_part0.a", "-o", outExe))
+            ?.let { println("Generated $outExe") }
             ?: run {
                 println("Could not compile to object file!")
                 exitProcess(1)

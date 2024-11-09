@@ -1,8 +1,7 @@
 #include <stdint.h>
 #include "internal.h"
 
-
-extern OptInstSpan uac_currentSpan = -1;
+OptInstSpan uac_currentSpan = -1;
 
 void uac_panic() {
     if (uac_currentSpan == -1) {
@@ -11,7 +10,7 @@ void uac_panic() {
         uac_printSpan(uac_currentSpan);
     }
     else {
-        fprintf(stderr, "Runtime panic in compiled code in code span %llu!\n", uac_currentSpan);
+        fprintf(stderr, "Runtime panic in compiled code in code span %lu!\n", uac_currentSpan);
     }
 
     exit(1);
@@ -128,7 +127,7 @@ __attribute__ ((noreturn))
 extern void _$_rt_panic(OptInstSpan span, int64_t block, int64_t inst) {
     uac_currentSpan = span;
 
-    fprintf(stderr, "uiuac IR location: [%llu, %llu]\n", block, inst);
+    fprintf(stderr, "uiuac IR location: [%lu, %lu]\n", block, inst);
     uac_panic();
 }
 
@@ -147,6 +146,7 @@ extern void uac_interpretImpl(const char* uasm_path,
 
 extern void _$_rt_interpret(OptInstSpan inst, size_t beginInstrId, size_t endInstrId,
                             const Arr1_uac_Dyn inputs, Arr1_uac_Dyn outputs) {
+    (void) inst;
 
     if (uac_uasmFilePath == NULL) {
         errNoInterpreter();
@@ -167,20 +167,18 @@ extern void _$_rt_interpret(OptInstSpan inst, size_t beginInstrId, size_t endIns
 
 #endif
 
+// TODO: remove later
+char * uac_debugInformation = NULL;
+
 // TODO: somehow tell mlir to use c struct arg
 
-extern Arr2_int64_t fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(Arr2_int64_t);
+extern Arr1_int64_t fn_$__(void);
 
 int main() {
-    Arr2_int64_t a = allocArr_2int64_t(9, (size_t[]) {3,3});
-    Data(a)[3* 0+0] = 1;
-    Data(a)[3* 1+1] = 2;
-    Data(a)[3* 2+2] = 3;
-
-    Arr2_int64_t res = fn_$__arr_start_arr_start_int_end__maybe__end__maybe_vaoff(a);
-    Arru_int64_t ures = cloneToUnranked_2int64_t(res);
-    arrDealloc(res);
-    printUArr_int64_t(ures, stdout, NULL);
+    Arr1_int64_t res = fn_$__();
+    Arru_int64_t ures = cloneToUnranked_1int64_t(res);
+    //arrDealloc(res);
+    //printVal_Arru_int64_t(ures, stdout, NULL);
     arrDealloc(ures);
 
     return 0;
