@@ -59,11 +59,9 @@ void printVal_Arru_##of(Arru_##of arr, FILE* stream, size_t* writtenOut) { \
     fputs("┌\n", stream); \
     size_t maxLen = 0; \
     for (size_t i = 0; i < arr.sizes[0]; i ++) { \
-        Arru_##of inner = allocUArr_##of(arr.sizes[1], 1, &arr.sizes[1]); \
-        unshapedArrPickRight2Copy(inner, inner.rank, arr, arr.rank, i, uint8_t); \
+        indexSubView(inner, arr, i, of); \
         size_t written; \
-        printVal_Arru_##of(inner, stream, &written); \
-        arrDealloc(inner); \
+    printVal_Arru_##of(inner, stream, &written); \
         if (written > maxLen) maxLen = written; \
     } \
     for (size_t i = 0; i < maxLen+1; i ++) \

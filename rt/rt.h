@@ -49,6 +49,7 @@ void uac_stridesFromSizes (size_t* stridesOut, const size_t* sizesIn, size_t ran
                             (const char*) (src.aligned+src.elemsOff), src.strides[srcRank-1], \
                             numEl, sizeof(elty))
 
+// TODO: get rid of these two:
 // reshape pick 1d array from innermost-1 array
 #define unshapedArrPickRight2Copy(dst, dstRank, src, srcRank, idx, elty) \
     uac_unshapedArrPickCopyImpl( \
@@ -62,6 +63,12 @@ void uac_stridesFromSizes (size_t* stridesOut, const size_t* sizesIn, size_t ran
             (char*) dst, 1,  \
             (const char*) (src.aligned+src.elemsOff), src.strides[srcRank-2], src.strides[srcRank-1], \
             idx, src.sizes[srcRank-1], sizeof(elty))
+
+#define indexSubView(dst, src, idx, of) \
+    Arru_##of dst; { dst.rank = 1; dst.alloc = (src).alloc; dst.aligned = (src).aligned; \
+    dst.elemsOff = (src).elemsOff + (src).strides[0] * i; \
+    dst.sizes = &(src).sizes[1]; \
+    dst.strides = &(src).strides[1]; }
 
 #   define HGenUnrankedUtils(of) \
 \
@@ -114,9 +121,11 @@ typedef struct uac_Dyn uac_Dyn;
 
 #define HGenEverything(type, uacName) \
     HGenArrType(1, type) \
+    HGenArrType(2, type) \
     HGenUnrankedArrType(type) \
     HGenUnrankedUtils(type) \
     HGenRankedUtils(1, type) \
+    HGenRankedUtils(2, type) \
     HGenExtendScalar(type, uacName) \
     HGenExtendRepeat(type, uacName) \
     HGenPrint(type, # uacName) \

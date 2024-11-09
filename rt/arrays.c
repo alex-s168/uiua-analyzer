@@ -128,6 +128,7 @@ of* cloneToCArr_##trank##of(size_t* numElOut, Arr##trank##_##of arr) { \
 #define GenEverything(type, uacName) \
     GenUnrankedUtils(type) \
     GenRankedUtils(1, type) \
+    GenRankedUtils(2, type)
 
 GenEverything(uint8_t, byte)
 GenEverything(int64_t, int)

@@ -172,13 +172,15 @@ char * uac_debugInformation = NULL;
 
 // TODO: somehow tell mlir to use c struct arg
 
-extern Arr1_int64_t fn_$__(void);
+extern Arr2_int64_t fn_$__(void);
 
 int main() {
-    Arr1_int64_t res = fn_$__();
-    Arru_int64_t ures = cloneToUnranked_1int64_t(res);
-    //arrDealloc(res);
-    //printVal_Arru_int64_t(ures, stdout, NULL);
+    Arr2_int64_t res = fn_$__();
+    printf("strides: %zu, %zu\n", res.strides[0], res.strides[1]);
+    printf("sizes: %zu, %zu\n", res.sizes[0], res.sizes[1]);
+    Arru_int64_t ures = cloneToUnranked_2int64_t(res);
+    arrDealloc(res);
+    printVal_Arru_int64_t(ures, stdout, NULL);
     arrDealloc(ures);
 
     return 0;
