@@ -24,30 +24,37 @@ private fun parseInstrV2(input: JSON.Element): List<Instr> =
 
         JSON.Element.ARR -> {
             val args = input.asArr()
-            val primStr = args[0].asStr()
-            val prim = Prims.all2[primStr] 
-                ?: error("primitive $primStr not found")
-
-            if (args[1].kind == JSON.Element.NUM) {
-                listOf(
-                    PrimitiveInstr(prim, SpanRef(listOf(args[1].asNum().toInt())))
-                )
+            if (args[0].kind != JSON.Element.STR) {
+                listOf(ArrImmInstr(
+                    Types.array(Types.tbd, args.size),
+                    Either.ofB(args.mapTo(mutableListOf()) { it.asNum() })
+                ))
             } else {
-                val innerFn = args[1].asArr()[0].asArr()
-                var innerFnInstrs = innerFn[2].asArr()
-                // TODO: annoy kai about this and get him to change it
-                if (innerFnInstrs.size == 2 && innerFnInstrs[0].kind == JSON.Element.STR && innerFnInstrs[1].kind == JSON.Element.NUM)
-                    innerFnInstrs = RefVec.of(JSON.Element.newArr(innerFnInstrs))
+                val primStr = args[0].asStr()
+                val prim = Prims.all2[primStr] 
+                    ?: error("primitive $primStr not found")
 
-                listOf(
-                    PushFnInstr(Function(
-                        Either.ofA(anonFnName()),
-                        innerFnInstrs.flatMapTo(mutableListOf(), ::parseInstrV2),
-                        Signature(innerFn[0].asNum().toInt(), innerFn[1].asNum().toInt()),
-                        null, false
-                    )),
-                    PrimitiveInstr(prim)
-                )
+                if (args[1].kind == JSON.Element.NUM) {
+                    listOf(
+                        PrimitiveInstr(prim, SpanRef(listOf(args[1].asNum().toInt())))
+                    )
+                } else {
+                    val innerFn = args[1].asArr()[0].asArr()
+                    var innerFnInstrs = innerFn[2].asArr()
+                    // TODO: annoy kai about this and get him to change it
+                    if (innerFnInstrs.size == 2 && innerFnInstrs[0].kind == JSON.Element.STR && innerFnInstrs[1].kind == JSON.Element.NUM)
+                        innerFnInstrs = RefVec.of(JSON.Element.newArr(innerFnInstrs))
+
+                    listOf(
+                        PushFnInstr(Function(
+                            Either.ofA(anonFnName()),
+                            innerFnInstrs.flatMapTo(mutableListOf(), ::parseInstrV2),
+                            Signature(innerFn[0].asNum().toInt(), innerFn[1].asNum().toInt()),
+                            null, false
+                        )),
+                        PrimitiveInstr(prim)
+                    )
+                }
             }
         }
 
