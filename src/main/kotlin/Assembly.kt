@@ -6,6 +6,8 @@ import blitz.collections.nullIfEmpty
 import blitz.collections.substringAfter
 import blitz.parse.JSON
 import blitz.parse.JSON.asArr
+import blitz.parse.JSON.asNum
+import blitz.parse.JSON.asStr
 import blitz.parse.comb2.unwrap
 import blitz.startsWithCase
 import blitz.str.unescape
@@ -13,24 +15,36 @@ import blitz.str.splitWithNesting
 import blitz.switch
 import blitz.flatMap
 
-private fun parseInstrV2(instrIn: String): Instr? {
-    val instr = instrIn.trim()
-    if (instr.isEmpty()) return null
+private fun parseInstrV2(input: JSON.Element): List<Instr> =
+    when (input.kind) {
+        JSON.Element.NUM -> listOf(NumImmInstr(input.asNum()))
 
-    val parsed = instr.switch(
-        Regex("\\[\"(.*?)\",([0-9]+)\\]") startsWithCase {
-            val prim = Prims.all2[it.groups[1]!!.value]!!
-            val loc = it.groups[2]!!.value.toInt()
-            PrimitiveInstr(prim, SpanRef(listOf(loc.toInt())))
-        },
+        JSON.Element.STR -> listOf(PrimitiveInstr(Prims.all2[input.asStr()]!!))
 
-        Regex("[0-9]+(\\.[0-9]+)?") startsWithCase {
-            NumImmInstr(it.value.toDouble())
+        JSON.Element.ARR -> {
+            val args = input.asArr()
+            val prim = Prims.all2[args[0].asStr()]!!
+
+            if (args[1].kind == JSON.Element.NUM) {
+                listOf(
+                    PrimitiveInstr(prim, SpanRef(listOf(args[1].asNum().toInt())))
+                )
+            } else {
+                val innerFn = args[1].asArr()[0].asArr()
+                listOf(
+                    PushFnInstr(Function(
+                        Either.ofA(anonFnName()),
+                        innerFn[2].asArr().flatMapTo(mutableListOf(), ::parseInstrV2),
+                        Signature(innerFn[0].asNum().toInt(), innerFn[1].asNum().toInt()),
+                        null, false
+                    )),
+                    PrimitiveInstr(prim)
+                )
+            }
         }
-    ) { error("can't parse: $instr") }
-    
-    return parsed
-}
+
+        else -> error("error in instr: $input")
+    }
 
 private fun parseInstr(instrIn: String): Instr? {
     val instr = instrIn.trim()
@@ -160,9 +174,10 @@ data class Assembly(
             val asmFns = mutableListOf<List<Instr>>()
             sections["FUNCTIONS"]
                 ?.forEach { instrs ->
-                    asmFns += instrs.drop(1).dropLast(1)
-                        .splitWithNesting(delim = ',', nestUp = '[', nestDown = ']')
-                        .mapNotNull(::parseInstrV2)
+                    asmFns += JSON.parse(instrs)
+                        .unwrap()
+                        .asArr()
+                        .flatMapTo(mutableListOf(), ::parseInstrV2)
                 }
 
             fun InstSpan.get(): List<Instr> =
