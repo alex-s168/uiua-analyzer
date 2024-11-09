@@ -8,6 +8,7 @@ import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import me.alex_s168.uiua.ir.transform.constantArr
 import me.alex_s168.uiua.mlir.Inst.pDests
 
 fun IrVar.asMLIR(): MLIRVar =
@@ -355,9 +356,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prims.Comp.ARG_ARR -> {} // ignore
+                    Prims.Comp.ARG_ARR -> {}
 
-                    Prims.Comp.ARR_MATERIALIZE -> TODO("in higher level impl arr materialize using alloc and rep store")
+                    Prims.Comp.ARR_MATERIALIZE -> error("no")
 
                     Prims.Comp.ARR_ALLOC -> {
                         val type = instr.outs[0].type as ArrayType
@@ -560,15 +561,12 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     }
 
                     Prims.Comp.RESHAPE_VIEW -> {
-                        val sha = analysis.argArr(instr.args[0], cache::get)!!
-                            .mapB { it.map { castIfNec(::newVar, body, it, Types.size) } }
-                            .insideFlatMap(Any::toString, IrVar::asMLIR)
+                        val sha = instr.args[0]
 
                         val arr = instr.args[1]
-                        val arrTy = arr.type as ArrayType
 
                         val out = instr.outs[0]
-                        body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[][${sha.joinToString()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
+                        body += "${out.asMLIR()} = memref.reshape ${arr.asMLIR()}(${sha.asMLIR()}) :\n  (${arr.type.toMLIR()}, ${sha.type.toMLIR()}) to ${out.type.toMLIR()}"
                     }
 
                     Prims.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]
@@ -578,7 +576,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val len = instr.args[2]
 
                         val out = instr.outs[0]
-                        body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[${off.asMLIR()}][${len.asMLIR()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
+                        TODO("not implemented yet")
+                        // need to use subview instead!!!!
+                        //body += "${out.asMLIR()} = memref.view ${arr.asMLIR()}[${off.asMLIR()}][${len.asMLIR()}] :\n  ${arrTy.toMLIR()} to ${out.type.toMLIR()}"
                     }
 
                     Prims.Comp.TRANSPOSE -> {

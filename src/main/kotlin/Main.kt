@@ -130,7 +130,9 @@ var log = { str: String ->
     println(str)
 }
 
-val inlineConfig = Inline.lte(64)
+// TODO: (REALLY IMPORTANT!!!!!) completely get rid of arg arr materialize, and use arg arrs everywhere, and emit arg arrs as materialize in emit mlir
+
+val inlineConfig = Inline.none
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
@@ -246,7 +248,9 @@ fun main() {
             lowerBoxCreate.generic(),
             lowerBoxDestroy.generic(),
 
+            inlineCUse.generic(),
             fixArgArrays.generic(),
+            argArrLoad.generic(),
             inlineCUse.generic(),
 
             lifetimes.generic(),
@@ -268,7 +272,9 @@ fun main() {
 
             //verifyBlock.generic(),
 
+            inlineCUse.generic(),
             fixArgArrays.generic(),
+            argArrLoad.generic(),
             inlineCUse.generic(),
             unrollLoop.generic(),
 

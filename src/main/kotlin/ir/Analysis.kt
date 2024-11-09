@@ -526,13 +526,23 @@ class Analysis(val block: IrBlock) {
             else -> false
         }
 
+    fun argArrVar(v: IrVar): IrVar =
+        deepOriginV2(v)?.a?.second?.let {
+            if (isPrim(it, Prims.Comp.ARR_MATERIALIZE))
+                argArrVar(it.args[0])
+            else null
+        } ?: v
+
     companion object {
         val argArrayUsing = mapOf(
             Prims.Comp.ARR_ALLOC to 0,
             Prims.Comp.ARR_STORE to 1,
             Prims.Comp.ARR_LOAD to 1,
             Prims.RESHAPE to 0,
-            Prims.Comp.RESHAPE_VIEW to 0,
+        )
+
+        val forceMaterialize = mapOf(
+            Prims.Comp.RESHAPE_VIEW to 0
         )
 
         val pervasive = arrayOf(

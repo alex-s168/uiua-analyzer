@@ -69,12 +69,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             ))
         }
         else {
-            var newShape = args[0]
-            // TODO: move to analysis
-            a.deepOriginV2(newShape)?.a?.second?.let {
-                if (a.isPrim(it, Prims.Comp.ARR_MATERIALIZE))
-                    newShape = it.args[0]
-            }
+            val newShape = a.argArrVar(args[0])
 
             // val newShapeV = a.origin(args[0])!!.args.toList()
             val oldValue = args[1]
