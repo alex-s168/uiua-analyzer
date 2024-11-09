@@ -24,7 +24,6 @@ object Prims {
         /** array that is only meant to be used as args for other comp primitives */
         val ARG_ARR = prim("cARG_ARR") // [elem]...
 
-        val ARR_MATERIALIZE = prim("cARR_MAT") // [src: arg_arr]
         val ARR_ALLOC = prim("cARR_ALLOC") // [shape: arg_arr]
         val ARR_STORE = prim("cARR_STORE") // [dest], [indecies: arg_arr], [value]
         val ARR_LOAD = prim("cARR_LOAD") // [arr], [indecies: arr_arg]
@@ -55,6 +54,9 @@ object Prims {
         val DYN_FREE = prim("cDYN_FREE") // [dyn]
 
         val TRANSPOSE = prim("cTRANSPOSE") // [dest], [src]
+
+        // the following are identical to the non-P versions, but don't have the output variable in the outs, so that analysis functions don't know that these are the origin of vars. this is only used for generating complicated code that should be generated during emit mlir, but are not
+        val EMIT_ARR_ALLOC_P = prim("ceARR_ALLOC_P") // [out var], [shape]
     }
 
     object Front {

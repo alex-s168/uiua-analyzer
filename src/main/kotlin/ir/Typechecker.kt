@@ -127,10 +127,6 @@ fun IrInstr.inferTypes(
                 updateType(outs[0], Types.array(args[0].type))
             }
 
-            Prims.Comp.ARR_MATERIALIZE -> {
-                updateType(outs[0], (args[0].type as ArrayType).copy(vaOff = true))
-            }
-
             Prims.Comp.ARR_ALLOC -> {
                 require(outs[0].type != Types.tbd)
             }

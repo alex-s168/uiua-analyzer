@@ -4,10 +4,10 @@ import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.transform.comment
 
 
-inline fun IrBlock.lowerPass(
+fun IrBlock.lowerPass(
     name: String,
     filter: (IrInstr) -> Boolean,
-    crossinline block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
+    block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) {
     val a = Analysis(this)
     a.transform(instrs.filter(filter)) { put, newVar ->
@@ -127,9 +127,9 @@ fun lowerPrimPass(
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = Pass<Unit>("lower ${Prims.all[primitive]}") { it, _ -> it.lowerPrimPass("lower ${Prims.all[primitive]}", primitive, block) }
 
-inline fun <A> lowerPrimPass(
+fun <A> lowerPrimPass(
     primitive: Prim,
-    crossinline block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis, arg: A) -> Unit
+    block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis, arg: A) -> Unit
 ) = Pass<A>("lower ${Prims.all[primitive]}") { it, arg ->
     it.lowerPrimPass("lower ${Prims.all[primitive]}", primitive) { put, newVar, a ->
         block(put, newVar, a, arg)
@@ -142,21 +142,21 @@ fun lowerPass(
     block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = Pass<Unit>(name) { it, _ -> it.lowerPass(name, filter, block) }
 
-inline fun <A> lowerPass(
+fun <A> lowerPass(
     name: String,
-    noinline filter: (IrInstr) -> Boolean,
-    crossinline block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis, arg: A) -> Unit
+    filter: (IrInstr) -> Boolean,
+    block: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis, arg: A) -> Unit
 ) = Pass<A>(name) { it, arg ->
     it.lowerPass(name, filter) { put, newVar, a ->
         block(put, newVar, a, arg)
     }
 }
 
-inline fun optAwayPass(
+fun optAwayPass(
     name: String,
-    crossinline filter: (IrInstr) -> Boolean,
-    crossinline rmIf: IrInstr.(a: Analysis) -> Boolean,
-    crossinline rm: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
+    filter: (IrInstr) -> Boolean,
+    rmIf: IrInstr.(a: Analysis) -> Boolean,
+    rm: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = Pass<Unit>(name) { it, _ ->
     val a = Analysis(it)
     val on = it.instrs
@@ -166,45 +166,45 @@ inline fun optAwayPass(
     a.finish(name)
 }
 
-inline fun optAwayPass(
+fun optAwayPass(
     name: String,
-    crossinline filter: (IrInstr) -> Boolean,
-    crossinline rmIf: IrInstr.(a: Analysis) -> Boolean
+    filter: (IrInstr) -> Boolean,
+    rmIf: IrInstr.(a: Analysis) -> Boolean
 ) = optAwayPass(name, filter, rmIf) { put, newVar, a -> }
 
-inline fun optAwayPass(
+fun optAwayPass(
     name: String,
     primitive: Prim,
-    crossinline rmIf: IrInstr.(a: Analysis) -> Boolean,
-    crossinline rm: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
+    rmIf: IrInstr.(a: Analysis) -> Boolean,
+    rm: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = optAwayPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, rmIf, rm)
 
-inline fun optAwayPass(
+fun optAwayPass(
     name: String,
     primitive: Prim,
-    crossinline rmIf: IrInstr.(a: Analysis) -> Boolean
+    rmIf: IrInstr.(a: Analysis) -> Boolean
 ) = optAwayPass(name, primitive, rmIf) { put, newVar, a -> }
 
-inline fun modifyPass(
+fun modifyPass(
     name: String,
-    crossinline filter: (IrInstr) -> Boolean,
-    crossinline modIf: IrInstr.(a: Analysis) -> Boolean,
-    crossinline mod: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
+    filter: (IrInstr) -> Boolean,
+    modIf: IrInstr.(a: Analysis) -> Boolean,
+    mod: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = optAwayPass(name, filter, modIf) { put, newVar, a ->
     mod(put, newVar, a)
     put(this)
 }
 
-inline fun modifyPass(
+fun modifyPass(
     name: String,
     primitive: Prim,
-    crossinline modIf: IrInstr.(a: Analysis) -> Boolean,
-    crossinline mod: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
+    modIf: IrInstr.(a: Analysis) -> Boolean,
+    mod: IrInstr.(put: (IrInstr) -> Unit, newVar: () -> IrVar, a: Analysis) -> Unit
 ) = modifyPass(name, { it.instr is PrimitiveInstr && it.instr.id == primitive }, modIf, mod)
 
-inline fun <A> withPassArg(
+fun <A> withPassArg(
     name: String,
-    crossinline inner: (A) -> Pass<Unit>
+    inner: (A) -> Pass<Unit>
 ): Pass<A> =
     Pass(name) { it, a ->
         inner(a).run(it)

@@ -38,15 +38,9 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
             v
         }
 
-        val inputsLensArgArr = inputs.zip(inputsLens).filterNot { (it, _) ->
+        val inputsLensArr = inputs.zip(inputsLens).filterNot { (it, _) ->
             it.type !is ArrayType || it.type.length == 1
         }.map { it.second }.wrapInArgArray(::newVar, Types.size, put = ::put)
-        val inputsLensArr = newVar().copy(type = inputsLensArgArr.type)
-        put(IrInstr(
-            mutableListOf(inputsLensArr),
-            PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
-            mutableListOf(inputsLensArgArr),
-        ))
 
         reduce(maxInputsLen, inputsLensArr, ::put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
             instrs += IrInstr(

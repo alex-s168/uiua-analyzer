@@ -358,12 +358,16 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
 
                     Prims.Comp.ARG_ARR -> {}
 
-                    Prims.Comp.ARR_MATERIALIZE -> error("no")
+                    Prims.Comp.ARR_ALLOC,
+                    Prims.Comp.EMIT_ARR_ALLOC_P -> {
+                        val (outVar, shapeVar) =
+                            if (instr.instr.id == Prims.Comp.EMIT_ARR_ALLOC_P)
+                                instr.args
+                            else listOf(instr.outs[0], instr.args[0])
 
-                    Prims.Comp.ARR_ALLOC -> {
-                        val type = instr.outs[0].type as ArrayType
+                        val type = outVar.type as ArrayType
                         val shape = type.shape
-                        val shapeDecl = instrDeclFor(instr.args[0])!!
+                        val shapeDecl = instrDeclFor(shapeVar)!!
                         val mShape = shapeDecl.args.map { castIfNec(::newVar, body, it, Types.size).asMLIR() }
 
                         val temp = newVar().copy(type = NewlyAllocArrayType.from(type))
@@ -374,7 +378,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                             *mShape.filterIndexed { i, _ -> shape[i] == -1 }.toTypedArray()
                         )
 
-                        body += "${instr.outs[0].asMLIR()} = memref.cast ${temp.asMLIR()} : ${temp.type.toMLIR()} to ${type.toMLIR()}"
+                        body += "${outVar.asMLIR()} = memref.cast ${temp.asMLIR()} : ${temp.type.toMLIR()} to ${type.toMLIR()}"
                     }
 
                     Prims.Comp.ARR_STORE -> {
@@ -406,7 +410,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val indecies = argArr(instr.args[1])
 
                         if (instr.outs[0].type is ArrayType) {
-                            // TODO: create subview primitive and use arr copy + arr load at higher level
+                            // TODO: create subview primitive and use arr copy + arr load at higher level (UPDATE: Why do that????)
                             subview(::newVar, body, instr.outs[0], arr, indecies)
                         } else {
                             body += Inst.memRefLoad(
@@ -566,7 +570,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val arr = instr.args[1]
 
                         val out = instr.outs[0]
-                        body += "${out.asMLIR()} = memref.reshape ${arr.asMLIR()}(${sha.asMLIR()}) :\n  (${arr.type.toMLIR()}, ${sha.type.toMLIR()}) to ${out.type.toMLIR()}"
+                        body += "${out.asMLIR()} = memref.reshape ${arr.asMLIR()}(${sha.asMLIR()}) :\n  (${arr.type.toMLIR()}, ${sha.type.toMLIR()}) -> ${out.type.toMLIR()}"
                     }
 
                     Prims.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]

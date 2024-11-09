@@ -5,12 +5,13 @@ import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
+import me.alex_s168.uiua.ir.transform.into
 
 val lowerShape = lowerPrimPass(Prims.SHAPE) { put, newVar, a ->
     val arr = args[0]
     val arrTy = arr.type as ArrayType
 
-    val dims = List(arrTy.shape.size) { dim ->
+    List(arrTy.shape.size) { dim ->
         val const = newVar().copy(type = Types.size)
         put(IrInstr(
             mutableListOf(const),
@@ -26,11 +27,5 @@ val lowerShape = lowerPrimPass(Prims.SHAPE) { put, newVar, a ->
         ))
 
         v
-    }.wrapInArgArray(newVar, put = put)
-
-    put(IrInstr(
-        mutableListOf(outs[0]),
-        PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
-        mutableListOf(dims)
-    ))
+    }.wrapInArgArray(newVar, put = put).into(outs[0], put)
 }.parallelWithoutDeepCopy()

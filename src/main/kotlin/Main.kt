@@ -26,9 +26,7 @@ import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
-// TODO: use block uid for call instrs
 // TODO: fast contains on RefVec
-// TODO: use ids for primitives
 // TODO: RefVec remove methods (remove range, remove if, ...)
 
 fun anonFnName(): String =
@@ -130,8 +128,6 @@ var log = { str: String ->
     println(str)
 }
 
-// TODO: (REALLY IMPORTANT!!!!!) completely get rid of arg arr materialize, and use arg arrs everywhere, and emit arg arrs as materialize in emit mlir
-
 val inlineConfig = Inline.none
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
@@ -212,8 +208,6 @@ fun main() {
         fun <A> GlobalPass<A>.setArg(v: A): GlobalPass<Unit> =
             GlobalPass(name) { b, _ -> this@setArg.internalRun(b, v) }
 
-        // TODO: fix argrem
-
         val passes = listOf(
             lowerUnTranspose.generic(),
             lowerTranspose.generic(),
@@ -261,9 +255,7 @@ fun main() {
             lowerLen.generic(),
             // boundsChecking.generic(),  // TODO only for pick
             evalDim.generic(),
-            remUnused.generic(), // before materialize!
-            remArrMat.generic(),
-            lowerMaterialize.generic(),
+            remUnused.generic(),
 
             lowerFill.generic(),
             fixFnTypes.generic(),
@@ -332,6 +324,8 @@ fun main() {
             dce.generic(),
             dse.setArg(exported).generic(),
             fixFnTypes.generic(),
+
+            argArrMat.generic(),
         )
 
         val compile = File(".out.uac").printWriter().use { file ->

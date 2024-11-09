@@ -18,14 +18,5 @@ val lowerArrImm = lowerPass("lower arr imm", { it.instr is ArrImmInstr }) { put,
         .mapA { it.map { it.toDouble() } }
         .flatten()
 
-    val arrType = outs[0].type as ArrayType
-
-    val arr = newVar().copy(type = arrType)
-    constantArr(arr, newVar, *values.toDoubleArray(), put = put)
-
-    put(IrInstr(
-        mutableListOf(outs[0]),
-        PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
-        mutableListOf(arr)
-    ))
+    constantArr(outs[0], newVar, *values.toDoubleArray(), put = put)
 }.parallelWithoutDeepCopy()

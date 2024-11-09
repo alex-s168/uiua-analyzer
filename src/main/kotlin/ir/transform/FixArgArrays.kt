@@ -16,7 +16,7 @@ private fun genFor(prim: Prim, argIdx: Int) =
             a.origin(args[argIdx])?.let { !a.isPrim(it, Prims.Comp.ARG_ARR) } ?: false
         },
         { put, newVar, a ->
-            val sha = a.argArrVar(args[argIdx])
+            val sha = args[argIdx]
 
             require(sha.type is ArrayType)
             require(sha.type.length != null)

@@ -69,17 +69,10 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             ))
         }
         else {
-            val newShape = a.argArrVar(args[0])
+            val newShape = args[0]
 
             // val newShapeV = a.origin(args[0])!!.args.toList()
             val oldValue = args[1]
-
-            val matNewShape = newVar().copy(type = newShape.type)
-            put(IrInstr(
-                mutableListOf(matNewShape),
-                PrimitiveInstr(Prims.Comp.ARR_MATERIALIZE),
-                mutableListOf(newShape)
-            ))
 
             val des = newVar().copy(type = Types.array((oldValue.type as ArrayType).inner))
             put(IrInstr(
@@ -88,7 +81,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
                 mutableListOf(oldValue)
             ))
 
-            val newShapeMul = reduce(matNewShape, put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
+            val newShapeMul = reduce(newShape, put, putBlock, a.block.ref, newVar, Types.size) { a, b, res ->
                 instrs += IrInstr(
                     mutableListOf(res),
                     PrimitiveInstr(Prims.MUL),

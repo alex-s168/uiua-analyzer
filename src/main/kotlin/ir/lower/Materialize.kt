@@ -5,18 +5,28 @@ import me.alex_s168.uiua.PrimitiveInstr
 import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.transform.constantArr
-import me.alex_s168.uiua.ir.lowerPrimPass
+import me.alex_s168.uiua.ir.modifyPass
 import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
+import me.alex_s168.uiua.ArrayType
+import me.alex_s168.uiua.FnType
 
-val lowerMaterialize = lowerPrimPass(Prims.Comp.ARR_MATERIALIZE) { put, newVar, a ->
-    val data = a.origin(args[0])!!.args
+val argArrMat = modifyPass(
+    "arg array materialize",
+    Prims.Comp.ARG_ARR,
+    {true}
+) { put, newVar, a ->
+    val data = args
+    val ty = outs[0].type as ArrayType
+
+    if (ty.inner is FnType)
+        return@modifyPass
 
     val shape = constantArr(newVar, data.size.toDouble(), type = Types.size, put = put)
 
     put(IrInstr(
-        mutableListOf(outs[0]),
-        PrimitiveInstr(Prims.Comp.ARR_ALLOC),
-        mutableListOf(shape)
+        mutableListOf(),
+        PrimitiveInstr(Prims.Comp.EMIT_ARR_ALLOC_P),
+        mutableListOf(outs[0], shape)
     ))
 
     data.forEachIndexed { index, src ->

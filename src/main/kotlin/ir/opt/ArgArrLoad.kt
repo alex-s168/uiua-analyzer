@@ -9,13 +9,15 @@ val argArrLoad = modifyPass(
     Prims.Comp.ARR_LOAD,
     {true}
 ) { put, newVar, a ->
-    val argArr =
-        a.deepOriginV2(a.argArrVar(args[0]))?.a?.second
-            ?: return@modifyPass
+    val argArr = a.origin(args[0]) 
+        ?: return@modifyPass
+
     if (!a.isPrim(argArr, Prims.Comp.ARG_ARR))
         return@modifyPass
+
     val idx = a.argArrAsConsts(args[1])
         ?: return@modifyPass
+
     if (idx.size != 1)
         return@modifyPass
 

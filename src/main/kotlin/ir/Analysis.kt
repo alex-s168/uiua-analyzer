@@ -355,7 +355,6 @@ class Analysis(val block: IrBlock) {
         when (instr.instr) {
             is PrimitiveInstr -> when (instr.instr.id) {
                 Prims.Comp.USE,
-                Prims.Comp.ARR_MATERIALIZE,
                 Prims.Comp.DIM,
                 Prims.ADD,
                 Prims.SUB,
@@ -476,9 +475,7 @@ class Analysis(val block: IrBlock) {
     ): Either<List<Double>, List<IrVar>>? =
         deepOriginV2(arr, callerInstrsWrap)?.a?.second
             ?.let {
-                if (isPrim(it, Prims.Comp.ARR_MATERIALIZE))
-                    argArr(it.args[0], callerInstrsWrap)
-                else if (it.instr is ArrImmInstr)
+                if (it.instr is ArrImmInstr)
                     it.instr.values
                         .mapA { it.map(Int::toDouble) }
                         .flatten()
@@ -525,13 +522,6 @@ class Analysis(val block: IrBlock) {
 
             else -> false
         }
-
-    fun argArrVar(v: IrVar): IrVar =
-        deepOriginV2(v)?.a?.second?.let {
-            if (isPrim(it, Prims.Comp.ARR_MATERIALIZE))
-                argArrVar(it.args[0])
-            else null
-        } ?: v
 
     companion object {
         val argArrayUsing = mapOf(
