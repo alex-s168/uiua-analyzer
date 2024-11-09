@@ -14,6 +14,7 @@ import blitz.str.unescape
 import blitz.str.splitWithNesting
 import blitz.switch
 import blitz.flatMap
+import blitz.collections.RefVec
 
 private fun parseInstrV2(input: JSON.Element): List<Instr> =
     when (input.kind) {
@@ -31,10 +32,15 @@ private fun parseInstrV2(input: JSON.Element): List<Instr> =
                 )
             } else {
                 val innerFn = args[1].asArr()[0].asArr()
+                var innerFnInstrs = innerFn[2].asArr()
+                // TODO: annoy kai about this and get him to change it
+                if (innerFnInstrs.size == 2 && innerFnInstrs[0].kind == JSON.Element.STR && innerFnInstrs[1].kind == JSON.Element.NUM)
+                    innerFnInstrs = RefVec.of(JSON.Element.newArr(innerFnInstrs))
+
                 listOf(
                     PushFnInstr(Function(
                         Either.ofA(anonFnName()),
-                        innerFn[2].asArr().flatMapTo(mutableListOf(), ::parseInstrV2),
+                        innerFnInstrs.flatMapTo(mutableListOf(), ::parseInstrV2),
                         Signature(innerFn[0].asNum().toInt(), innerFn[1].asNum().toInt()),
                         null, false
                     )),
