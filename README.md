@@ -8,7 +8,7 @@ uiuac development gets discussed on the [Uiua Discord server](https://discord.gg
 ## Advantages
 - no interpreter overhead (variables, op execution, error & type checking)
 - less memory and memory allocations required (because smaller element types in arrays can be used and array allocations are optimized away in most cases)
-- **vectorization trough operations**
+- **vectorization across multiple operations**
 - no need for optimizing specific code patterns: almost all ways of implementing code run at same speed
 - more cache and memory efficient array shapes can be chosen
 - code can be compiled for your current target, allowing for usage of processor extensions not present in every processor (for example AVX-512)
