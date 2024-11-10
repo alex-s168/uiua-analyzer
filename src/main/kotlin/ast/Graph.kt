@@ -25,7 +25,7 @@ fun List<ASTRoot>.genGraph(): String {
             ?: find { from in it.children }?.children
 
     fun trunc(it: String) =
-        if (it.length > 5) it.take(3) + "..."
+        if (it.length > 5) it.take(4) + "..."
         else it
 
     flattened.forEachIndexed { idx, it ->
@@ -47,7 +47,7 @@ fun List<ASTRoot>.genGraph(): String {
             val label = v.value
                 .mapA {
                     when (it.instr) {
-                        is PrimitiveInstr -> "${it.instr.id}${ it.instr.param?.let { ":$it" } ?: "" }"
+                        is PrimitiveInstr -> "${Prims.all[it.instr.id]!!}${ it.instr.param?.let { ":$it" } ?: "" }"
 
                         is NumImmInstr -> it.instr.value.toString().let(::trunc)
 

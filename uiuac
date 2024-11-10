@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+parent_path=$(dirname -- "$(readlink -f -- "$BASH_SOURCE")")
+rt="$parent_path/rt"
+args="--rt=$rt $@"
+./gradlew run --args="$args"

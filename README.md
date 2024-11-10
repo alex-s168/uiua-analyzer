@@ -1,5 +1,7 @@
 # Uiua Compiler
-[Uiua](https://uiua.org) native compiler using MLIR and LLVM
+[Uiua](https://uiua.org) native compiler using MLIR and LLVM.
+
+uiuac can also be used to generate a graph of your code.
 
 uiuac development gets discussed on the [Uiua Discord server](https://discord.gg/FKJPwHxM), in [this thread](https://discord.com/channels/1156339038748413952/1247846178645872661).
 
@@ -38,13 +40,21 @@ this project is still very WIP, but you can already compile simple uiua programs
 To do that, you need Clang, MLIR, and a JDK installed.
 You need the following things in your path: `clang`, `mlir-opt`, `mlir-translate`.
 
-run this in the repo root:
+You need to run this once if you want to build executables
 ```shell
-# you only need to do these once 
+# compile uiuac runtime
 cd rt && ./build.sh && cd ..
-
-uiua build [uiua file] -o test.uasm
-./gradlew run
-
-# you now should have a .out.exe, which you can execute
 ```
+
+Now you are ready to compile uiua programs.
+If you have bash installed, run:
+```shell
+./uiuac --pipeline="uiua->exe" --in=MyUiuaFile.ua --out=out.exe
+```
+
+If you don't have bash installed, run (not recommended):
+```shell
+./gradlew run --args "--pipeline=uiua->exe --in=MyUiuaFile.ua --out=out.exe"
+```
+
+for more features (like generating graphs), see the help text (`./uiuac --help` or `./gradlew run --args "--help"`)

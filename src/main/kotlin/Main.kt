@@ -160,247 +160,477 @@ class ConcurrentLogger(private val dest: Writer) {
     }
 }
 
-fun main() {
-    File(".log.txt").bufferedWriter().use { logwriter ->
-        log = ConcurrentLogger(logwriter)::log
+fun <R> stage(name: String, fn: () -> R): R {
+    print("$name: ")
+    var result: R
+    val ms = measureTimeMillis {
+        result = fn()
+    }
+    println("$ms ms")
+    return result
+}
 
-        val test = File("test.uasm").readText()
-        val assembly = Assembly.parse(test)
+data class Stages(
+    val first: Stage,
+    val last: Stage,
+) {
+    init {
+        val fromId = Stage.entries.indexOf(first)
+        val toId = Stage.entries.indexOf(last)
+        if (fromId >= toId)
+            error("cannot compile in this order of stages")
+    }
 
-        val astNodes = mutableListOf<ASTRoot>()
-        val blocks = assembly.functions.toIr(astNodes)
+    companion object {
+        private val splitAt = CharArray(26){'A'+it} + '_'
+        val stages = listOf(
+            "uiua", "uasm",
+            "graph", "raw_uac",
+            "lowered_uac", "opt_uac",
+            "raw_mlir", "opt_mlir",
+            "llvm",
+            "obj", "exe"
+        )
 
-        File(".ast.dot").writer().use { w ->
-            w.append(astNodes.genGraph())
+        init {
+            assert(stages.size == Stage.entries.size)
         }
 
-        val old = blocks.keys.toList()
-        val exported = listOf(
-            blocks.find("fn")!!.expandFor(
-                listOf(
-                    //Types.array(Types.array(Types.int)),
-                ), blocks::putBlock
+        fun parseStage(str: String): Stage =
+           Stage.entries[stages.indexOf(str)]
+
+        fun parse(arg: String): Stages {
+            val spl = arg
+                .split("->")
+                .map(String::trim)
+
+            val err = "expected compilation stage range in format: A->B"
+            return when (spl.size) {
+                2 -> Stages(
+                    parseStage(spl[0]),
+                    parseStage(spl[1]),
+                )
+
+                else -> error(err)
+            }
+        }
+    }
+
+    enum class Stage {
+        Uiua,
+        Uasm,
+        Graph,
+        RawUac,
+        LoweredUac,
+        OptUac,
+        RawMlir,
+        OptMlir,
+        Llvm,
+        Obj,
+        Exe,
+    }
+}
+
+data class Settings(
+    val stages: Stages,
+    val mainFn: String,
+    val inUiua: String?,
+    val inUasm: String,
+    val logFile: String,
+    val graphOutFile: String? = null,
+    val genUac: String? = null,
+    val loweredUac: String? = null,
+    val optUac: String? = null,
+    val genMlir: String,
+    val optMlir: String,
+    val genLlvm: String,
+    val outObj: String,
+    val outExe: String,
+    val rtDir: String,
+) {
+    companion object {
+        fun parse(defaultRt: String, argsIn: List<String>): Settings {
+            val args = argsIn
+                .associate { it.substringAfter("--").split("=").let { (a, b) -> a to b } }
+
+            val stages = Stages.parse(args["pipeline"] ?: error("required argument \"pipeline\" not set"))
+
+            val out = args["out"] ?: error("required argument \"out\" not set")
+
+            fun temp(ext: String) = File.createTempFile("uiuac_", ext).absolutePath
+
+            val inp = args["in"] ?: error("required argument \"in\" not set")
+
+            return Settings(
+                stages,
+                args["main-fn"] ?: "fn",
+                if (stages.first == Stages.Stage.Uiua) inp else null,
+                if (stages.first == Stages.Stage.Uasm) inp else temp(".uasm"),
+                args["log"] ?: ".log.txt",
+                if (stages.last == Stages.Stage.Graph) out else null,
+                if (stages.last == Stages.Stage.RawUac) out else null,
+                if (stages.last == Stages.Stage.LoweredUac) out else null,
+                if (stages.last == Stages.Stage.OptUac) out else null,
+                if (stages.last == Stages.Stage.RawMlir) out else temp(".in.mlir"),
+                if (stages.last == Stages.Stage.OptMlir) out else temp(".opt.mlir"),
+                if (stages.last == Stages.Stage.Llvm) out else temp(".llc"),
+                if (stages.last == Stages.Stage.Obj) out else temp(".o"),
+                if (stages.last == Stages.Stage.Exe) out else temp(".exe"),
+                args["rt"] ?: defaultRt
             )
-        )
-        old.forEach(blocks::remove)
+        }
+    }
+}
+
+fun main(args: Array<String>) {
+    if (args.size == 0 || arrayOf("-h", "--h", "-help", "--help").any { it in args }) {
+        println("""
+Array Language Compiler
+
+Example:
+    uiuac --pipeline=uiua->exe --in="my_uiua_code.ua" --out="my_exe.exe"
+
+Arguments:
+    --pipeline=[fmt]->[fmt]  specify from which file format to compile to which file format. available:
+        uiua        (uiua source code)
+        uasm        (uiua assembly)
+        graph       (DOT graph of the syntax tree)
+        raw_uac     (uiuac IR before any passes)
+        lowered_uac (uiuac IR after lowering high-level primives)
+        opt_uac     (uiuac IR after optimizations)
+        raw_mlir    (MLIR after conversion of uiuac IR to MLIR)
+        opt_mlir    (MLIR after mlir-opt)
+        llvm        (LLVM IR generated by mlir-translate)
+        obj         (Object file (ELF, COFF, ...))
+        exe         (Executable file (ELF, PE, ...))
+
+    --in=[path]     input file path
+
+    --out=[path]    output file path
+
+    --main-fn=[str] which function to compile (default: "fn")
+                    setting this does not work if the pipeline ends with "exe"
+
+    --log=[path]    the path of the log file (default: ".log.txt")
+
+    --rt=[path]     path to the "rt" directory in the uiuac git repository
+        """)
+        return
+    }
+
+    var defaultRt = "rt"
+    val otherRt = File(File(args[0]).parentFile.parentFile.parentFile.parentFile, "rt")
+    if (otherRt.exists())
+        defaultRt = otherRt.absolutePath
+    compile(Settings.parse(defaultRt, args.drop(1)))
+}
+
+@JvmName("generic_1")
+private fun Pass<Unit>.generic(): Pass<(IrBlock) -> Unit> =
+    Pass(name) { b, _ -> internalRun(b, Unit) }
+
+@JvmName("generic_2")
+private fun GlobalPass<Unit>.generic(): GlobalPass<(IrBlock) -> Unit> =
+    GlobalPass(name) { b, _ -> internalRun(b, Unit) }
+
+@JvmName("generic_3")
+private fun Pass<(IrBlock) -> Unit>.generic() =
+    this
+
+@JvmName("generic_4")
+private fun GlobalPass<(IrBlock) -> Unit>.generic() =
+    this
+
+private fun <A> GlobalPass<A>.setArg(v: A): GlobalPass<Unit> =
+    GlobalPass(name) { b, _ -> this@setArg.internalRun(b, v) }
+
+private fun lowerPasses(exported: List<BlockId>) = listOf(
+    lowerUnTranspose.generic(),
+    lowerTranspose.generic(),
+    lowerJoin.generic(),
+    lowerUnCouple.generic(),
+    lowerReduceDepth.generic(),
+    lowerDup.generic(),
+    lowerOver.generic(),
+    lowerFlip.generic(),
+    inlineCUse.generic(),
+    remUnused.generic(),
+    lowerPervasive.generic(),
+    lowerUnShape.generic(),
+    lowerReshape.generic(),
+    lowerDeshape.generic(),
+    lowerEach.generic(),
+    lowerTable.generic(),
+    lowerRows.generic(),
+    comptimeReduceEval.generic(),
+    lowerReduce.generic(),
+    lowerRange.generic(),
+    lowerReverse.generic(),
+    lowerFix.generic(),
+    lowerPick.generic(),
+    lowerUndoPick.generic(),
+    lowerBox.generic(),
+    lowerUnBox.generic(),
+    lowerArrImm.generic(),
+    boxConv.generic(),
+    lowerBoxLoad.generic(),
+    lowerBoxStore.generic(),
+    lowerBoxCreate.generic(),
+    lowerBoxDestroy.generic(),
+
+    inlineCUse.generic(),
+    fixArgArrays.generic(),
+    argArrLoad.generic(),
+    inlineCUse.generic(),
+
+    lifetimes.generic(),
+    remClone.generic(),
+
+    lowerClone.generic(),
+    lowerShape.generic(),
+    lowerLen.generic(),
+    // boundsChecking.generic(),  // TODO only for pick
+    evalDim.generic(),
+    remUnused.generic(),
+
+    lowerFill.generic(),
+    fixFnTypes.generic(),
+
+    //verifyBlock.generic(),
+)
+
+private fun optPasses(exported: List<BlockId>) = listOf(
+    inlineCUse.generic(),
+    fixArgArrays.generic(),
+    argArrLoad.generic(),
+    inlineCUse.generic(),
+    unrollLoop.generic(),
+
+    //oneBlockOneCaller.generic(),
+    //constantTrace.generic(),
+    //funcInline.generic(),
+
+    // TODO: !!!! fix switch move
+
+    //switchDependentCodeMovement.generic(),
+    fixFnTypes.generic(),
+
+    remUnused.generic(),
+    dce.generic(),
+    dse.setArg(exported).generic(),
+    remUnused.generic(),
+    //switchDependentCodeMovement.generic(),
+    fixFnTypes.generic(),
+    remUnused.generic(),
+    //remComments.generic(),
+    //oneBlockOneCaller.generic(),
+    //argRem.generic(),
+    //switchDependentCodeMovement.generic(),
+    fixFnTypes.generic(),
+    //oneBlockOneCaller.generic(),
+    //constantTrace.generic(),
+    funcInline.generic(),
+    funcInline.generic(),
+    funcInline.generic(),
+    funcInline.generic(),
+    //switchIndependentTrailingCodeMovement.generic(),
+    fixFnTypes.generic(),
+    dse.setArg(exported).generic(),
+    //licm.generic(),
+    //loopUnswitch.generic(),
+    remUnused.generic(),
+    emptyArrayOpsRemove.generic(),
+    dce.generic(),
+    remUnused.generic(),
+    funcInline.generic(),
+    dce.generic(),
+    remUnused.generic(),
+    deadRetsRem.generic(),
+    deadRetsRem.generic(),
+    deadRetsRem.generic(),
+    remUnused.generic(),
+    dce.generic(),
+    //identicalSwitchRem.generic(), // TODO: fix
+    //fixFnTypes.generic(),
+    //argRem.generic(),
+    remUnused.generic(),
+    dce.generic(),
+    //argRem.generic(),
+    remUnused.generic(),
+    dce.generic(),
+    dse.setArg(exported).generic(),
+    fixFnTypes.generic(),
+)
+
+private fun preEmitPasses(exported: List<BlockId>) = listOf(
+    argArrMat.generic(),
+)
+
+fun compile(cfg: Settings) {
+    if (cfg.stages.last == Stages.Stage.Exe) {
+        if (!File(cfg.rtDir).exists()) {
+            println("set argument \"rt\" to point to a correct path (see \"--help\")")
+            exitProcess(1)
+        }
+
+        if (!File(cfg.rtDir + "/build/rt_part0.a").exists()) {
+            println("You did not build the uiuac runtime! See the README.md in the uiuac git repo")
+            exitProcess(1)
+        }
+    }
+
+    File(cfg.logFile).bufferedWriter().use { logwriter ->
+        log = ConcurrentLogger(logwriter)::log
+
+        fun run(cmd: List<String>) {
+            println("\$ ${cmd.joinToString(" ")}")
+            if (Runtime.getRuntime().exec(cmd.toTypedArray()).waitFor() == 0)
+                return
+            println("could not run command")
+            exitProcess(1)
+        }
+
+        when (cfg.stages.first) {
+            Stages.Stage.Uiua -> stage("parse uiua") {
+                run(listOf("uiua", "build", cfg.inUiua!!, "-o", cfg.inUasm))
+            }
+
+            Stages.Stage.Uasm -> {}
+
+            else -> error("using anything but a .ua or .uasm file as input is currently not suppported")
+        }
+
+        if (cfg.stages.last == Stages.Stage.Uasm)
+            return@use
+
+        val (assembly, blocks) = stage("generating AST") {
+            val test = File(cfg.inUasm).readText()
+            val assembly = Assembly.parse(test)
+
+            val astNodes = mutableListOf<ASTRoot>()
+            val blocks = assembly.functions.toIr(astNodes)
+            
+            cfg.graphOutFile?.let(::File)?.writer()?.use { w ->
+                w.append(astNodes.genGraph())
+            }
+
+            assembly to blocks
+        }
+
+        if (cfg.stages.last == Stages.Stage.Graph)
+            return@use
+
+        val exported = stage("typechecking") {
+            val old = blocks.keys.toList()
+            val exported = listOf(
+                blocks
+                    .find(cfg.mainFn)!!
+                    .expandFor(listOf(), blocks::putBlock)
+            )
+            old.forEach(blocks::remove)
+        
+            exported
+        }
 
         exported.forEach { blocks[it]!!.private = false }
 
-        File(".in.uac").writer().use { w ->
+        cfg.genUac?.let(::File)?.writer()?.use { w ->
             blocks.values.forEach {
                 w.append(it.toString())
                 w.append("\n\n")
             }
         }
 
-        fun Pass<Unit>.generic(): Pass<(IrBlock) -> Unit> =
-            Pass(name) { b, _ -> internalRun(b, Unit) }
+        if (cfg.stages.last == Stages.Stage.RawUac)
+            return@use
 
-        fun GlobalPass<Unit>.generic(): GlobalPass<(IrBlock) -> Unit> =
-            GlobalPass(name) { b, _ -> internalRun(b, Unit) }
-
-        fun Pass<(IrBlock) -> Unit>.generic() =
-            this
-
-        fun GlobalPass<(IrBlock) -> Unit>.generic() =
-            this
-
-        fun <A> GlobalPass<A>.setArg(v: A): GlobalPass<Unit> =
-            GlobalPass(name) { b, _ -> this@setArg.internalRun(b, v) }
-
-        val passes = listOf(
-            lowerUnTranspose.generic(),
-            lowerTranspose.generic(),
-            lowerJoin.generic(),
-            lowerUnCouple.generic(),
-            lowerReduceDepth.generic(),
-            lowerDup.generic(),
-            lowerOver.generic(),
-            lowerFlip.generic(),
-            inlineCUse.generic(),
-            remUnused.generic(),
-            lowerPervasive.generic(),
-            lowerUnShape.generic(),
-            lowerReshape.generic(),
-            lowerDeshape.generic(),
-            lowerEach.generic(),
-            lowerTable.generic(),
-            lowerRows.generic(),
-            comptimeReduceEval.generic(),
-            lowerReduce.generic(),
-            lowerRange.generic(),
-            lowerReverse.generic(),
-            lowerFix.generic(),
-            lowerPick.generic(),
-            lowerUndoPick.generic(),
-            lowerBox.generic(),
-            lowerUnBox.generic(),
-            lowerArrImm.generic(),
-            boxConv.generic(),
-            lowerBoxLoad.generic(),
-            lowerBoxStore.generic(),
-            lowerBoxCreate.generic(),
-            lowerBoxDestroy.generic(),
-
-            inlineCUse.generic(),
-            fixArgArrays.generic(),
-            argArrLoad.generic(),
-            inlineCUse.generic(),
-
-            lifetimes.generic(),
-            remClone.generic(),
-
-            lowerClone.generic(),
-            lowerShape.generic(),
-            lowerLen.generic(),
-            // boundsChecking.generic(),  // TODO only for pick
-            evalDim.generic(),
-            remUnused.generic(),
-
-            lowerFill.generic(),
-            fixFnTypes.generic(),
-
-            globalPrint.setArg { File(".preOpt.uac").printWriter().use(it) }.generic(),
-
-            //verifyBlock.generic(),
-
-            inlineCUse.generic(),
-            fixArgArrays.generic(),
-            argArrLoad.generic(),
-            inlineCUse.generic(),
-            unrollLoop.generic(),
-
-            //oneBlockOneCaller.generic(),
-            //constantTrace.generic(),
-            //funcInline.generic(),
-
-            // TODO: !!!! fix switch move
-
-            //switchDependentCodeMovement.generic(),
-            fixFnTypes.generic(),
-
-            remUnused.generic(),
-            dce.generic(),
-            dse.setArg(exported).generic(),
-            remUnused.generic(),
-            //switchDependentCodeMovement.generic(),
-            fixFnTypes.generic(),
-            remUnused.generic(),
-            //remComments.generic(),
-            //oneBlockOneCaller.generic(),
-            //argRem.generic(),
-            //switchDependentCodeMovement.generic(),
-            fixFnTypes.generic(),
-            //oneBlockOneCaller.generic(),
-            //constantTrace.generic(),
-            funcInline.generic(),
-            funcInline.generic(),
-            funcInline.generic(),
-            funcInline.generic(),
-            //switchIndependentTrailingCodeMovement.generic(),
-            fixFnTypes.generic(),
-            dse.setArg(exported).generic(),
-            //licm.generic(),
-            //loopUnswitch.generic(),
-            remUnused.generic(),
-            emptyArrayOpsRemove.generic(),
-            dce.generic(),
-            remUnused.generic(),
-            funcInline.generic(),
-            dce.generic(),
-            remUnused.generic(),
-            deadRetsRem.generic(),
-            deadRetsRem.generic(),
-            deadRetsRem.generic(),
-            remUnused.generic(),
-            dce.generic(),
-            //identicalSwitchRem.generic(), // TODO: fix
-            //fixFnTypes.generic(),
-            //argRem.generic(),
-            remUnused.generic(),
-            dce.generic(),
-            //argRem.generic(),
-            remUnused.generic(),
-            dce.generic(),
-            dse.setArg(exported).generic(),
-            fixFnTypes.generic(),
-
-            argArrMat.generic(),
-        )
-
-        val compile = File(".out.uac").printWriter().use { file ->
-            val res = runCatching {
-                passes.apply(blocks)
+        val res = runCatching {
+            stage("lowering primitives") {
+                lowerPasses(exported).apply(blocks)
+            }
+            cfg.loweredUac?.let(::File)?.printWriter()?.use { file ->
+                blocks.values.forEach {
+                    file.println(it)
+                    file.println("\n\n")
+                }
             }
 
-            blocks.values.forEach {
-                file.println(it)
-                file.println()
+            if (cfg.stages.last == Stages.Stage.LoweredUac)
+                return@use
+
+            stage("optimizing") {
+                optPasses(exported).apply(blocks)
+            }
+            cfg.optUac?.let(::File)?.printWriter()?.use { file ->
+                blocks.values.forEach {
+                    file.println(it)
+                    file.println("\n\n")
+                }
             }
 
-            res.onFailure {
-                log("================================================================================")
-                log("in apply pass pipeline")
-                throw it
-            }
+            if (cfg.stages.last == Stages.Stage.OptUac)
+                return@use
 
-            blocks.values.toSet()
+            preEmitPasses(exported).apply(blocks)
         }
+        res.onFailure {
+            log("================================================================================")
+            log("in apply pass pipeline")
+            throw it
+        }
+        val compile = blocks.values.toSet()
 
         log("emitting MLIR...")
 
-        val out = StringBuilder()
-        out.append(loadRes("runtime.mlir")!!)
-        out.append("\n\n")
+        File(cfg.genMlir).printWriter().use { file ->
+            file.println(loadRes("runtime.mlir")!!)
+            file.println("\n")
 
-        compile.forEach { block ->
-            out.append(block.emitMLIRFinalize(block.emitMLIR { loc ->
-                listOf(assembly.spans
-                    .gather(loc.uasmSpanIdc)
-                    .joinToString()
-                    .let { "// source: $it" })
-            }))
-            out.append("\n\n")
+            stage("emitting MLIR") {
+                compile.forEach { block ->
+                    file.println(block.emitMLIRFinalize(block.emitMLIR { loc ->
+                        listOf(assembly.spans
+                            .gather(loc.uasmSpanIdc)
+                            .joinToString()
+                            .let { "// source: $it" })
+                    }))
+                }
+                Unit
+            }
         }
 
-        val inMlir = ".in.mlir"
-        val optMlir = ".opt.mlir"
-        val outLlc = ".out.llc"
-        val outObj = ".out.o"
-        val outExe = ".out.exe"
-
-        File(inMlir).writeText(out.toString())
+        if (cfg.stages.last == Stages.Stage.RawMlir)
+            return@use
 
         val mlirOpt = "mlir-opt"
         val mlirTranslate = "mlir-translate"
         val clang = "clang"
-        val llvmLower = true
-        val enableBufferDealloc = false
+
+        val enableBufferDealloc = false // TODO
 
         val bufferDealloc =
             if (enableBufferDealloc) "ownership-based-buffer-deallocation, buffer-deallocation-simplification, " else ""
         val mlirPipeline =
-            if (llvmLower) "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
+            if (cfg.stages.last != Stages.Stage.OptMlir) "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize, memref-expand, expand-strided-metadata, lower-affine, math-uplift-to-fma, finalize-memref-to-llvm, convert-scf-to-cf, convert-to-llvm, reconcile-unrealized-casts, canonicalize)"
             else "-pass-pipeline=builtin.module(func(cse, canonicalize), sccp, sroa, inline, symbol-dce, canonicalize, loop-invariant-code-motion, control-flow-sink, loop-invariant-subset-hoisting, control-flow-sink, scf-forall-to-for, canonicalize, one-shot-bufferize, func.func(buffer-loop-hoisting), ${bufferDealloc}func.func(promote-buffers-to-stack{max-alloc-size-in-bytes=512}), convert-bufferization-to-memref, control-flow-sink, canonicalize)"
         val mlirOptFlags = listOf(mlirPipeline)
         val mlirTranslateFlags = listOf("--mlir-to-llvmir")
         val clangFlags = listOf("-x", "ir")
 
-        fun Unit.run(cmd: List<String>): Unit? {
-            println("\$ ${cmd.joinToString(" ")}")
-            if (Runtime.getRuntime().exec(cmd.toTypedArray()).waitFor() == 0)
-                return Unit
-            return null
-        }
+        run(listOf(mlirOpt, "-o", cfg.optMlir, cfg.genMlir) + mlirOptFlags)
+        if (cfg.stages.last == Stages.Stage.OptMlir)
+            return@use
 
-        Unit.run(listOf(mlirOpt, "-o", optMlir, inMlir) + mlirOptFlags)
-            ?.run(listOf(mlirTranslate, "-o", outLlc, optMlir) + mlirTranslateFlags)
-            ?.run(listOf(clang, "-c", "-O3", "-march=native", "-o", outObj) + clangFlags + outLlc)
-            ?.run(listOf(clang, outObj, "rt/build/rt_part0.a", "-o", outExe))
-            ?.let { println("Generated $outExe") }
-            ?: run {
-                println("Could not compile to object file!")
-                exitProcess(1)
-            }
+        run(listOf(mlirTranslate, "-o", cfg.genLlvm, cfg.optMlir) + mlirTranslateFlags)
+        if (cfg.stages.last == Stages.Stage.Llvm)
+            return@use
+
+        run(listOf(clang, "-c", "-O3", "-march=native", "-o", cfg.outObj) + clangFlags + cfg.genLlvm)
+        if (cfg.stages.last == Stages.Stage.Obj)
+            return@use
+
+        run(listOf(clang, cfg.outObj, cfg.rtDir + "/build/rt_part0.a", "-o", cfg.outExe))
+
+        println("Generated ${cfg.outExe}")
     }
 }
