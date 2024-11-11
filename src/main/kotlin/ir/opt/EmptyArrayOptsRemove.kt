@@ -11,10 +11,7 @@ private fun emptyArray(block: IrBlock, arr: IrVar, putBlock: (IrBlock) -> Unit) 
         .filterNotNull()
         .toList()
         .forEach {
-            if (a.isPrim(it, Prims.Comp.ARR_COPY)) {
-                block.instrs.remove(it)
-            }
-            else if (a.isPrim(it, Prims.Comp.ARR_LOAD)) {
+            if (a.isPrim(it, Prims.Comp.ARR_LOAD)) {
                 val idx = block.instrs.indexOf(it)
                 block.instrs.add(idx, IrInstr(
                     mutableListOf(),

@@ -2,13 +2,11 @@ package me.alex_s168.uiua.mlir
 
 import blitz.collections.contents
 import blitz.collections.mapToArray
-import blitz.mapB
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
-import me.alex_s168.uiua.ir.transform.constantArr
 import me.alex_s168.uiua.mlir.Inst.pDests
 
 fun IrVar.asMLIR(): MLIRVar =
@@ -389,6 +387,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val value = instr.args[2]
 
                         if (value.type is ArrayType) {
+                            // TODO: do in higher level
                             val view = subview(::newVar, body, arr, indecies)
                                 .let { it.copy(type = (it.type as ArrayType).copy(vaOff = true)) }
                             memRefCopy(view, value)
@@ -402,17 +401,14 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
                     }
 
-                    Prims.Comp.ARR_COPY -> {
-                        // TODO: move to lowering pass (before loop unroll)
-                        memRefCopy(instr.args[0], instr.args[1])
-                    }
+                    Prims.Comp.ARR_COPY -> error("no")
 
                     Prims.Comp.ARR_LOAD -> {
                         val arr = instr.args[0]
                         val indecies = argArr(instr.args[1])
 
                         if (instr.outs[0].type is ArrayType) {
-                            // TODO: create subview primitive and use arr copy + arr load at higher level (UPDATE: Why do that????)
+                            // TODO: create subview primitive and use arr copy + arr load at higher level
                             subview(::newVar, body, instr.outs[0], arr, indecies)
                         } else {
                             body += Inst.memRefLoad(

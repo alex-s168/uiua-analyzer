@@ -139,8 +139,22 @@ private fun parseInstr(instrIn: String): Instr? {
         Regex("\"(.*)\"") startsWithCase {
             FlagInstr(it.groupValues[1])
         },
-        Regex("(?i)comment *(.*?)") startsWithCase {
+        Regex("(?i)comment *(.*)") startsWithCase {
             CommentInstr(it.groupValues[1])
+        },
+        Regex("(?i)push *(.*)") startsWithCase {
+            val j = JSON.parse(it.groupValues[1]).unwrap()
+            when (j.kind) {
+                JSON.Element.NUM -> NumImmInstr(j.asNum())
+                JSON.Element.ARR -> ArrImmInstr(Types.array(Types.double, j.asArr().size), Either.ofB(j.asArr().map { it.asNum() }))
+                else -> error("")
+            }
+        },
+        Regex("(?i)(?:impl)?prim *(.*)") startsWithCase {
+            val j = JSON.parse(it.groupValues[1]).unwrap().asArr()
+            PrimitiveInstr(
+                Prims.all2[j[0].asStr()]!!
+            )
         }
     ) { s ->
         kotlin.runCatching {

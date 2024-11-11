@@ -6,7 +6,7 @@ import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.fullUnrollLoop
 import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.Pass
-import me.alex_s168.uiua.ir.transform.constants
+import me.alex_s168.uiua.ir.transform.constant
 
 val unrollLoop = Pass<Unit>("full unroll loop") { block, _ ->
     val a = Analysis(block)
@@ -25,8 +25,6 @@ val unrollLoop = Pass<Unit>("full unroll loop") { block, _ ->
             ?.toInt()
             ?: return@forEach
 
-        println("begin: $begin, end: $end")
-
         val count = end - begin + 1
 
         if (!fullUnrollLoop(block, count))
@@ -40,7 +38,7 @@ val unrollLoop = Pass<Unit>("full unroll loop") { block, _ ->
         a.transform(listOf(instr)) { put, newVar ->
             var iter = begin
             while (iter <= end) {
-                val (iterConst) = constants(newVar, iter.toDouble(), type = Types.size, put = put)
+                val iterConst = constant(iter.toDouble(), Types.size, newVar, put)
 
                 val inline = fn.inlinableCopy(
                     cArgs = listOf(iterConst) + extra,

@@ -111,24 +111,25 @@ object Inline {
     val all = { block: IrBlock -> true }
     val none = { block: IrBlock -> false }
     fun lte(max: Int) =
-        { block: IrBlock -> block.instrs.size <= max }
+        { block: IrBlock -> block.instrs.filter { it.instr !is CommentInstr }.size <= max }
 }
 
 object UnrollLoop {
+    val none = { _: IrBlock, _: Int -> false }
     val all = { _: IrBlock, _: Int -> true }
     fun inlineCfg(i: (IrBlock) -> Boolean) =
         { block: IrBlock, _: Int -> i(block) }
     fun lteInlineCfg(maxLoopIters: Int, i: (IrBlock) -> Boolean) =
         { block: IrBlock, c: Int -> c <= maxLoopIters && i(block) }
     fun sumLte(max: Int) =
-        { block: IrBlock, c: Int -> block.instrs.size * c <= max }
+        { block: IrBlock, c: Int -> block.instrs.filter { it.instr !is CommentInstr }.size * c <= max }
 }
 
 var log = { str: String ->
     println(str)
 }
 
-val inlineConfig = Inline.lte(8)
+val inlineConfig = Inline.lte(16)
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
@@ -283,7 +284,7 @@ data class Settings(
 }
 
 fun main(args: Array<String>) {
-    if (args.size == 0 || arrayOf("-h", "--h", "-help", "--help").any { it in args }) {
+    if (args.isEmpty() || arrayOf("-h", "--h", "-help", "--help").any { it in args }) {
         println("""
 Array Language Compiler
 
@@ -318,11 +319,7 @@ Arguments:
         return
     }
 
-    var defaultRt = "rt"
-    val otherRt = File(File(args[0]).parentFile.parentFile.parentFile.parentFile, "rt")
-    if (otherRt.exists())
-        defaultRt = otherRt.absolutePath
-    compile(Settings.parse(defaultRt, args.drop(1)))
+    compile(Settings.parse("rt", args.toList()))
 }
 
 @JvmName("generic_1")
@@ -402,8 +399,11 @@ private fun lowerPasses(exported: List<BlockId>) = listOf(
 private fun optPasses(exported: List<BlockId>) = listOf(
     inlineCUse.generic(),
     fixArgArrays.generic(),
+    lowerArrCopy.generic(),
+    evalDim.generic(),
     argArrLoad.generic(),
     inlineCUse.generic(),
+    unrollLoop.generic(),
     unrollLoop.generic(),
 
     //oneBlockOneCaller.generic(),

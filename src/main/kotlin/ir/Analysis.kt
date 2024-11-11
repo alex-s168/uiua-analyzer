@@ -453,9 +453,15 @@ class Analysis(val block: IrBlock) {
         arr: IrVar,
         callerInstrsWrap: (IrBlock) -> Sequence<Pair<IrBlock, IrInstr>> = { Analysis(it).callerInstrs() }
     ): List<Either<Int, Pair<IrBlock, IrVar>>>? {
+        (arr.type as ArrayType).shape.let {
+            if (it.none { it == -1 })
+                return it.map { Either.ofA(it) }
+        }
+
         val (b, shape) = deepOriginV2(arr, callerInstrsWrap)?.a?.let { (b, v) ->
+            val a = Analysis(b)
             // TODO: make work for arg arr and materialize
-            if (Analysis(b).isPrim(v, Prims.Comp.ARR_ALLOC))
+            if (a.isPrim(v, Prims.Comp.ARR_ALLOC))
                 b.instrDeclFor(v.args[0])
                     ?.args
                     ?.let { b to it }
