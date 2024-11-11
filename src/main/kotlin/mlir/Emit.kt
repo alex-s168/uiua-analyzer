@@ -411,12 +411,14 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                             // TODO: create subview primitive and use arr copy + arr load at higher level
                             subview(::newVar, body, instr.outs[0], arr, indecies)
                         } else {
-                            body += Inst.memRefLoad(
-                                instr.outs[0].asMLIR(),
-                                arr.type.toMLIR(),
-                                arr.asMLIR(),
-                                *indecies.mapToArray { castIfNec(::newVar, body, it, Types.size).asMLIR() }
-                            )
+                            castLaterIfNec(::newVar, body, instr.outs[0], arr.type) { dest ->
+                                body += Inst.memRefLoad(
+                                    dest.asMLIR(),
+                                    arr.type.toMLIR(),
+                                    arr.asMLIR(),
+                                    *indecies.mapToArray { castIfNec(::newVar, body, it, Types.size).asMLIR() }
+                                )
+                            }
                         }
                     }
 

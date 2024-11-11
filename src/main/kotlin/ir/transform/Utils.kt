@@ -1,6 +1,7 @@
 package me.alex_s168.uiua.ir.transform
 
 import me.alex_s168.uiua.*
+import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
@@ -368,7 +369,7 @@ fun reduce(
 }
 
 fun repeat(
-    size: IrVar,
+    end: IrVar,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
     ref: Map<BlockId, IrBlock>,
@@ -397,18 +398,27 @@ fun repeat(
     put(IrInstr(
         mutableListOf(),
         PrimitiveInstr(Prims.Comp.REPEAT),
-        mutableListOf(zero, size, fnref).also { it += args }
+        mutableListOf(zero, end, fnref).also { it += args }
     ))
 }
 
 fun binary(prim: Prim, a: IrVar, b: IrVar, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar {
-    val t = newVar().copy(type = Types.size)
+    val t = newVar().copy(type = a.type.combine(b.type))
     put(IrInstr(
         mutableListOf(t),
         PrimitiveInstr(prim),
         mutableListOf(a, b)
     ))
     return t
+}
+
+fun decrement(v: IrVar, a: Analysis, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar {
+    a.constNum(v)?.let {
+        return constant(it - 1.0, type = v.type, newVar = newVar, put = put)
+    }
+
+    val c1 = constant(1.0, type = v.type, newVar = newVar, put = put)
+    return binary(Prims.SUB, c1, v, newVar, put)
 }
 
 fun List<IrVar>.reduce(prim: Prim, newVar: () -> IrVar, put: (IrInstr) -> Unit): IrVar =

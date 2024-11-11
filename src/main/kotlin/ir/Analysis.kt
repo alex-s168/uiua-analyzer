@@ -249,6 +249,15 @@ class Analysis(val block: IrBlock) {
         }
     }
 
+    fun identical(a: IrVar, b: IrVar): Boolean {
+        val cache = CallerInstrsCache()
+        val oa = deepOriginV2(a, cache::get)
+        val ob = deepOriginV2(b, cache::get)
+        if (oa != null && ob != null)
+            return oa == ob
+        return a == b
+    }
+
     fun isPrim(instr: IrInstr, kind: Prim? = null) =
         instr.instr is PrimitiveInstr && kind?.let { instr.instr.id == it } ?: true
 
