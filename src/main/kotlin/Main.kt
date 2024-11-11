@@ -26,6 +26,7 @@ import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
+// TODO: EitherVec
 // TODO: fast contains on RefVec
 // TODO: RefVec remove methods (remove range, remove if, ...)
 
@@ -393,7 +394,7 @@ private fun lowerPasses(exported: List<BlockId>) = listOf(
     lowerFill.generic(),
     fixFnTypes.generic(),
 
-    //verifyBlock.generic(),
+    verifyBlock.generic(),
 )
 
 private fun optPasses(exported: List<BlockId>) = listOf(

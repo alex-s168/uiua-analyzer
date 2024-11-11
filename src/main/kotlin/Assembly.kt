@@ -15,6 +15,7 @@ import blitz.str.splitWithNesting
 import blitz.switch
 import blitz.flatMap
 import blitz.collections.RefVec
+import blitz.parse.JSON.asObj
 
 private fun parseInstrV2(input: JSON.Element): List<Instr> =
     when (input.kind) {
@@ -61,6 +62,25 @@ private fun parseInstrV2(input: JSON.Element): List<Instr> =
         else -> error("error in instr: $input")
     }
 
+private fun complicatedInstr(kind: String, loc: Int, value: JSON.Element): PrimitiveInstr =
+    when (kind) {
+        "REDUCE_DEPTH" -> {
+            val depth = value.asNum().toInt()
+            PrimitiveInstr(Prims.Front.REDUCE_DEPTH, SpanRef(listOf(loc)), depth)
+        }
+
+        "TRANSPOSE_N" -> {
+            val to = when (value.asNum().toInt()) {
+                -1 -> Prims.Front.UN_TRANSPOSE
+                1 -> Prims.TRANSPOSE
+                else -> error("unsupported transpose_n amount")
+            }
+            PrimitiveInstr(to, SpanRef(listOf(loc)))
+        }
+
+        else -> error("unsupported complicated instruction $kind")
+    }
+
 private fun parseInstr(instrIn: String): Instr? {
     val instr = instrIn.trim()
     if (instr.isEmpty()) return null
@@ -74,23 +94,7 @@ private fun parseInstr(instrIn: String): Instr? {
 
             val (kind, value) = l.drop(1).dropLast(1).split(':')
 
-            when (kind.drop(1).dropLast(1)) {
-                "REDUCE_DEPTH" -> {
-                    val depth = value.toInt()
-                    PrimitiveInstr(Prims.Front.REDUCE_DEPTH, SpanRef(listOf(loc.toInt())), depth)
-                }
-
-                "TRANSPOSE_N" -> {
-                    val to = when (value.toInt()) {
-                        -1 -> Prims.Front.UN_TRANSPOSE
-                        1 -> Prims.TRANSPOSE
-                        else -> error("unsupported transpose_n amount")
-                    }
-                    PrimitiveInstr(to, SpanRef(listOf(loc.toInt())))
-                }
-
-                else -> error("unsupported complicated instruction $kind")
-            }
+            complicatedInstr(kind.drop(1).dropLast(1), loc.toInt(), JSON.parse(value).unwrap())
         },
         Regex.fromLiteral("[") startsWithCase {
             val all = JSON.parse(instr).assertA().asArr()
@@ -152,9 +156,16 @@ private fun parseInstr(instrIn: String): Instr? {
         },
         Regex("(?i)(?:impl)?prim *(.*)") startsWithCase {
             val j = JSON.parse(it.groupValues[1]).unwrap().asArr()
-            PrimitiveInstr(
-                Prims.all2[j[0].asStr()]!!
-            )
+            val loc = j.last().asNum().toInt()
+            if (j[0].kind == JSON.Element.OBJ) {
+                val (a, b) = j[0].asObj().toList().first()
+                complicatedInstr(a, loc, b)
+            } else {
+                PrimitiveInstr(
+                    Prims.all2[j[0].asStr()]!!,
+                    SpanRef(listOf(loc))
+                )
+            }
         }
     ) { s ->
         kotlin.runCatching {
