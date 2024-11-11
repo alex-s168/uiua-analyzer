@@ -69,7 +69,7 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
             ))
         }
         else {
-            val newShape = args[0]
+            var newShape = args[0]
 
             // val newShapeV = a.origin(args[0])!!.args.toList()
             val oldValue = args[1]
@@ -171,6 +171,16 @@ val lowerReshape = withPassArg<(IrBlock) -> Unit>("lower reshape") { putBlock ->
                 one to blkExtend,
                 put = put,
             )
+
+            if ((newShape.type as ArrayType).inner != Types.size) {
+                val newNewShape = newVar().copy(type = (newShape.type as ArrayType).mapInner { Types.size })
+                put(IrInstr(
+                    mutableListOf(newNewShape),
+                    PrimitiveInstr(Prims.Comp.ARR_CLONE),
+                    mutableListOf(newShape)
+                ))
+                newShape = newNewShape
+            }
 
             put(IrInstr(
                 mutableListOf(outs[0]),

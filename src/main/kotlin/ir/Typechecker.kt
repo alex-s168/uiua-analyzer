@@ -68,7 +68,7 @@ fun IrInstr.inferTypes(
 
     when (instr) {
         is ArrImmInstr -> {
-            updateType(outs[0], instr.type.copy(vaOff = true))
+            updateType(outs[0], instr.type.copy(vaOff = true, length = instr.values.flatten().size))
         }
 
         is NumImmInstr -> {

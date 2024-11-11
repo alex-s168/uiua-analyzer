@@ -128,7 +128,7 @@ var log = { str: String ->
     println(str)
 }
 
-val inlineConfig = Inline.none
+val inlineConfig = Inline.lte(8)
 val unfilledLoadBoundsCheck = false
 val fullUnrollLoop = UnrollLoop.sumLte(64)
 val boundsChecking = true // pick and unpick bounds checking
@@ -265,7 +265,7 @@ data class Settings(
                 stages,
                 args["main-fn"] ?: "fn",
                 if (stages.first == Stages.Stage.Uiua) inp else null,
-                if (stages.first == Stages.Stage.Uasm) inp else temp(".uasm"),
+                if (stages.first == Stages.Stage.Uasm) inp else if (stages.last == Stages.Stage.Uasm) out else temp(".uasm"),
                 args["log"] ?: ".log.txt",
                 if (stages.last == Stages.Stage.Graph) out else null,
                 if (stages.last == Stages.Stage.RawUac) out else null,
@@ -509,7 +509,7 @@ fun compile(cfg: Settings) {
 
             val astNodes = mutableListOf<ASTRoot>()
             val blocks = assembly.functions.toIr(astNodes)
-            
+
             cfg.graphOutFile?.let(::File)?.writer()?.use { w ->
                 w.append(astNodes.genGraph())
             }

@@ -126,7 +126,8 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
 
             val value = newVar().copy(type = src.type.of)
             inner += Inst.memRefLoad(value.asMLIR(), src.type.toMLIR(), src.asMLIR(), idx)
-            inner += Inst.memRefStore(dest.type.toMLIR(), value.asMLIR(), dest.asMLIR(), idx)
+            val real = castIfNec(::newVar, inner, value, (dest.type as ArrayType).inner)
+            inner += Inst.memRefStore(dest.type.toMLIR(), real.asMLIR(), dest.asMLIR(), idx)
 
             body += Inst.scfFor(idx, zero, count, one, inner)
         } else {
@@ -402,6 +403,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                     }
 
                     Prims.Comp.ARR_COPY -> {
+                        // TODO: move to lowering pass (before loop unroll)
                         memRefCopy(instr.args[0], instr.args[1])
                     }
 
@@ -568,10 +570,16 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         val sha = instr.args[0]
 
                         val arr = instr.args[1]
+                        val arrTy = arr.type as ArrayType
 
                         val out = instr.outs[0]
+                        val outTy = out.type as ArrayType
 
-                        body += "${out.asMLIR()} = memref.reshape ${arr.asMLIR()}(${sha.asMLIR()}) :\n  (${arr.type.toMLIR()}, ${sha.type.toMLIR()}) -> ${out.type.toMLIR()}"
+                        val t0 = newVar().copy(type = NewlyAllocArrayType.from(arrTy))
+                        body += "${t0.asMLIR()} = memref.cast ${arr.asMLIR()} : ${arrTy.toMLIR()} to ${t0.type.toMLIR()}"
+                        val t1 = newVar().copy(type = NewlyAllocArrayType.from(outTy))
+                        body += "${t1.asMLIR()} = memref.reshape ${t0.asMLIR()}(${sha.asMLIR()}) :\n  (${t0.type.toMLIR()}, ${sha.type.toMLIR()}) -> ${t1.type.toMLIR()}"
+                        body += "${out.asMLIR()} = memref.cast ${t1.asMLIR()} : ${t1.type.toMLIR()} to ${outTy.toMLIR()}"
                     }
 
                     Prims.Comp.OFF_VIEW_1D -> { // [arr], [begin idx], [len]

@@ -32,6 +32,6 @@
 # )
 
 fn = (
-  ∵⊂.⇡1000
+  * uncouple reshape2_4000 unshape20_20_20
   # + uncouple res2_5000 
 )
