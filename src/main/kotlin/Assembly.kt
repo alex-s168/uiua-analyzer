@@ -162,7 +162,7 @@ private fun parseInstr(instrIn: String): Instr? {
                 complicatedInstr(a, loc, b)
             } else {
                 PrimitiveInstr(
-                    Prims.all2[j[0].asStr()]!!,
+                    Prims.all2[j[0].asStr().uppercase()] ?: error("primitive ${j[0].asStr()} not found"),
                     SpanRef(listOf(loc))
                 )
             }

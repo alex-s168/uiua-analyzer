@@ -54,7 +54,7 @@ fun IrInstr.inferTypes(
             else -> b
         }
 
-    // TODO: use everywhere here
+    // TODO: IMPORTANT!!!!! use everywhere here
     fun expandArgFn(arg: Int, inTypes: List<Type>, fillType: Type? = null): IrBlock {
         if (verify) error("wtf")
         val pushfn = parent.instrDeclFor(args[arg])!!
@@ -447,8 +447,7 @@ fun IrInstr.inferTypes(
                 val fnExpBlock = if (verify) {
                     fn
                 } else {
-                    val fnExp = fn.expandFor(listOf(arr0.of, arr1.of), putFn, fillType)
-                    parent.ref[fnExp]!!
+                    expandArgFn(0, listOf(arr0.of, arr1.of), fillType)
                 }
 
                 outs.zip(fnExpBlock.rets).forEach { (out, ret) ->

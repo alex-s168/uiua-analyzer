@@ -32,6 +32,6 @@
 # )
 
 fn = (
-  °△200_200
+  tablemul.ran2000
   # + uncouple res2_5000 
 )

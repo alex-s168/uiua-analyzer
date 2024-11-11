@@ -393,11 +393,11 @@ private fun lowerPasses(exported: List<BlockId>) = listOf(
 
     lowerFill.generic(),
     fixFnTypes.generic(),
-
-    verifyBlock.generic(),
 )
 
 private fun optPasses(exported: List<BlockId>) = listOf(
+    verifyBlock.generic(),
+
     funcInline.generic(),
     funcInline.generic(),
     inlineCUse.generic(),
