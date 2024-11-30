@@ -22,7 +22,7 @@ fun passValue(from: Pair<IrBlock, IrVar>, to: IrBlock): IrVar? {
                 val v = it.newVar().copy(type = from.second.type)
                 it.args += v
                 it to v
-            }.find { it.first == to }!!.second
+            }.find { it.first == to }?.second
         }
     }
 

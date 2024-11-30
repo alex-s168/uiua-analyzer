@@ -26,6 +26,7 @@ import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
+// TODO: EitherVec
 // TODO: fast contains on RefVec
 // TODO: RefVec remove methods (remove range, remove if, ...)
 
@@ -129,9 +130,9 @@ var log = { str: String ->
     println(str)
 }
 
-val inlineConfig = Inline.lte(16)
+val inlineConfig = Inline.lte(64)
 val unfilledLoadBoundsCheck = false
-val fullUnrollLoop = UnrollLoop.sumLte(64)
+val fullUnrollLoop = UnrollLoop.all // TODO: why sumLte no work
 val boundsChecking = true // pick and unpick bounds checking
 val mlirComments = true
 val dontCareOpsBeforePanic = true
@@ -392,19 +393,30 @@ private fun lowerPasses(exported: List<BlockId>) = listOf(
 
     lowerFill.generic(),
     fixFnTypes.generic(),
-
-    //verifyBlock.generic(),
 )
 
 private fun optPasses(exported: List<BlockId>) = listOf(
+    verifyBlock.generic(),
+
+    funcInline.generic(),
+    funcInline.generic(),
     inlineCUse.generic(),
     fixArgArrays.generic(),
+    evalDim.generic(),
     lowerArrCopy.generic(),
     evalDim.generic(),
+    inlineCUse.generic(),
+    inlineCUse.generic(),
     argArrLoad.generic(),
     inlineCUse.generic(),
     unrollLoop.generic(),
-    unrollLoop.generic(),
+    inlineCUse.generic(),
+    argArrLoad.generic(),
+    inlineCUse.generic(),
+
+    loadStore.generic(),
+    argArrLoad.generic(),
+    inlineCUse.generic(),
 
     //oneBlockOneCaller.generic(),
     //constantTrace.generic(),
@@ -433,6 +445,8 @@ private fun optPasses(exported: List<BlockId>) = listOf(
     funcInline.generic(),
     funcInline.generic(),
     funcInline.generic(),
+    loadStore.generic(),
+    inlineCUse.generic(),
     //switchIndependentTrailingCodeMovement.generic(),
     fixFnTypes.generic(),
     dse.setArg(exported).generic(),
@@ -460,6 +474,8 @@ private fun optPasses(exported: List<BlockId>) = listOf(
     dce.generic(),
     dse.setArg(exported).generic(),
     fixFnTypes.generic(),
+    loadStore.generic(),
+    inlineCUse.generic(),
 )
 
 private fun preEmitPasses(exported: List<BlockId>) = listOf(

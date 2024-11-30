@@ -7,10 +7,7 @@ import me.alex_s168.uiua.Types
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.lowerPrimPass
-import me.alex_s168.uiua.ir.transform.constant
-import me.alex_s168.uiua.ir.transform.reduce
-import me.alex_s168.uiua.ir.transform.wrapInArgArray
-import me.alex_s168.uiua.ir.transform.repeat
+import me.alex_s168.uiua.ir.transform.*
 
 val lowerArrCopy = lowerPrimPass<(IrBlock) ->  Unit>(Prims.Comp.ARR_COPY) { put, newVar, a, putBlock ->
     val dest = args[0]
@@ -51,7 +48,9 @@ val lowerArrCopy = lowerPrimPass<(IrBlock) ->  Unit>(Prims.Comp.ARR_COPY) { put,
         srcDes to destDes
     } else src to dest
 
-    repeat(numTotal, put, putBlock, a.block.ref, newVar, listOf(destDes, srcDes)) { idx, (destDes, srcDes) ->
+    val numTotalM1 = decrement(numTotal, a, newVar, put)
+
+    repeat(numTotalM1, put, putBlock, a.block.ref, newVar, listOf(destDes, srcDes)) { idx, (destDes, srcDes) ->
         val idxa = listOf(idx).wrapInArgArray(newVar, put = instrs::add)
         val temp = newVar().copy(type = arrTy.inner)
         instrs.add(IrInstr(
