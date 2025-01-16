@@ -469,7 +469,6 @@ class Analysis(val block: IrBlock) {
 
         val (b, shape) = deepOriginV2(arr, callerInstrsWrap)?.a?.let { (b, v) ->
             val a = Analysis(b)
-            // TODO: make work for arg arr and materialize
             if (a.isPrim(v, Prims.Comp.ARR_ALLOC))
                 b.instrDeclFor(v.args[0])
                     ?.args

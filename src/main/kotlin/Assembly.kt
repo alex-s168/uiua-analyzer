@@ -107,16 +107,14 @@ private fun parseInstr(instrIn: String): Instr? {
             }
 
             val data = instr.drop(1).dropLast(1)
-                .replace(",[", "")
                 .replace("[", "")
                 .replace("]", "")
                 .split(',')
                 .map { it.toDouble() }
 
             val elemType = Types.double
-            val type = Types.ndarray(rank, elemType)
             ArrImmInstr(
-                type,
+                Types.array(elemType, data.size),
                 Either.ofB(data)
             )
         },

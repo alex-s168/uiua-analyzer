@@ -31,7 +31,6 @@
 #     Shade¤
 # )
 
-fn = (
-  tablemul.ran2000
-  # + uncouple res2_5000 
+fn ← (
+  ♭ ≡(⊂2) ⇡20000
 )

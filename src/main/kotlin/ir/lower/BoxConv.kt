@@ -22,7 +22,7 @@ fun Type.convBox(): Type =
     when (this) {
         is BoxType -> Types.array(of, 1).also { it.convBox() }
         is PtrType -> Types.pointer(to.convBox())
-        is ArrayType -> mapInner(Type::convBox)
+        is ArrayType -> Types.array(of.convBox(), length, vaOff)
         is FnType -> copy(
             fillType?.convBox(),
             args.map(Type::convBox),

@@ -108,6 +108,7 @@ open class ArrayType(
     fun mapInner(fn: (Type) -> Type): ArrayType =
         shape.shapeToArrType(fn(inner))
 
+    // TODO: make use of this
     fun copyVariableShape(): ArrayType =
         shape.map { -1 }.shapeToArrType(inner)
 
@@ -134,7 +135,6 @@ open class ArrayType(
     }
 }
 
-// TODO: verify
 fun List<Int>.shapeCompact(): List<Int> =
     takeWhile { it != 0 }.dropLastWhile { it in arrayOf(1, -1) }
 

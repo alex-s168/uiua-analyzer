@@ -12,8 +12,9 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
     val fn = args[0]
     val inputs = args.drop(1)
 
+    // the length of each output array (if none of the inputs are >1 rank arrays),
+    // is identical to the maximum of all input arrays lengths
     val maxInputsLen = newVar().copy(type = Types.size)
-
     filled(Types.size, {
         instrs += IrInstr(
             mutableListOf(it),
@@ -79,7 +80,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
 
     val full = IrBlock(anonFnName(), a.block.ref, fillArg = a.block.fillArg).apply {
         // !!! to allocate the array, we first have to run the function once to get the dimension of the inner arrays
-        // (only if result is array)
+        // (not always tho)
         //   execute iter 0
         //   allocate array
         //   copy result from iter 0 into array
@@ -100,7 +101,7 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
 
         val (zero, one) = constants(::newVar, 0.0, 1.0, type = Types.size) { instrs += it }
 
-        val (startAt, shapes, toStoreIter0) = if (outTypes.any { it.of is ArrayType }) {
+        val (startAt, shapes, toStoreIter0) = if (outTypes.any { it.of is ArrayType && it.of.shape.any { it == -1 } }) {
             // do iter 0 outside of loop
 
             val loadedInputs0 = inputs.map {
@@ -141,8 +142,14 @@ val lowerRows = lowerPrimPass<(IrBlock) -> Unit>(Prims.ROWS) { put, newVar, a, p
             )
         } else Triple(
             zero,
-            List(outTypes.size) {
+            outTypes.map { ot ->
                 val shape = mutableListOf(maxInputsLen)
+                if (ot.of is ArrayType) {
+                    ot.of.shape.forEach {
+                        assert(it != -1)
+                        shape += constant(it.toDouble(), Types.size, ::newVar, instrs::add)
+                    }
+                }
                 shape.wrapInArgArray(::newVar) { instrs += it }
             },
             null

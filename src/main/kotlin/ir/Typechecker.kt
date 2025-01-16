@@ -124,7 +124,7 @@ fun IrInstr.inferTypes(
             Prims.Comp.BOX_DESTROY -> {}
 
             Prims.Comp.ARG_ARR -> {
-                updateType(outs[0], Types.array(args[0].type))
+                updateType(outs[0], Types.array(args[0].type, args.size))
             }
 
             Prims.Comp.ARR_ALLOC -> {
@@ -498,7 +498,7 @@ fun IrInstr.inferTypes(
                 val highest = highestShapeType(arg0, arg1)
                 val res = if (highest is ArrayType)
                     highest.mapShapeElems { -1 }
-                else Types.array(highest)
+                else Types.array(highest, 2)
                 updateType(outs[0], res)
             }
 

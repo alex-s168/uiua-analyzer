@@ -123,7 +123,7 @@ abstract class Instr {
     abstract fun clone(): Instr
 }
 
-// TODO: make smaller
+// TODO: make fields smaller
 data class PrimitiveInstr(
     var id: Prim,
     var loc: SpanRef? = null,

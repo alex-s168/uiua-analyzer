@@ -10,7 +10,7 @@ import me.alex_s168.uiua.ir.parallelWithoutDeepCopy
 import me.alex_s168.uiua.ir.transform.reduce
 import me.alex_s168.uiua.ir.transform.wrapInArgArray
 
-// TODO: NEEDS ARRAY COPYPYYY
+// TODO: MISSING ARRAY CLONE
 val lowerDeshape = lowerPrimPass<(IrBlock) -> Unit>(Prims.DESHAPE) { put, newVar, a, putBlock ->
     val shape = newVar().copy(type = Types.array(Types.size))
     put(IrInstr(

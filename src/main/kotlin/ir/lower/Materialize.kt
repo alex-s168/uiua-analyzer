@@ -17,6 +17,9 @@ val argArrMat = modifyPass(
 ) { put, newVar, a ->
     val data = args
     val ty = outs[0].type as ArrayType
+    require(ty.length != null) {
+        "arg array out type needs to have comptime length. typechecker fucked up?"
+    }
 
     if (ty.inner is FnType)
         return@modifyPass

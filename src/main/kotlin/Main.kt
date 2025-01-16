@@ -26,7 +26,7 @@ import kotlin.random.nextULong
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
-// TODO: EitherVec
+// TODO: EitherVec by adding PairVec
 // TODO: fast contains on RefVec
 // TODO: RefVec remove methods (remove range, remove if, ...)
 
@@ -140,7 +140,7 @@ val additionalDebugInstrs = false // don't really work
 val uacPrintSpans = true
 val debugVerify = false
 
-// TODO: don't use scf.parallel if it can't safely be executed in parallel
+// TODO: (IMPORTANT) don't use scf.parallel if it can't safely be executed in parallel
 
 class ConcurrentLogger(private val dest: Writer) {
     private val logwrcache = ThreadLocal.withInitial<String?> { null }
@@ -398,7 +398,7 @@ private fun lowerPasses(exported: List<BlockId>) = listOf(
 private fun optPasses(exported: List<BlockId>) = listOf(
     verifyBlock.generic(),
 
-    funcInline.generic(),
+    /*funcInline.generic(),
     funcInline.generic(),
     inlineCUse.generic(),
     fixArgArrays.generic(),
@@ -412,7 +412,7 @@ private fun optPasses(exported: List<BlockId>) = listOf(
     unrollLoop.generic(),
     inlineCUse.generic(),
     argArrLoad.generic(),
-    inlineCUse.generic(),
+    inlineCUse.generic(),*/
 
     loadStore.generic(),
     argArrLoad.generic(),

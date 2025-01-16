@@ -26,9 +26,12 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: IrVar, src: IrVar
         }
         is ArrayType -> {
             require(from is ArrayType)
-            val out = mutableListOf<String>()
-            subview(newVar, out, dest, src, listOf())
-            out
+            //val out = mutableListOf<String>()
+            //subview(newVar, out, dest, src, listOf())
+            //out
+            listOf(
+                "${dest.asMLIR()} = memref.cast ${src.asMLIR()} : ${from.toMLIR()} to ${to.toMLIR()}"
+            )
         }
         Types.double -> when (from) {
             Types.double -> error("No!")

@@ -108,6 +108,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
     }
 
     fun memRefCopy(dest: IrVar, src: IrVar) {
+        // TODO: in higher level, so that you can unroll
         if ((src.type as ArrayType).shape.size == 1) {
             if (mlirComments)
                 body += "// memRefCopy ${src.asMLIR()} to ${dest.asMLIR()}"
@@ -566,6 +567,9 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
 
                     Prims.Comp.RESHAPE_VIEW -> {
                         val sha = instr.args[0]
+                        require((sha.type as ArrayType).length != null) {
+                            "reshape shape array needs to have comptime known length"
+                        }
 
                         val arr = instr.args[1]
                         val arrTy = arr.type as ArrayType
