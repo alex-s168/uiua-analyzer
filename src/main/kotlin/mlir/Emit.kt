@@ -58,7 +58,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
 
         return listOf(Inst.funcCall(
             dests.map { it.asMLIR() },
-            fn.name,
+            fn.name.legalizeMLIR(),
             fn.type().toMLIR(),
             *args.mapToArray { it.asMLIR() }
         ))

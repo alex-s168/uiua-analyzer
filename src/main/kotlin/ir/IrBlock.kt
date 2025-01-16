@@ -2,9 +2,10 @@ package me.alex_s168.uiua.ir
 
 import blitz.collections.contents
 import me.alex_s168.uiua.*
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
-private var nextBlockId: BlockId = 0
+private var nextBlockId = AtomicInteger(0)
 private var nextGVarId = AtomicLong(0)
 
 enum class Lifetime {
@@ -29,7 +30,7 @@ data class IrBlock(
     var fillArg: IrVar? = null,
     var private: Boolean = true,
 ) {
-    var uid: BlockId = nextBlockId ++
+    var uid: BlockId = nextBlockId.getAndIncrement()
 
     val lifetimes = mutableMapOf<IrVar, Lifetime>()
 

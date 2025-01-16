@@ -226,7 +226,13 @@ class Analysis(val block: IrBlock) {
                 }
 
                 else if (isPrim(instr, Prims.FILL)) {
-                    a.deepOriginV2(instr.arg(idx + 2), callerInstrsWrap)?.let { return it }
+                    if (idx == 0) {
+                        // fill value
+                        // TODO: should do eventually
+                    } else {
+                        // +2-1 (bc of fill value is first arg to block)
+                        a.deepOriginV2(instr.arg(idx + 1), callerInstrsWrap)?.let { return it }
+                    }
                 }
             }
         }

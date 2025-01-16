@@ -38,7 +38,7 @@ object Inst {
         baseBin("div", dest, type, a, b, float).also { require(float) }
 
     fun mod(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean) =
-        baseBin("remi", dest, type, a, b, float).also { require(float) }
+        baseBin("rem", dest, type, a, b, float).also { require(float) } // TODO: actually supports non-float, but need remui or remsi
 
     fun pow(dest: MLIRVar, type: MLIRType, a: MLIRVar, b: MLIRVar, float: Boolean): String {
         require(float)

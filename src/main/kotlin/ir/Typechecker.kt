@@ -363,19 +363,20 @@ fun IrInstr.inferTypes(
             }
 
             Prims.ROWS -> {
-                val fnblock = a.function(args[0])!!
-
                 val inps = args.drop(1).map {
-                    if (it.type !is ArrayType || it.type.length == 1) it.type
-                    else it.type.of.makeVaOffIfArray()
+                    it.type
+                        .ofIfArray()
+                        .makeVaOffIfArray()
                 }
 
                 val newb = if (verify) {
-                    a.function(args[0])!!
+                    a.function(args[0])!!.also {
+                        require(it.args.map { it.type }.tyEq(inps))
+                    }
                 } else {
-                    val new = fnblock.expandFor(inps, putFn, fillType)
-                    args[0] = fnRef(new)
-                    parent.ref[new]!!
+                    val new = expandArgFn(0, inps, fillType)
+                    args[0] = fnRef(new.uid)
+                    new
                 }
 
                 outs.zip(newb.rets).forEach { (out, ret) ->

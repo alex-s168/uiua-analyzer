@@ -476,6 +476,8 @@ private fun optPasses(exported: List<BlockId>) = listOf(
     fixFnTypes.generic(),
     loadStore.generic(),
     inlineCUse.generic(),
+    loadStore.generic(),
+    inlineCUse.generic(),
 )
 
 private fun preEmitPasses(exported: List<BlockId>) = listOf(
