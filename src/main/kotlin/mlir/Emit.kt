@@ -609,6 +609,8 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                                 "$a -> $b"
                             }
 
+                        //  affine_map<(d0, d1, d2)[s0, s1] -> (d0 + s0 + d1 * 2 + d2 * s1)>
+
                         // produces something like "affine_map<(d0, d1)[s0] -> (d1 * s0 + d0)>"
                         val affineMap = let {
                             val a = List(arrTy.shape.size) { "d$it" }.joinToString(prefix = "(", postfix = ")")
@@ -624,7 +626,7 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         }
 
                         val transposed = newVar().asMLIR()
-                        val traTy = Ty.memref(arrTy.shape, arrTy.inner.toMLIR(), arrTy.vaOff, ", $affineMap")
+                        val traTy = Ty.memref(arrTy.shape.reversed(), arrTy.inner.toMLIR(), arrTy.vaOff, ", $affineMap")
                         body += "$transposed = memref.transpose ${arr.asMLIR()} $namMap : ${arrTy.toMLIR()} to $traTy"
 
                         body += "memref.copy ${transposed}, ${dest.asMLIR()} : $traTy to ${dest.type.toMLIR()}"

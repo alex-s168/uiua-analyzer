@@ -559,7 +559,8 @@ fun IrInstr.inferTypes(
             }
 
             Prims.Comp.TRANSPOSE -> {
-                require(args[0].type == args[1].type)
+                val arr = args[1].type as ArrayType
+                updateType(args[0], arr.mapShapeElems { -1 })
             }
 
             Prims.Comp.PANIC,

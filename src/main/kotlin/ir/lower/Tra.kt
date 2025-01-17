@@ -22,7 +22,7 @@ val lowerTranspose = lowerPrimPass(Prims.TRANSPOSE) { put, newVar, a ->
             mutableListOf(args[0], d)
         ))
         dim
-    }.wrapInArgArray(newVar, put = put)
+    }.reversed().wrapInArgArray(newVar, put = put)
 
     put(IrInstr(
         mutableListOf(outs[0]),

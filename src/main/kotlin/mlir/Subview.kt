@@ -25,7 +25,7 @@ fun subview(newVar: () -> IrVar, body: MutableList<String>, dest: IrVar, arr: Ir
      */
     val offsets = indecies.map { castIfNec(newVar, body, it, Types.size).asMLIR() } + List(arrTy.shape.size - indecies.size) { 0 }
     val size = indecies.map { 1 }.shapeToMLIR() + List(arrTy.shape.size - indecies.size) { dims[it + indecies.size] }
-    val strides = dims.drop(1).plus("1")
+    val strides = List(dims.size){"1"} // dims.drop(1).plus("1")
 
     body += "${dest.asMLIR()} = memref.subview ${arr.asMLIR()}[${offsets.joinToString()}][${size.joinToString()}][${strides.joinToString()}] : \n  ${arr.type.toMLIR()} to ${dest.type.toMLIR()}"
 }
