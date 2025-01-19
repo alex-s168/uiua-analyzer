@@ -5,6 +5,7 @@ import me.alex_s168.uiua.ir.Analysis
 import me.alex_s168.uiua.ir.IrBlock
 import me.alex_s168.uiua.ir.IrInstr
 import me.alex_s168.uiua.ir.IrVar
+import me.alex_s168.uiua.ir.transform.ndRepeat
 
 fun genCallBlockFnTail(innerFnType: FnType, ref: Map<BlockId, IrBlock>): IrBlock {
     return IrBlock(anonFnName(), ref).apply {
@@ -430,10 +431,38 @@ fun ndRepeat(
     sizes: List<IrVar>,
     put: (IrInstr) -> Unit,
     putBlock: (IrBlock) -> Unit,
-    ref: Map<String, IrBlock>,
+    ref: Map<BlockId, IrBlock>,
     newVar: () -> IrVar,
     args: List<IrVar>,
+    internalIdcAsArgs: Int = 0,
     body: IrBlock.(idc: List<IrVar>, args: List<IrVar>) -> Unit
 ) {
-    TODO()
+    require(sizes.isNotEmpty())
+    repeat(
+        sizes[0],
+        put,
+        putBlock,
+        ref,
+        newVar,
+        sizes.drop(1) + args
+    ) { idx, args ->
+        if (sizes.size == 1) {
+            this.body(
+                args.take(internalIdcAsArgs).reversed() + idx,
+                args.drop(internalIdcAsArgs)
+            )
+        }
+        else {
+            ndRepeat(
+                args.take(sizes.size - 1),
+                this.instrs::add,
+                putBlock,
+                ref,
+                this::newVar,
+                listOf(idx) + args.drop(sizes.size - 1),
+                internalIdcAsArgs + 1,
+                body
+            )
+        }
+    }
 }

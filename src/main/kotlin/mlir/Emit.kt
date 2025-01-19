@@ -565,6 +565,18 @@ fun IrBlock.emitMLIR(dbgInfoConsumer: (SourceLocInstr) -> List<String>): List<St
                         )
                     }
 
+                    Prims.Comp.FIX_ARR -> {
+                        val arr = instr.args[0]
+                        val arrTy = arr.type as ArrayType
+
+                        val out = instr.outs[0]
+
+                        val dims = instr.args.drop(1)
+                        require(dims.size == arrTy.shape.size)
+
+                        body += "${out.asMLIR()} = memref.expand_shape ${arr.asMLIR()} [[${List(arrTy.shape.size){it}.joinToString()}], [${arrTy.shape.size}]] output_shape [1, ${dims.map{it.asMLIR()}.joinToString()}] : ${arrTy.toMLIR()} into ${out.type.toMLIR()}"
+                    }
+
                     Prims.Comp.RESHAPE_VIEW -> {
                         val sha = instr.args[0]
                         require((sha.type as ArrayType).length != null) {

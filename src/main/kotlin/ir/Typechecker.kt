@@ -415,7 +415,8 @@ fun IrInstr.inferTypes(
                 }
             }
 
-            Prims.FIX -> {
+            Prims.FIX,
+            Prims.Comp.FIX_ARR -> {
                 val argTy = args[0].type
                 updateType(outs[0], Types.array(argTy, 1))
             }

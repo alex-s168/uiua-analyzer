@@ -38,7 +38,8 @@ object Prims {
         val SINK = prim("cSINK") // [val]
 
         val OFF_VIEW_1D = prim("cOFF_VIEW") //[arr], [begin idx], [len]
-        val RESHAPE_VIEW = prim("cRESHAPE_VIEW") // [sha], [arr]
+        val RESHAPE_VIEW = prim("cRESHAPE_VIEW") // [sha: 1d array], [arr]
+        val FIX_ARR = prim("cFIX_ARR") // [arr], [arr original dimension]...
 
         val RT_EXTEND_SCALAR = prim("cRT_EXTEND_SCALAR") // [base], [targetLen], [fillWith]
         val RT_EXTEND_REPEAT = prim("cRT_EXTEND_REPEAT") // [base], [targetLen], [extendWithRep]

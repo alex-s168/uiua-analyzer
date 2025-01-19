@@ -202,11 +202,12 @@ data class Stages(
            Stage.entries[stages.indexOf(str)]
 
         fun parse(arg: String): Stages {
+            val sep = if (arg.contains("->")) "->" else "-"
             val spl = arg
-                .split("->")
+                .split(sep)
                 .map(String::trim)
 
-            val err = "expected compilation stage range in format: A->B"
+            val err = "expected compilation stage range in format: A-B"
             return when (spl.size) {
                 2 -> Stages(
                     parseStage(spl[0]),
