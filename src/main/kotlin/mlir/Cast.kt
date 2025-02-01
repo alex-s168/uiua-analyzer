@@ -1,5 +1,6 @@
 package me.alex_s168.uiua.mlir
 
+import blitz.collections.contents
 import me.alex_s168.uiua.*
 import me.alex_s168.uiua.ir.IrVar
 
@@ -26,12 +27,18 @@ fun castInstr(newVar: () -> IrVar, from: Type, to: Type, dest: IrVar, src: IrVar
         }
         is ArrayType -> {
             require(from is ArrayType)
-            //val out = mutableListOf<String>()
-            //subview(newVar, out, dest, src, listOf())
-            //out
-            listOf(
-                "${dest.asMLIR()} = memref.cast ${src.asMLIR()} : ${from.toMLIR()} to ${to.toMLIR()}"
-            )
+            // TODO: why tf does it even do implicit unbox
+            if (from.shape.drop(1).contents == to.shape.contents) {
+                val reac0 = List(from.shape.size-1){it.toString()}
+                listOf(
+                    "${dest.asMLIR()} = memref.collapse_shape ${src.asMLIR()} [${reac0.contents}, [${to.shape.size}]] : ${from.toMLIR()} into ${to.toMLIR()}"
+                )
+            }
+            else {
+                listOf(
+                    "${dest.asMLIR()} = memref.cast ${src.asMLIR()} : ${from.toMLIR()} to ${to.toMLIR()}"
+                )
+            }
         }
         Types.double -> when (from) {
             Types.double -> error("No!")

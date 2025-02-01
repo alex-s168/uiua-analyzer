@@ -14,7 +14,7 @@ a         ← 10
 b         ← ¯30
 Segments  ← 20
 Framerate ← 24
-Size      ← 100_100
+Size      ← 4000_4000
 
 Cb ← ×¯2+a b                  # -2(a+b)
 Cc ← ++××2⊃(+b|+a|¯ⁿ2◌|×¯3ⁿ2) # y x ← 2(a+y)(b+y)-x^2-3y^2
@@ -27,6 +27,6 @@ Shade ← ◿2⌊ +⊓(×Segments|÷Framerate) # value time ← 0 or 1
 
 fn = (
     ⇡×2Framerate
-    Normalise Param °⊟-÷2⟜(°⍉ ≡(≡⊂:⇡100)⇡100)Size
+    Normalise Param °⊟-÷2⟜(°⍉ ≡(≡⊂:⇡4000)⇡4000)Size
     Shade¤
 )
