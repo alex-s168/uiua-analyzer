@@ -49,12 +49,12 @@ cd rt && ./build.sh && cd ..
 Now you are ready to compile uiua programs.
 If you have bash installed, run:
 ```shell
-./uiuac --pipeline="uiua->exe" --in=MyUiuaFile.ua --out=out.exe
+./uiuac --pipeline=uiua-exe --in=MyUiuaFile.ua --out=out.exe
 ```
 
 If you don't have bash installed, run (not recommended):
 ```shell
-./gradlew run --args "--pipeline=uiua->exe --in=MyUiuaFile.ua --out=out.exe"
+./gradlew run --args "--pipeline=uiua-exe --in=MyUiuaFile.ua --out=out.exe"
 ```
 
 for more features (like generating graphs), see the help text (`./uiuac --help` or `./gradlew run --args "--help"`)

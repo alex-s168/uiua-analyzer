@@ -15,7 +15,7 @@ repositories {
     mavenCentral()
     maven {
         name = "alex's repo"
-        url = uri("http://207.180.202.42:8080/libs")
+        url = uri("http://198.7.115.119:8080/libs")
         isAllowInsecureProtocol = true
     }
 }
